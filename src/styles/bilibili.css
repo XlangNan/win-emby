@@ -1,0 +1,38 @@
+/* bilibili.css — Win-Box 皮肤：哔哔（B 站蓝 × B 站粉，浅色底座）
+迁移为「纯令牌皮肤」：本文件**只声明令牌**，一切结构样式见 global.css（宿主结构层）。
+   配色规范：主色 #00AEEC（hover #0095CC）；点缀粉 #FB7299；中性色 #18191C/#61666D/#9499A0/#E3E5E7；
+     页面底 #F4F5F6 系；白卡 12px 圆角。
+   注意：哔哔的 layout.base='dark'，但配色是**浅色** —— 故必须给全所有颜色类令牌，
+     否则未覆盖的令牌会漏出深色基线（浅色皮肤专属口径）。 */
+
+:root[data-theme='bilibili'] {
+  /* ===== 表面与层级（浅色底座） ===== */
+  --surface-0: #f4f5f6;
+  --surface-1: #ffffff;
+  --surface-2: #ffffff;
+  --surface-3: #f6f7f8;
+  --surface-glass: rgba(244, 245, 246, .92);   /* 玻璃层：词表要求含 alpha（原为不透明 #f4f5f6） */
+  /* ===== 品牌与强调 ===== */
+  --accent: #00aeec;
+  --accent-strong: #0095cc;
+  --accent-container: #00aeec;
+  --accent-soft: rgba(0, 174, 236, .1);
+  --on-accent: #ffffff;
+  --accent-2: #fb7299;
+  /* ===== 文本 ===== */
+  --text: #18191c;
+  --text-dim: #61666d;
+  --text-faint: #9499a0;
+  /* ===== 分隔与语义色 ===== */
+  --border: #e3e5e7;
+  --border-soft: rgba(227, 229, 231, .9);
+  --hairline: rgba(227, 229, 231, .9);
+  --danger: #f56c6c;
+  --warn: #ff9900;
+  --success: #22c55e;
+  --info: #00aeec;
+  /* ===== 形状与光影（浅色轻阴影；圆角与基线同值，保留以标明本皮肤口径） ===== */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 2px 6px rgba(24, 25, 28, .05), 0 10px 24px -10px rgba(24, 25, 28, .12);
+}

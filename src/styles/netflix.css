@@ -1,0 +1,37 @@
+/* netflix.css — Win-Box 皮肤：Netflix 风格
+迁移为「纯令牌皮肤」—— 本文件只声明令牌，结构样式见 global.css（宿主结构层）。
+   原规范：背景 #141414 系 / 品牌红 #E50914 只服务品牌与主行动 / 白底播放键 / 顶部导航 / 红色进度条；
+   暖黑影院调色板（纯黑舞台）+ 弹簧悬停 + 海报内部慢推变焦，控件统一走全站动效令牌。 */
+:root[data-theme='netflix'] {
+  /* ---- 表面与层级：暖黑影院调色板 ---- */
+  --surface-0: #000;
+  --surface-glass: rgba(20, 20, 20, .92);
+  --surface-1: #141414;
+  --surface-2: #1a1a1c;
+  --surface-3: #262629;
+  /* ---- 品牌与强调 ---- */
+  --accent: #e50914;
+  --accent-strong: #f6121d;
+  --accent-container: #e50914;
+  --accent-soft: rgba(229, 9, 20, .18);
+  --accent-2: #e50914;
+  --on-accent: #141414;   /* 亮面（白底播放键 / 白色选中态）上的前景色 —— 网飝的 on-brand 为暖黑 */
+  /* ---- 文本 ---- */
+  --text: #ffffff;
+  --text-dim: #b3b3b3;
+  --text-faint: #808080;
+  /* ---- 分隔与语义色 ---- */
+  --border: #2a2a2d;
+  --border-soft: rgba(255, 255, 255, .1);
+  --hairline: rgba(255, 255, 255, .12);
+  --danger: #eb3942;
+  --warn: #d89d31;
+  --success: #46d369;
+  --info: #54b9c5;
+  /* ---- 形状与光影 ---- */
+  --radius: 8px;
+  --radius-sm: 4px;
+  --radius-lg: 12px;
+  --shadow: 0 2px 6px rgba(0, 0, 0, .5), 0 14px 34px rgba(0, 0, 0, .62);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, .55), 0 24px 60px rgba(0, 0, 0, .72);
+}

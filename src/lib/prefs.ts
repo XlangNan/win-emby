@@ -1,0 +1,62 @@
+// 播放偏好（localStorage）
+export interface PlayPrefs {
+  /** 画质上限，单位 Mbps；0 = 不限（原画优先） */
+  maxMbps: number;
+  /** 允许 HEVC(H.265) 直接播放（需要系统带 HEVC 解码；不勾选则由服务器转码为 H.264） */
+  hevc: boolean;
+  /** 播完自动播下一集 */
+  autoNext: boolean;
+  volume: number;
+}
+
+const KEY = 'wemby-play-prefs';
+const DEFAULTS: PlayPrefs = { maxMbps: 0, hevc: false, autoNext: true, volume: 1 };
+
+export function loadPlayPrefs(): PlayPrefs {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return { ...DEFAULTS };
+    return { ...DEFAULTS, ...(JSON.parse(raw) as Partial<PlayPrefs>) };
+  } catch {
+    return { ...DEFAULTS };
+  }
+}
+
+export function savePlayPrefs(p: Partial<PlayPrefs>): PlayPrefs {
+  const next = { ...loadPlayPrefs(), ...p };
+  try {
+    localStorage.setItem(KEY, JSON.stringify(next));
+  } catch {
+    /* ignore */
+  }
+  return next;
+}
+
+// 搜索历史
+const HKEY = 'wemby-search-history';
+export function loadSearchHistory(): string[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(HKEY) || '[]');
+    return Array.isArray(v) ? v.filter((x) => typeof x === 'string').slice(0, 10) : [];
+  } catch {
+    return [];
+  }
+}
+export function pushSearchHistory(q: string): string[] {
+  const t = q.trim();
+  if (!t) return loadSearchHistory();
+  const next = [t, ...loadSearchHistory().filter((x) => x !== t)].slice(0, 10);
+  try {
+    localStorage.setItem(HKEY, JSON.stringify(next));
+  } catch {
+    /* ignore */
+  }
+  return next;
+}
+export function clearSearchHistory(): void {
+  try {
+    localStorage.removeItem(HKEY);
+  } catch {
+    /* ignore */
+  }
+}
