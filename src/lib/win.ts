@@ -30,9 +30,42 @@ export async function winStartDrag(): Promise<void> {
   if (isTauri()) await (await cur()).startDragging();
 }
 
+// 进全屏前记下窗口的位置 / 大小 / 是否最大化，退出全屏时原样还原
+// （Windows 贴边半屏等状态，直接 setFullscreen(false) 会回到默认尺寸）
+let saved: { x: number; y: number; w: number; h: number; max: boolean } | null = null;
+
 export async function winSetFullscreen(on: boolean): Promise<void> {
   if (isTauri()) {
-    await (await cur()).setFullscreen(on);
+    const w = await cur();
+    if (on) {
+      if (!(await w.isFullscreen())) {
+        try {
+          const p = await w.outerPosition();
+          const z = await w.outerSize();
+          saved = { x: p.x, y: p.y, w: z.width, h: z.height, max: await w.isMaximized() };
+        } catch {
+          saved = null;
+        }
+      }
+      await w.setFullscreen(true);
+      return;
+    }
+    await w.setFullscreen(false);
+    const s = saved;
+    saved = null;
+    if (s) {
+      try {
+        const m = await import('@tauri-apps/api/dpi');
+        if (s.max) {
+          await w.maximize();
+        } else {
+          await w.setSize(new m.PhysicalSize(s.w, s.h));
+          await w.setPosition(new m.PhysicalPosition(s.x, s.y));
+        }
+      } catch {
+        /* 还原失败就保持系统默认 */
+      }
+    }
     return;
   }
   if (on) await document.documentElement.requestFullscreen?.().catch(() => undefined);

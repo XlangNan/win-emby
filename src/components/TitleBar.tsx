@@ -34,7 +34,7 @@ export default function TitleBar({ title = 'Win-Emby', variant = 'win' }: { titl
   return (
     <div className="titlebar" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
       <div className="tb-title" title={title}>
-        <img className="tb-ico" src="/icon.png" alt="" draggable={false} />
+        <img className="tb-ico" src="/icon.png" alt="" draggable={false} role="button" style={{ cursor: 'pointer' }} onClick={() => { window.location.hash = '#/'; }} />
         <span className="tb-text">{title}</span>
       </div>
       <div className="tb-controls" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>

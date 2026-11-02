@@ -201,7 +201,7 @@ function AppShell() {
         </header>
         <div className="ap-body">
           <aside className="ap-sidebar">
-            <div className="ap-brand" title="Win-Emby">
+            <div className="ap-brand" title="回到首页" role="button" tabIndex={0} style={{ cursor: 'pointer' }} onClick={() => nav('/')} onKeyDown={(e) => e.key === 'Enter' && nav('/')}>
               <img className="ap-brand-ico" src="/icon.png" alt="" draggable={false} />
               <span className="ap-brand-name">Win-Emby</span>
             </div>
@@ -232,7 +232,7 @@ function AppShell() {
         <AppAmbient />
         <header className="bb-head">
           <div className="bb-top">
-            <span className="bb-brand" title="Win-Emby">
+            <span className="bb-brand" title="回到首页" role="button" tabIndex={0} style={{ cursor: 'pointer' }} onClick={() => nav('/')} onKeyDown={(e) => e.key === 'Enter' && nav('/')}>
               <span className="bb-brand-mark" aria-hidden="true">b</span>
               WIN-EMBY
             </span>
@@ -261,7 +261,7 @@ function AppShell() {
         <AppAmbient />
         <header className="db-head">
           <div className="db-topbar">
-            <span className="db-brand" title="Win-Emby">
+            <span className="db-brand" title="回到首页" role="button" tabIndex={0} style={{ cursor: 'pointer' }} onClick={() => nav('/')} onKeyDown={(e) => e.key === 'Enter' && nav('/')}>
               <img className="db-brand-ico" src="/icon.png" alt="" draggable={false} />
               WIN-EMBY
             </span>
@@ -290,7 +290,7 @@ function AppShell() {
       <AppAmbient />
       <main className="main">
         <nav className="nf-nav">
-          <span className="nf-logo">WIN-EMBY</span>
+          <span className="nf-logo" title="回到首页" role="button" tabIndex={0} style={{ cursor: 'pointer' }} onClick={() => nav('/')} onKeyDown={(e) => e.key === 'Enter' && nav('/')}>WIN-EMBY</span>
           <div className="we-navlinks" onWheel={(e) => { e.currentTarget.scrollLeft += e.deltaY; }}>
             {allNav.map((n) => (
               <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => 'nf-link' + (isActive ? ' active' : '')}>
