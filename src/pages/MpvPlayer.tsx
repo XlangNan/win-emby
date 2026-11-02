@@ -157,6 +157,8 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       default: break;
     }
   }, [nav, report]);
+  // 稳定的 ref 回调：只在菜单刚打开时滚到当前集（内联函数每次渲染都会触发，导致滚动被拉回）
+  const scrollToActive = useCallback((el: HTMLElement | null) => el?.scrollIntoView({ block: 'center' }), []);
   const pickSubRef = useRef<(s: MediaStream | null, silent?: boolean) => Promise<void>>(async () => undefined);
   const onPropRef = useRef(onProp);
   onPropRef.current = onProp;
@@ -471,7 +473,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
                   {episodes.map((e) => (
                     <div
                       key={e.Id}
-                      ref={e.Id === id ? (el) => el?.scrollIntoView({ block: 'center' }) : undefined}
+                      ref={e.Id === id ? scrollToActive : undefined}
                       className={`we-menu-item${e.Id === id ? ' active' : ''}`}
                       onClick={() => { setMenu(''); if (e.Id !== id) nav(`/player/${e.Id}`, { replace: true }); }}
                     >

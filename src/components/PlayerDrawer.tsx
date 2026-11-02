@@ -6,6 +6,9 @@ import type { EmbyItem } from '../emby/types';
 
 type Tab = 'info' | 'cast' | 'eps';
 
+// 模块级函数 = 引用稳定，只在元素刚挂载时滚动一次，不会在每次重渲染时把滚动位置拉回去
+const scrollToActive = (el: HTMLElement | null): void => el?.scrollIntoView({ block: 'center' });
+
 export default function PlayerDrawer({
   item,
   episodes,
@@ -71,7 +74,7 @@ export default function PlayerDrawer({
         {tab === 'eps' && (
           <div className="we-d-eps">
             {episodes.map((e) => (
-              <div key={e.Id} ref={e.Id === currentId ? (el) => el?.scrollIntoView({ block: 'center' }) : undefined} className={`we-d-ep${e.Id === currentId ? ' active' : ''}`} role="button" tabIndex={0} onClick={() => onPickEpisode(e)} onKeyDown={(ev) => ev.key === 'Enter' && onPickEpisode(e)}>
+              <div key={e.Id} ref={e.Id === currentId ? scrollToActive : undefined} className={`we-d-ep${e.Id === currentId ? ' active' : ''}`} role="button" tabIndex={0} onClick={() => onPickEpisode(e)} onKeyDown={(ev) => ev.key === 'Enter' && onPickEpisode(e)}>
                 <div className="we-d-ep-thumb">
                   {thumbUrl(e, 240) ? <img src={thumbUrl(e, 240)} loading="lazy" alt="" /> : null}
                 </div>
