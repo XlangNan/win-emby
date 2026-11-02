@@ -471,6 +471,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
                   {episodes.map((e) => (
                     <div
                       key={e.Id}
+                      ref={e.Id === id ? (el) => el?.scrollIntoView({ block: 'center' }) : undefined}
                       className={`we-menu-item${e.Id === id ? ' active' : ''}`}
                       onClick={() => { setMenu(''); if (e.Id !== id) nav(`/player/${e.Id}`, { replace: true }); }}
                     >

@@ -71,7 +71,7 @@ export default function PlayerDrawer({
         {tab === 'eps' && (
           <div className="we-d-eps">
             {episodes.map((e) => (
-              <div key={e.Id} className={`we-d-ep${e.Id === currentId ? ' active' : ''}`} role="button" tabIndex={0} onClick={() => onPickEpisode(e)} onKeyDown={(ev) => ev.key === 'Enter' && onPickEpisode(e)}>
+              <div key={e.Id} ref={e.Id === currentId ? (el) => el?.scrollIntoView({ block: 'center' }) : undefined} className={`we-d-ep${e.Id === currentId ? ' active' : ''}`} role="button" tabIndex={0} onClick={() => onPickEpisode(e)} onKeyDown={(ev) => ev.key === 'Enter' && onPickEpisode(e)}>
                 <div className="we-d-ep-thumb">
                   {thumbUrl(e, 240) ? <img src={thumbUrl(e, 240)} loading="lazy" alt="" /> : null}
                 </div>
