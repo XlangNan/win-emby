@@ -10,12 +10,15 @@
 - 首页：最近添加聚光卡、继续观看、下一集、各媒体库最近添加
 - 媒体库：排序 / 类型 / 未看 / 已看 / 收藏筛选，分页加载
 - 详情：简介、季与单集列表（带剧照和进度）、演职员、相关推荐、收藏、标记已看
-- 播放：服务器决定直连 / 转封装 / 转码，HLS 走 hls.js；音轨、字幕（文本字幕客户端渲染，图片字幕服务器烧录）、倍速、画质上限、自动下一集
+- 播放（默认内嵌 MPV）：mpv 直接解码原文件，支持 HDR10 / HLG / 杜比视界、MKV、DTS / TrueHD；返回按钮、简介 / 演职员 / 选集抽屉、音轨与字幕切换（含外挂字幕）、倍速、自动下一集
+- 备用内核：内置网页播放器（`<video>` + hls.js，由 Emby 转封装 / 转码）；MPV 起不来时自动改用它
 - 进度与 Emby 账号双向同步（和其它 Emby 客户端互通）
 - 搜索、收藏、观看历史
 - 四套皮肤切换（设置页）
 
-快捷键（播放页）：空格 播放/暂停，←/→ 快退/快进 10 秒（Shift 为 30 秒），↑/↓ 音量，F 全屏，M 静音，N 下一集，Esc 返回。
+快捷键（播放页）：空格 播放/暂停，←/→ 快退/快进 10 秒（Shift 为 30 秒），↑/↓ 音量，F 全屏，M 静音，N 下一集，I 信息抽屉，Esc 返回。
+
+**HDR / 杜比视界**：想让显示器真的亮起 HDR，需要在 Windows「设置 → 显示 → 使用 HDR」里打开；没打开时 mpv 会把 HDR 片源自动映射成 SDR，颜色不会发灰。杜比视界 Profile 5 / 8 正常显示；Profile 7（蓝光原盘双层）只显示基础层。
 
 ## 本地运行 / 打包（Windows，复制粘贴）
 
@@ -38,8 +41,11 @@ Invoke-WebRequest https://rsproxy.cn/rustup-init.exe -OutFile rustup-init.exe
 ```powershell
 cd win-emby
 pnpm install
+pnpm exec tauri-plugin-libmpv-api setup-lib
 pnpm tauri dev
 ```
+
+`setup-lib` 会把 MPV 要用的两个 dll 下载到 `src-tauri/lib/`（从 GitHub 下载，慢的话给终端开代理），只需要执行一次。
 
 项目里已带 `.npmrc`（npmmirror）和 `src-tauri/.cargo/config.toml`（rsproxy），依赖默认走国内镜像。
 
@@ -70,13 +76,13 @@ src/emby/        Emby 接口、登录会话、DeviceProfile、hls.js 加载器
 src/pages/       首页 / 媒体库 / 详情 / 播放 / 设置 / 登录 等
 src/components/  外壳组件（标题栏、搜索、卡片、聚光卡…）
 src/styles/      四套皮肤（沿用原项目）+ app.css（新增部分）
-src-tauri/       Rust 壳：无边框窗口 + http 插件（直连局域网，不受 CORS 限制）
+src-tauri/       Rust 壳：无边框透明窗口 + http 插件（直连局域网）+ libmpv 插件（内嵌 MPV）
 ```
 
 ## 说明
 
-- 视频原文件能被 WebView2 直接解码（MP4/H.264 等）就直连；其它（MKV、HEVC、DTS/AC3 音轨…）由 Emby 转封装或转码，所以服务器需要能正常调用 ffmpeg。
-- HEVC：电脑装了 HEVC 解码（显卡硬解或微软 HEVC 视频扩展）后，可在设置里勾选「允许 HEVC 直接播放」，省掉服务器转码。
+- MPV 内核直接读 Emby 的原文件，不经过服务器转码，局域网带宽要够跑原画。
+- 切到「内置网页播放器」时，WebView2 解不了的片源（MKV、HEVC、DTS/AC3 音轨…）由 Emby 转封装或转码，服务器需要能正常调用 ffmpeg。
 - 本项目是个人学习性质的开源实现，与 Emby 官方无隶属关系。Fork 二改请注明原项目 Win-box。
 
 ## 许可

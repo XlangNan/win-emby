@@ -2,9 +2,12 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "主窗口权限：窗口控制 + 访问局域网 Emby",
-  "windows": ["main"],
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "core:default",
+    "libmpv:default",
     "core:window:allow-minimize",
     "core:window:allow-toggle-maximize",
     "core:window:allow-maximize",
@@ -17,7 +20,20 @@
     "core:window:allow-set-always-on-top",
     {
       "identifier": "http:default",
-      "allow": [{ "url": "http://*" }, { "url": "http://*:*" }, { "url": "https://*" }, { "url": "https://*:*" }]
+      "allow": [
+        {
+          "url": "http://*"
+        },
+        {
+          "url": "http://*:*"
+        },
+        {
+          "url": "https://*"
+        },
+        {
+          "url": "https://*:*"
+        }
+      ]
     }
   ]
 }

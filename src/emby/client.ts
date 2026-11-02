@@ -348,7 +348,7 @@ export function personUrl(p: { Id: string; PrimaryImageTag?: string }, width = 2
 
 /** 直连播放地址（原文件，不转码） */
 export function directStreamUrl(itemId: string, source: { Id: string; Container?: string }, playSessionId?: string): string {
-  return withAuth(`/Videos/${itemId}/stream${source.Container ? `.${source.Container}` : ''}`, {
+  return withAuth(`/Videos/${itemId}/stream${source.Container ? `.${source.Container.split(',')[0]}` : ''}`, {
     Static: 'true',
     MediaSourceId: source.Id,
     PlaySessionId: playSessionId,
@@ -356,6 +356,6 @@ export function directStreamUrl(itemId: string, source: { Id: string; Container?
 }
 
 /** 文本字幕（WebVTT） */
-export function subtitleUrl(itemId: string, mediaSourceId: string, index: number): string {
-  return withAuth(`/Videos/${itemId}/${mediaSourceId}/Subtitles/${index}/Stream.vtt`);
+export function subtitleUrl(itemId: string, mediaSourceId: string, index: number, ext = 'vtt'): string {
+  return withAuth(`/Videos/${itemId}/${mediaSourceId}/Subtitles/${index}/Stream.${ext}`);
 }

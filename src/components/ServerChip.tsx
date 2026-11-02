@@ -12,7 +12,7 @@ export default function ServerChip({ variant }: { variant?: 'sidebar' }) {
     host = s?.server || '';
   }
   return (
-    <div className={`srcpick${variant === 'sidebar' ? ' srcpick-sidebar' : ''}`}>
+    <div className={`srcpick we-chip${variant === 'sidebar' ? ' srcpick-sidebar' : ''}`}>
       <div
         className="srcpick-name"
         role="button"

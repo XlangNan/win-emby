@@ -39,6 +39,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      # 下载内嵌 MPV 需要的 libmpv-wrapper.dll 与 libmpv-2.dll 到 src-tauri/lib（随安装包打包）
+      - name: Download libmpv
+        run: pnpm exec tauri-plugin-libmpv-api setup-lib
+
+      - name: List libmpv files
+        shell: bash
+        run: ls -la src-tauri/lib
+
       - name: Build installer
         run: pnpm tauri build
 

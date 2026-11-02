@@ -276,11 +276,13 @@ function AppShell() {
       <main className="main">
         <nav className="nf-nav">
           <span className="nf-logo">WIN-EMBY</span>
-          {allNav.map((n) => (
-            <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => 'nf-link' + (isActive ? ' active' : '')}>
-              {n.label}
-            </NavLink>
-          ))}
+          <div className="we-navlinks" onWheel={(e) => { e.currentTarget.scrollLeft += e.deltaY; }}>
+            {allNav.map((n) => (
+              <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => 'nf-link' + (isActive ? ' active' : '')}>
+                {n.label}
+              </NavLink>
+            ))}
+          </div>
           <span className="nf-spacer" />
           <SearchPanel />
           <ServerChip />

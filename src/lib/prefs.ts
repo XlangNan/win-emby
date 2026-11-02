@@ -7,10 +7,14 @@ export interface PlayPrefs {
   /** 播完自动播下一集 */
   autoNext: boolean;
   volume: number;
+  /** 播放内核：mpv = 内嵌 MPV（HDR / 杜比视界）；html5 = 内置网页播放器 */
+  engine: 'mpv' | 'html5';
+  /** MPV：把 HDR 信号直通给显示器（需 Windows 开启「使用 HDR」）；关闭则映射成 SDR */
+  hdr: boolean;
 }
 
 const KEY = 'wemby-play-prefs';
-const DEFAULTS: PlayPrefs = { maxMbps: 0, hevc: false, autoNext: true, volume: 1 };
+const DEFAULTS: PlayPrefs = { maxMbps: 0, hevc: false, autoNext: true, volume: 1, engine: 'mpv', hdr: true };
 
 export function loadPlayPrefs(): PlayPrefs {
   try {

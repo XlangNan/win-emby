@@ -102,3 +102,69 @@
   background: rgba(0, 0, 0, .6); padding: 12px 18px; border-radius: 10px; max-width: 70%; pointer-events: none;
 }
 .we-error { pointer-events: auto; color: #ffb4b4; }
+
+
+/* ================= 窗口透明 + 导航栏适配 ================= */
+/* 主窗口为透明窗口（给内嵌 MPV 留出画面）：普通页面用不透明底，MPV 播放时才透出 */
+html { background: var(--surface-0); }
+html.mpv-on, html.mpv-on body, html.mpv-on #root { background: transparent !important; }
+
+/* 导航：文字不换行；项目多时横向滚动，窄窗口隐藏服务器标签 */
+.nf-link, .bb-tab, .db-chip, .ap-nav-txt { white-space: nowrap; flex: none; }
+.we-navlinks {
+  display: flex; align-items: center; gap: 2px; flex: 0 1 auto; min-width: 0;
+  overflow-x: auto; scrollbar-width: none; padding-bottom: 6px; margin-bottom: -6px;
+}
+.we-navlinks::-webkit-scrollbar { display: none; }
+.we-chip .srcpick-name { max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 1180px) {
+  .nf-nav .we-chip, .bb-top .we-chip, .db-topbar .we-chip { display: none; }
+}
+@media (max-width: 1000px) {
+  .nf-logo { display: none; }
+}
+
+/* ================= MPV 播放页 ================= */
+.we-player.mpv { background: transparent; }
+.we-surface { position: absolute; inset: 0; }
+.we-back { gap: 4px; padding: 0 12px 0 8px; font-size: 14px; }
+.we-notice {
+  position: absolute; left: 50%; top: 64px; transform: translateX(-50%); z-index: 3;
+  background: rgba(0, 0, 0, .7); padding: 8px 14px; border-radius: 8px; font-size: 13px; max-width: 80%;
+}
+
+/* 右侧信息抽屉 */
+.we-drawer {
+  position: absolute; top: 58px; right: 12px; bottom: 96px; width: 360px; max-width: calc(100% - 24px); z-index: 4;
+  display: flex; flex-direction: column; border-radius: 12px; overflow: hidden;
+  background: rgba(18, 18, 22, .92); border: 1px solid rgba(255, 255, 255, .1);
+  backdrop-filter: blur(16px); box-shadow: 0 12px 40px rgba(0, 0, 0, .55);
+}
+.we-player.hide-ui .we-drawer { opacity: 0; pointer-events: none; }
+.we-drawer-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 8px 0 12px; border-bottom: 1px solid rgba(255, 255, 255, .08); }
+.we-drawer-tabs { display: flex; gap: 4px; }
+.we-drawer-tabs button {
+  background: none; border: none; border-bottom: 2px solid transparent; border-radius: 0; color: rgba(255, 255, 255, .7);
+  padding: 8px 10px; box-shadow: none;
+}
+.we-drawer-tabs button:hover { color: #fff; box-shadow: none; border-color: transparent; }
+.we-drawer-tabs button.active { color: #fff; border-bottom-color: var(--accent); }
+.we-drawer-body { flex: 1; overflow: auto; padding: 14px; }
+.we-d-muted { color: rgba(255, 255, 255, .6); font-size: 12px; margin-bottom: 4px; }
+.we-d-ov { font-size: 13px; line-height: 1.7; color: rgba(255, 255, 255, .88); white-space: pre-wrap; }
+.we-d-cast { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 8px; }
+.we-d-person { text-align: center; min-width: 0; }
+.we-d-person img, .we-d-ph {
+  width: 64px; height: 64px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto 6px; background: rgba(255, 255, 255, .1);
+}
+.we-d-ph { display: flex; align-items: center; justify-content: center; font-size: 20px; color: rgba(255, 255, 255, .6); }
+.we-d-pname { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.we-d-prole { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; }
+.we-d-eps { display: flex; flex-direction: column; gap: 6px; }
+.we-d-ep { display: flex; gap: 10px; padding: 6px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; }
+.we-d-ep:hover { background: rgba(255, 255, 255, .08); }
+.we-d-ep.active { border-color: var(--accent); background: rgba(255, 255, 255, .06); }
+.we-d-ep-thumb { flex: none; width: 96px; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden; background: rgba(255, 255, 255, .08); }
+.we-d-ep-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.we-d-ep-info { min-width: 0; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.we-d-ep-title { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

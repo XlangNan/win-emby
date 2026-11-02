@@ -31,6 +31,10 @@ export interface MediaStream {
   Height?: number;
   Channels?: number;
   BitRate?: number;
+  VideoRange?: string;
+  VideoRangeType?: string;
+  ColorTransfer?: string;
+  IsForced?: boolean;
 }
 
 export interface MediaSource {
