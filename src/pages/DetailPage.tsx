@@ -6,6 +6,7 @@ import BackButton from '../components/BackButton';
 import HeroBackdrop from '../components/HeroBackdrop';
 import HScrollRow from '../components/HScrollRow';
 import MediaCard from '../components/MediaCard';
+import PlayOptions, { type PlayChoice } from '../components/PlayOptions';
 import { backdropUrl, emby, personUrl, posterUrl, thumbUrl } from '../emby/client';
 import { fmtDuration, fmtRuntime, progressPct, ticksToSec } from '../emby/format';
 import type { EmbyItem } from '../emby/types';
@@ -82,6 +83,8 @@ export default function DetailPage() {
     const target = byEp || wantSeason || resumeEp?.SeasonId || seasons[0].id;
     setSeasonId(seasons.some((s) => s.id === target) ? target : seasons[0].id);
   }, [seasons, resumeEp, eps.data, sp]);
+  const selEpId = sp.get('ep');
+  const selEp = eps.data?.find((e) => e.Id === selEpId);
   const curSeason = seasons.find((s) => s.id === seasonId) || seasons[0];
 
   const [fav, setFav] = useState(false);
@@ -110,18 +113,19 @@ export default function DetailPage() {
     }
   };
 
+  const [choice, setChoice] = useState<PlayChoice | null>(null);
   const play = (target?: EmbyItem): void => {
-    const t = target || (isSeries ? resumeEp : it || undefined);
-    if (t) nav(`/player/${t.Id}`);
+    const t = target || (isSeries ? selEp || resumeEp : it || undefined);
+    if (t) nav(`/player/${t.Id}${choice && choice.itemId === t.Id ? choice.query : ''}`);
   };
 
   const backdrops = it ? [backdropUrl(it)].filter(Boolean) : [];
   const cast = (it?.People || []).filter((p) => p.Type === 'Actor' || p.Type === 'GuestStar').slice(0, 24);
   const directors = (it?.People || []).filter((p) => p.Type === 'Director').map((p) => p.Name).join('、');
-  const resumeSec = ticksToSec((isSeries ? resumeEp : it)?.UserData?.PlaybackPositionTicks);
+  const resumeSec = ticksToSec((isSeries ? selEp || resumeEp : it)?.UserData?.PlaybackPositionTicks);
   const playLabel = isSeries
-    ? resumeEp
-      ? `▶ ${resumeSec > 30 ? '继续' : '播放'} S${resumeEp.ParentIndexNumber ?? 1}E${resumeEp.IndexNumber ?? 1}`
+    ? (selEp || resumeEp)
+      ? `▶ ${resumeSec > 30 ? '继续' : '播放'} S${(selEp || resumeEp)!.ParentIndexNumber ?? 1}E${(selEp || resumeEp)!.IndexNumber ?? 1}`
       : '▶ 播放'
     : resumeSec > 30
       ? `▶ 继续播放（${fmtDuration(resumeSec)}）`
@@ -200,6 +204,10 @@ export default function DetailPage() {
                 {isBox && <div className="row" style={{ marginTop: 14 }}>{favBtn}</div>}
               </div>
             </div>
+
+            {!isBox && (isSeries ? (selEp || resumeEp) : it) && (
+              <PlayOptions itemId={(isSeries ? (selEp || resumeEp) : it)!.Id} onChange={setChoice} />
+            )}
 
             {isSeries && (
               <>

@@ -13,6 +13,8 @@ import FavoritesPage from './pages/FavoritesPage';
 import HistoryPage from './pages/HistoryPage';
 import HomePage from './pages/HomePage';
 import LibraryPage from './pages/LibraryPage';
+import LivePage from './pages/LivePage';
+import LivePlayer from './pages/LivePlayer';
 import LoginPage from './pages/LoginPage';
 import PlayerPage from './pages/PlayerPage';
 import SearchPage from './pages/SearchPage';
@@ -76,6 +78,16 @@ function useSession() {
 
 export default function App() {
   const session = useSession();
+  // 不显示浏览器自带的右键菜单（输入框里保留，方便复制粘贴）；影片卡片有自己的菜单
+  useEffect(() => {
+    const block = (e: MouseEvent): void => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      e.preventDefault();
+    };
+    window.addEventListener('contextmenu', block);
+    return () => window.removeEventListener('contextmenu', block);
+  }, []);
   if (!session) return <LoginPage />;
   return <AppShell key={session.userId + session.server} />;
 }
@@ -100,13 +112,14 @@ function AppShell() {
     [views],
   );
   const myNav: NavItem[] = [
+    { to: '/live', label: '直播', ico: '📡' },
     { to: '/favorites', label: '收藏', ico: '⭐' },
     { to: '/history', label: '历史', ico: '🕘' },
     { to: '/config', label: '设置', ico: '⚙' },
   ];
   const allNav = [...mainNav, ...myNav];
 
-  const isPlayer = loc.pathname.startsWith('/player/');
+  const isPlayer = loc.pathname.startsWith('/player/') || loc.pathname === '/live/play';
   const pageTitle = useMemo(() => {
     const p = loc.pathname;
     if (p === '/') return '首页';
@@ -147,6 +160,7 @@ function AppShell() {
         <Route path="/search" element={<SearchPage />} />
         <Route path="/favorites" element={<FavoritesPage />} />
         <Route path="/history" element={<HistoryPage />} />
+        <Route path="/live" element={<LivePage />} />
         <Route path="/config" element={<ConfigPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
@@ -158,6 +172,7 @@ function AppShell() {
     return (
       <Routes>
         <Route path="/player/:id" element={<PlayerPage />} />
+        <Route path="/live/play" element={<LivePlayer />} />
       </Routes>
     );
   }

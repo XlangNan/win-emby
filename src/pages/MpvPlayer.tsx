@@ -1,13 +1,14 @@
 // MPV 播放页：画面由内嵌的 libmpv 渲染（原生子窗口，支持 HDR10 / HLG / 杜比视界），
 // 网页层背景透明，只画控制条与右侧信息抽屉。mpv 起不来时通知上层改用 HTML5 播放器。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import PlayerDrawer from '../components/PlayerDrawer';
 import { directStreamUrl, emby, subtitleUrl } from '../emby/client';
 import { fmtDuration, ticksToSec } from '../emby/format';
 import type { EmbyItem, MediaSource, MediaStream } from '../emby/types';
 import { openMpv, type MpvSession } from '../lib/mpv';
-import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
+import { loadPlayPrefs, savePlayPrefs, setTrackMemory } from '../lib/prefs';
+import { pickInitialTracks } from '../lib/tracks';
 import { usePlayItem } from '../lib/usePlayItem';
 import { winClose, winIsFullscreen, winMinimize, winSetFullscreen, winToggleMax } from '../lib/win';
 
@@ -49,6 +50,8 @@ function videoBadge(src?: MediaSource): string {
 
 export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: string) => void }) {
   const nav = useNavigate();
+  const [qs] = useSearchParams();
+  const wantSrc = qs.get('src') || '';
   const { item, episodes, nextEp } = usePlayItem(id);
   const sessRef = useRef<MpvSession | null>(null);
   const playRef = useRef<{ source: MediaSource; playSessionId?: string } | null>(null);
@@ -60,7 +63,6 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const nextRef = useRef<EmbyItem | null>(null);
   nextRef.current = nextEp;
 
-  const [prefs, setPrefs] = useState(loadPlayPrefs);
   const [busy, setBusy] = useState(true);
   const [err, setErr] = useState('');
   const [paused, setPaused] = useState(true);
@@ -76,15 +78,30 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const [hw, setHw] = useState('');
   const [full, setFull] = useState(false);
   const [uiShown, setUiShown] = useState(true);
-  const [menu, setMenu] = useState<'' | 'audio' | 'sub' | 'speed'>('');
+  const [menu, setMenu] = useState<'' | 'audio' | 'sub' | 'speed' | 'eps'>('');
+  const [fps, setFps] = useState(0);
+  const [vbr, setVbr] = useState(0);
+  const autoSkipArmed = useRef(false);
+  const pendingSub = useRef<MediaStream | null>(null);
   const [drawer, setDrawer] = useState(false);
 
-  const source = item?.MediaSources?.[0];
+  const source = item?.MediaSources?.find((m) => m.Id === wantSrc) || item?.MediaSources?.[0];
   const streams = source?.MediaStreams || [];
   const audios = useMemo(() => streams.filter((s) => s.Type === 'Audio'), [streams]);
   const embSubs = useMemo(() => streams.filter((s) => s.Type === 'Subtitle' && !s.IsExternal), [streams]);
   const extSubs = useMemo(() => streams.filter((s) => s.Type === 'Subtitle' && s.IsExternal), [streams]);
   const badge = videoBadge(source);
+  const vstream = streams.find((x) => x.Type === 'Video');
+  const srcFps = vstream?.RealFrameRate || vstream?.AverageFrameRate || 0;
+  const fpsShow = fps || srcFps;
+  const intro = useMemo(() => {
+    const ch = item?.Chapters || [];
+    const a = ch.find((c) => c.MarkerType === 'IntroStart');
+    const b = ch.find((c) => c.MarkerType === 'IntroEnd');
+    if (!a || !b) return null;
+    const st = ticksToSec(a.StartPositionTicks), en = ticksToSec(b.StartPositionTicks);
+    return en > st ? { st, en } : null;
+  }, [item]);
 
   // ───────── 进度回报 ─────────
   const report = useCallback((kind: 'start' | 'progress' | 'stop') => {
@@ -108,7 +125,18 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     switch (name) {
       case 'pause': pausedRef.current = !!data; setPaused(!!data); if (data) report('progress'); break;
       case 'time-pos': if (typeof data === 'number') { posRef.current = data; setCur(data); setBusy(false); } break;
-      case 'duration': if (typeof data === 'number') setDur(data); break;
+      case 'duration':
+        if (typeof data === 'number') {
+          setDur(data);
+          const p = pendingSub.current;
+          if (p) {
+            pendingSub.current = null;
+            void pickSubRef.current(p, true);
+          }
+        }
+        break;
+      case 'container-fps': setFps(typeof data === 'number' ? data : 0); break;
+      case 'video-bitrate': setVbr(typeof data === 'number' ? data : 0); break;
       case 'demuxer-cache-time': if (typeof data === 'number') setBuffered(data); break;
       case 'paused-for-cache': setCaching(!!data); break;
       case 'speed': if (typeof data === 'number') setRate(data); break;
@@ -129,13 +157,14 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       default: break;
     }
   }, [nav, report]);
+  const pickSubRef = useRef<(s: MediaStream | null, silent?: boolean) => Promise<void>>(async () => undefined);
   const onPropRef = useRef(onProp);
   onPropRef.current = onProp;
 
   // ───────── 起播 ─────────
   useEffect(() => {
     if (!item) return;
-    const src = item.MediaSources?.[0];
+    const src = item.MediaSources?.find((m) => m.Id === wantSrc) || item.MediaSources?.[0];
     if (!src) {
       onFail('这个条目没有可播放的媒体源');
       return;
@@ -159,7 +188,27 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         }
         sessRef.current = sess;
         await sess.set('volume', Math.round(loadPlayPrefs().volume * 100));
-        await sess.loadfile(directStreamUrl(id, psrc, info.PlaySessionId), startSec > 1 ? { start: startSec.toFixed(1) } : {});
+        const mst = psrc.MediaStreams || src.MediaStreams || [];
+        const pick = pickInitialTracks(id, mst, loadPlayPrefs(), {
+          audio: qs.get('aud') ? Number(qs.get('aud')) : undefined,
+          sub: qs.get('sub') ? Number(qs.get('sub')) : undefined,
+        });
+        const opts: Record<string, string> = {};
+        if (startSec > 1) opts.start = startSec.toFixed(1);
+        const aList = mst.filter((x) => x.Type === 'Audio');
+        const eList = mst.filter((x) => x.Type === 'Subtitle' && !x.IsExternal);
+        if (pick.audio != null) {
+          const ai = aList.findIndex((x) => x.Index === pick.audio);
+          if (ai >= 0) opts.aid = String(ai + 1);
+        }
+        if (pick.sub === -1) opts.sid = 'no';
+        else if (pick.sub != null) {
+          const ei = eList.findIndex((x) => x.Index === pick.sub);
+          if (ei >= 0) opts.sid = String(ei + 1);
+          else pendingSub.current = mst.find((x) => x.Index === pick.sub) || null; // 外挂字幕：载入后再挂
+        }
+        await sess.loadfile(directStreamUrl(id, psrc, info.PlaySessionId), opts);
+        if (loadPlayPrefs().autoSkipIntro) autoSkipArmed.current = true;
         report('start');
       } catch (e) {
         if (!dead) onFail(e instanceof Error ? e.message : String(e));
@@ -183,6 +232,14 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     }, 10000);
     return () => clearInterval(t);
   }, [report]);
+
+  const inIntro = !!intro && cur >= intro.st - 0.5 && cur < intro.en - 1;
+  useEffect(() => {
+    if (inIntro && intro && autoSkipArmed.current) {
+      autoSkipArmed.current = false; // 每部片只自动跳一次，之后想回看不会被再次弹走
+      void sessRef.current?.cmd('seek', [String(intro.en), 'absolute']);
+    }
+  }, [inIntro, intro]);
 
   // ───────── 操作 ─────────
   const toggle = useCallback(() => {
@@ -220,12 +277,14 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const pickAudio = (i: number): void => {
     setMenu('');
     void sessRef.current?.set('aid', i + 1);
+    if (loadPlayPrefs().rememberTracks && audios[i]) setTrackMemory(id, { audio: audios[i].Index });
   };
 
-  const pickSub = async (s: MediaStream | null): Promise<void> => {
+  const pickSub = async (s: MediaStream | null, silent = false): Promise<void> => {
     setMenu('');
     const sess = sessRef.current;
     if (!sess) return;
+    if (!silent && loadPlayPrefs().rememberTracks) setTrackMemory(id, { sub: s ? s.Index : -1 });
     if (!s) {
       await sess.set('sid', 'no');
       return;
@@ -248,6 +307,8 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     const now = Number(await sess.get('sid', 'int64'));
     if (Number.isFinite(now)) extSid.current.set(s.Index, now);
   };
+
+  pickSubRef.current = pickSub;
 
   const setSpeed = (r: number): void => {
     setMenu('');
@@ -304,7 +365,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const total = dur || ticksToSec(item?.RunTimeTicks);
   const pct = total > 0 ? (cur / total) * 100 : 0;
   const bufPct = total > 0 ? (buffered / total) * 100 : 0;
-  const showUi = uiShown || paused || drawer;
+  const showUi = uiShown || paused || drawer || !!menu;
 
   return (
     <div className={`we-player mpv${showUi ? '' : ' hide-ui'}`} onMouseMove={poke} onClick={() => menu && setMenu('')}>
@@ -320,7 +381,11 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           <span>返回</span>
         </button>
         <div className="we-title" title={title}>{title}</div>
-        {badge && <span className="we-badge" title="片源画面">{badge}</span>}
+        {vstream?.Width && vstream?.Height ? <span className="we-badge" title="分辨率">{vstream.Width}×{vstream.Height}</span> : null}
+        {badge && <span className="we-badge" title="画面">{badge}</span>}
+        {vstream?.Codec && <span className="we-badge" title="视频编码">{vstream.Codec.toUpperCase()}</span>}
+        {fpsShow > 0 && <span className="we-badge we-badge-hi" title="帧率">{Number(fpsShow.toFixed(3))} fps</span>}
+        {vbr > 0 && <span className="we-badge" title="当前视频码率">{(vbr / 1e6).toFixed(1)} Mbps</span>}
         <span className="we-badge" title="播放内核">MPV{hw && hw !== 'no' ? ` · ${hw}` : ''}</span>
         <button className="we-btn we-txt" title="简介 / 演职员 / 选集（I）" onClick={(e) => { e.stopPropagation(); setDrawer((v) => !v); }}>
           {drawer ? '收起信息' : '信息'}
@@ -349,6 +414,13 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           onPickEpisode={(e) => nav(`/player/${e.Id}`, { replace: true })}
         />
       )}
+
+      {inIntro && intro && (
+        <button className={`we-skip${showUi ? ' up' : ''}`} onClick={(e) => { e.stopPropagation(); void sessRef.current?.cmd('seek', [String(intro.en), 'absolute']); }}>
+          跳过片头 ›
+        </button>
+      )}
+      {!showUi && <div className="we-thin"><div style={{ width: `${pct}%` }} /></div>}
 
       <div className="we-bottom" onClick={(e) => e.stopPropagation()}>
         <div
@@ -379,6 +451,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           )}
           <span className="we-time">{fmtDuration(cur)} / {fmtDuration(total)}</span>
           <span style={{ flex: 1 }} />
+          <div className="we-volgrp" title="鼠标滚轮调节音量" onWheel={(e) => { setVolume(vol + (e.deltaY < 0 ? 5 : -5)); void sessRef.current?.set('mute', 'no'); poke(); }}>
           <button className="we-btn" title="静音（M）" onClick={() => void sessRef.current?.cmd('cycle', ['mute'])}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4Z" fill="currentColor" />
@@ -386,6 +459,28 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
             </svg>
           </button>
           <input className="we-vol" type="range" min={0} max={100} step={1} value={muted ? 0 : vol} aria-label="音量" onChange={(e) => { void sessRef.current?.set('mute', 'no'); setVolume(Number(e.target.value)); }} />
+          <span className="we-volnum">{muted ? '静音' : Math.round(vol)}</span>
+          </div>
+
+          {episodes.length > 1 && (
+            <div className="we-menu-wrap">
+              <button className="we-btn we-txt" title="选集" onClick={() => setMenu(menu === 'eps' ? '' : 'eps')}>选集</button>
+              {menu === 'eps' && (
+                <div className="we-menu we-menu-eps">
+                  <div className="we-menu-head">{item?.SeasonName || item?.SeriesName || '选集'}</div>
+                  {episodes.map((e) => (
+                    <div
+                      key={e.Id}
+                      className={`we-menu-item${e.Id === id ? ' active' : ''}`}
+                      onClick={() => { setMenu(''); if (e.Id !== id) nav(`/player/${e.Id}`, { replace: true }); }}
+                    >
+                      {`S${e.ParentIndexNumber ?? 1}E${e.IndexNumber ?? 0} · ${e.Name}`}{e.Id === id ? '（正在播放）' : ''}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="we-menu-wrap">
             <button className="we-btn we-txt" onClick={() => setMenu(menu === 'speed' ? '' : 'speed')}>{rate === 1 ? '倍速' : `${rate}x`}</button>
@@ -427,9 +522,6 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
             )}
           </div>
 
-          <button className="we-btn we-txt" title="切换到内置网页播放器" onClick={() => { setPrefs(savePlayPrefs({ engine: 'html5' })); onFail('已切换到内置播放器'); }}>
-            {prefs.engine === 'mpv' ? '内置' : ''}
-          </button>
           <button className="we-btn" title="全屏（F）" onClick={() => void toggleFull()}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               {full ? <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /> : <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />}

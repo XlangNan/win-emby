@@ -9,6 +9,7 @@ import { emby } from '../emby/client';
 import type { EmbyItem } from '../emby/types';
 import { useAsync } from '../lib/useAsync';
 import { useSkinLayout } from '../lib/theme';
+import { loadPlayPrefs } from '../lib/prefs';
 
 interface Section {
   id: string;
@@ -19,7 +20,13 @@ interface Section {
 const MEDIA_COLLECTIONS = new Set(['movies', 'tvshows', 'homevideos', 'boxsets', 'mixed', undefined, '']);
 
 async function loadSections(): Promise<{ sections: Section[]; spot: EmbyItem[] }> {
-  const views = (await emby.views()).filter((v) => MEDIA_COLLECTIONS.has(v.CollectionType));
+  const prefs = loadPlayPrefs();
+  const views = (await emby.views())
+    .filter((v) => MEDIA_COLLECTIONS.has(v.CollectionType) && !prefs.hiddenLibs.includes(v.Id))
+    .sort((a, b) => {
+      const ia = prefs.libOrder.indexOf(a.Id), ib = prefs.libOrder.indexOf(b.Id);
+      return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
+    });
   const [resume, nextUp, ...latest] = await Promise.all([
     emby.resume().catch(() => []),
     emby.nextUp().catch(() => []),
@@ -66,7 +73,7 @@ export default function HomePage() {
           </div>
           <div className="grid db-wall-grid" key={`wall-${wallSec}`}>
             {(cur?.items || []).map((it) => (
-              <MediaCard key={it.Id} it={it} onOpen={(x) => (x.Type === 'Episode' ? play(x) : open(x))} />
+              <MediaCard key={it.Id} it={it} landscape={cur?.id === 'resume'} inResume={cur?.id === 'resume'} onChanged={reload} onOpen={(x) => (x.Type === 'Episode' ? play(x) : open(x))} />
             ))}
           </div>
         </div>
@@ -80,9 +87,15 @@ export default function HomePage() {
           style={nf || ap ? undefined : { display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6 }}
         >
           {s.items.map((it) => (
-            <div key={it.Id} style={nf ? undefined : { flex: ap ? '0 0 168px' : '0 0 132px', minWidth: 0 }}>
+            <div key={it.Id} style={s.id === 'resume' ? { flex: '0 0 280px', minWidth: 0 } : nf ? undefined : { flex: ap ? '0 0 168px' : '0 0 132px', minWidth: 0 }}>
               {/* 继续观看里的单集：点击直接续播；其它进详情 */}
-              <MediaCard it={it} onOpen={(x) => (s.id === 'resume' || s.id === 'next' ? play(x) : open(x))} />
+              <MediaCard
+                it={it}
+                landscape={s.id === 'resume'}
+                inResume={s.id === 'resume'}
+                onChanged={reload}
+                onOpen={(x) => (s.id === 'resume' || s.id === 'next' ? play(x) : open(x))}
+              />
             </div>
           ))}
         </HScrollRow>

@@ -103,7 +103,8 @@ export const emby = {
       undefined,
       { Username: username, Pw: password },
     );
-    return { server, userId: r.User.Id, userName: r.User.Name, token: r.AccessToken, deviceId: deviceId() };
+    const info = await call<{ ServerName?: string }>(server, undefined, 'GET', '/System/Info/Public').catch(() => ({} as { ServerName?: string }));
+    return { server, userId: r.User.Id, userName: r.User.Name, serverName: info.ServerName, token: r.AccessToken, deviceId: deviceId() };
   },
 
   /** 仅探测服务器是否可达（登录前给出更友好的报错） */
@@ -180,7 +181,7 @@ export const emby = {
   async item(id: string): Promise<EmbyItem> {
     const s = need();
     return api<EmbyItem>('GET', `/Users/${s.userId}/Items/${id}`, {
-      Fields: 'Overview,People,Genres,Studios,Taglines,MediaSources,MediaStreams,ProviderIds',
+      Fields: 'Overview,People,Genres,Studios,Taglines,MediaSources,MediaStreams,ProviderIds,Chapters,Path',
     });
   },
 
@@ -229,6 +230,12 @@ export const emby = {
   async setPlayed(id: string, on: boolean): Promise<void> {
     const s = need();
     await api(on ? 'POST' : 'DELETE', `/Users/${s.userId}/PlayedItems/${id}`);
+  },
+
+  /** 把影片从「继续观看」里移除（进度清零，不改已看状态） */
+  async clearResume(id: string): Promise<void> {
+    const s = need();
+    await api('POST', `/Users/${s.userId}/Items/${id}/UserData`, undefined, { PlaybackPositionTicks: 0 });
   },
 
   /** 向服务器请求播放决策（直连 / 转封装 / 转码），由 DeviceProfile 决定 */

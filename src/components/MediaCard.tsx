@@ -1,16 +1,30 @@
 // 影片卡：沿用原项目 .card-media 结构，大果 / 大豆各自的悬停播放徽标、进度条、未看数
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ItemMenu, { type MenuState } from './ItemMenu';
 import { cardSub, cardTitle, progressPct } from '../emby/format';
-import { posterUrl } from '../emby/client';
+import { posterUrl, thumbUrl } from '../emby/client';
 import type { EmbyItem } from '../emby/types';
 import { useSkinLayout } from '../lib/theme';
 
-export default function MediaCard({ it, onOpen }: { it: EmbyItem; onOpen?: (it: EmbyItem) => void }) {
+export default function MediaCard({
+  it, onOpen, landscape, inResume, onChanged,
+}: {
+  it: EmbyItem;
+  onOpen?: (it: EmbyItem) => void;
+  /** 横版海报（继续观看用） */
+  landscape?: boolean;
+  /** 在「继续观看」里：右键菜单多一项「移除」 */
+  inResume?: boolean;
+  /** 右键菜单改了已看/收藏后刷新列表 */
+  onChanged?: () => void;
+}) {
+  const [menu, setMenu] = useState<MenuState | null>(null);
   const nav = useNavigate();
   const shell = useSkinLayout().shell;
   const ap = shell === 'sidebar';
   const db = shell === 'pillbar';
-  const poster = posterUrl(it);
+  const poster = landscape ? thumbUrl(it, 560) : posterUrl(it);
   const pct = progressPct(it);
   const sub = cardSub(it);
   const open = (): void => {
@@ -19,8 +33,13 @@ export default function MediaCard({ it, onOpen }: { it: EmbyItem; onOpen?: (it: 
   };
   return (
     <div
-      className="card-media"
+      className={`card-media${landscape ? ' we-land' : ''}`}
       style={{ cursor: 'pointer' }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setMenu({ x: e.clientX, y: e.clientY, it });
+      }}
       role="button"
       tabIndex={0}
       title={cardTitle(it)}
@@ -58,6 +77,16 @@ export default function MediaCard({ it, onOpen }: { it: EmbyItem; onOpen?: (it: 
           {sub && !db ? <div className="remarks">{sub}</div> : null}
         </div>
       </div>
+      {menu && (
+        <ItemMenu
+          state={menu}
+          inResume={inResume}
+          onClose={() => setMenu(null)}
+          onPlay={(x) => (x.Type === 'Series' || x.Type === 'Season' ? nav(`/detail/${x.Id}`) : nav(`/player/${x.Id}`))}
+          onOpen={(x) => nav(`/detail/${x.Type === 'Episode' && x.SeriesId ? x.SeriesId : x.Id}`)}
+          onChanged={() => onChanged?.()}
+        />
+      )}
     </div>
   );
 }

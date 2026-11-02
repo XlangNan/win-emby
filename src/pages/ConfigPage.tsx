@@ -1,12 +1,133 @@
 // 设置：账号 / 皮肤 / 播放偏好
-import { useState } from 'react';
-import { clearSession, getSession } from '../emby/session';
+import { useEffect, useState } from 'react';
+import { emby } from '../emby/client';
+import { getSession, listAccounts, removeAccount, sameAccount, saveSession } from '../emby/session';
+import type { EmbyItem, Session } from '../emby/types';
 import { applyTheme, useTheme } from '../lib/theme';
 import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
 import { ALL_THEMES, THEME_LABELS } from '../lib/themeTokens';
 
+const LANGS: [string, string][] = [
+  ['', '跟随文件默认'], ['chi', '中文 / 国语'], ['yue', '粤语'], ['eng', '英语'], ['jpn', '日语'], ['kor', '韩语'],
+];
+
+/** 账号管理：按服务器分组，每个服务器下可有多个账号 */
+function Accounts() {
+  const [list, setList] = useState<Session[]>(listAccounts);
+  const cur = getSession();
+  const [adding, setAdding] = useState(false);
+  const [server, setServer] = useState(cur?.server || '');
+  const [user, setUser] = useState('');
+  const [pw, setPw] = useState('');
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const refresh = (): void => setList(listAccounts());
+
+  const groups = new Map<string, Session[]>();
+  for (const a of list) groups.set(a.server, [...(groups.get(a.server) || []), a]);
+
+  const add = async (): Promise<void> => {
+    setBusy(true);
+    setErr('');
+    try {
+      if (!server.trim() || !user.trim()) throw new Error('请填写服务器地址和用户名');
+      const s = await emby.login(server, user.trim(), pw);
+      saveSession(s); // 会同时切换到这个账号
+      setAdding(false);
+      setUser('');
+      setPw('');
+    } catch (e) {
+      const m = e instanceof Error ? e.message : String(e);
+      setErr(/401|403/.test(m) ? '用户名或密码不对' : `登录失败：${m}`);
+    } finally {
+      setBusy(false);
+      refresh();
+    }
+  };
+
+  return (
+    <div className="card we-set" style={{ marginBottom: 14 }}>
+      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+        <h3 style={{ margin: 0 }}>账号与服务器</h3>
+        <button onClick={() => setAdding((v) => !v)}>{adding ? '取消' : '＋ 添加服务器 / 账号'}</button>
+      </div>
+      {adding && (
+        <div style={{ margin: '12px 0', display: 'grid', gap: 8 }}>
+          <input list="we-servers" value={server} onChange={(e) => setServer(e.target.value)} placeholder="服务器地址，如 192.168.1.10:8096" spellCheck={false} />
+          <datalist id="we-servers">{[...groups.keys()].map((k) => <option key={k} value={k} />)}</datalist>
+          <input value={user} onChange={(e) => setUser(e.target.value)} placeholder="用户名" spellCheck={false} />
+          <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="密码（没有可留空）" />
+          {err && <div className="err">{err}</div>}
+          <div><button className="primary" disabled={busy} onClick={() => void add()}>{busy ? '登录中…' : '登录并切换'}</button></div>
+        </div>
+      )}
+      {[...groups.entries()].map(([srv, accs]) => (
+        <div key={srv} style={{ marginTop: 12, border: '1px solid var(--border-soft)', borderRadius: 10, padding: 10 }}>
+          <div className="row" style={{ justifyContent: 'space-between' }}>
+            <b>{accs.find((a) => a.serverName)?.serverName || '服务器'}</b>
+            <span className="muted" style={{ fontSize: 12 }}>{srv.replace(/^https?:\/\//, '')}</span>
+          </div>
+          {accs.map((a) => {
+            const on = !!cur && sameAccount(a, cur);
+            return (
+              <div key={a.userId} className="we-set-row">
+                <span>{a.userName}{on && <span className="tag active" style={{ marginLeft: 8 }}>当前</span>}</span>
+                <span className="row" style={{ gap: 8 }}>
+                  {!on && <button onClick={() => { saveSession(a); refresh(); }}>切换</button>}
+                  <button onClick={() => { removeAccount(a); refresh(); }}>{on ? '退出' : '删除'}</button>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+      <div className="muted" style={{ fontSize: 12, marginTop: 10 }}>只保存登录令牌，不保存密码。</div>
+    </div>
+  );
+}
+
+/** 首页要显示哪些媒体库（勾选 + 排序） */
+function HomeLibs({ prefs, set }: { prefs: ReturnType<typeof loadPlayPrefs>; set: (p: Partial<ReturnType<typeof loadPlayPrefs>>) => void }) {
+  const [views, setViews] = useState<EmbyItem[]>([]);
+  useEffect(() => {
+    emby.views().then(setViews).catch(() => undefined);
+  }, []);
+  const order = prefs.libOrder;
+  const sorted = [...views].sort((a, b) => {
+    const ia = order.indexOf(a.Id), ib = order.indexOf(b.Id);
+    return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
+  });
+  const toggle = (id: string): void =>
+    set({ hiddenLibs: prefs.hiddenLibs.includes(id) ? prefs.hiddenLibs.filter((x) => x !== id) : [...prefs.hiddenLibs, id] });
+  const move = (i: number, d: number): void => {
+    const ids = sorted.map((v) => v.Id);
+    const j = i + d;
+    if (j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    set({ libOrder: ids });
+  };
+  return (
+    <div className="card we-set" style={{ marginBottom: 14 }}>
+      <h3>首页显示的媒体库</h3>
+      <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>勾选的库会在首页各出一行「最近添加」，可用 ↑ ↓ 排序</div>
+      {sorted.map((v, i) => (
+        <div key={v.Id} className="we-set-row">
+          <label style={{ cursor: 'pointer', display: 'flex', gap: 10, alignItems: 'center' }}>
+            <input type="checkbox" checked={!prefs.hiddenLibs.includes(v.Id)} onChange={() => toggle(v.Id)} />
+            {v.Name}
+          </label>
+          <span className="row" style={{ gap: 6 }}>
+            <button disabled={i === 0} onClick={() => move(i, -1)}>↑</button>
+            <button disabled={i === sorted.length - 1} onClick={() => move(i, 1)}>↓</button>
+          </span>
+        </div>
+      ))}
+      {!sorted.length && <div className="muted">加载中…</div>}
+    </div>
+  );
+}
+
 export default function ConfigPage() {
-  const s = getSession();
   const theme = useTheme();
   const [prefs, setPrefs] = useState(loadPlayPrefs);
   const set = (p: Partial<typeof prefs>): void => setPrefs(savePlayPrefs(p));
@@ -15,18 +136,8 @@ export default function ConfigPage() {
     <>
       <div className="topbar"><h3 style={{ margin: 0 }}>设置</h3></div>
       <div className="content">
-        <div className="card we-set" style={{ marginBottom: 14 }}>
-          <h3>账号</h3>
-          <div className="we-set-row">
-            <span className="muted">服务器</span><span>{s?.server}</span>
-          </div>
-          <div className="we-set-row">
-            <span className="muted">用户</span><span>{s?.userName}</span>
-          </div>
-          <div style={{ marginTop: 10 }}>
-            <button onClick={() => clearSession()}>退出登录 / 切换服务器</button>
-          </div>
-        </div>
+        <Accounts />
+        <HomeLibs prefs={prefs} set={set} />
 
         <div className="card we-set" style={{ marginBottom: 14 }}>
           <h3>界面皮肤</h3>
@@ -71,6 +182,31 @@ export default function ConfigPage() {
               <span className="muted" style={{ display: 'block', fontSize: 12 }}>电脑装了 HEVC 解码（硬解 / 微软 HEVC 扩展）再打开；关闭时由服务器转成 H.264</span>
             </span>
             <input type="checkbox" checked={prefs.hevc} onChange={(e) => set({ hevc: e.target.checked })} />
+          </label>
+          <div className="we-set-row">
+            <span>默认音轨语言</span>
+            <select value={prefs.audioLang} onChange={(e) => set({ audioLang: e.target.value })}>
+              {LANGS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          </div>
+          <div className="we-set-row">
+            <span>默认字幕</span>
+            <select value={prefs.subLang} onChange={(e) => set({ subLang: e.target.value })}>
+              <option value="">跟随文件默认</option>
+              <option value="off">不显示字幕</option>
+              {LANGS.slice(1).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          </div>
+          <label className="we-set-row" style={{ cursor: 'pointer' }}>
+            <span>记住每部片上次选的音轨和字幕</span>
+            <input type="checkbox" checked={prefs.rememberTracks} onChange={(e) => set({ rememberTracks: e.target.checked })} />
+          </label>
+          <label className="we-set-row" style={{ cursor: 'pointer' }}>
+            <span>
+              自动跳过片头
+              <span className="muted" style={{ display: 'block', fontSize: 12 }}>需要 Emby 里有「片头」章节标记（如装了片头检测插件）</span>
+            </span>
+            <input type="checkbox" checked={prefs.autoSkipIntro} onChange={(e) => set({ autoSkipIntro: e.target.checked })} />
           </label>
           <label className="we-set-row" style={{ cursor: 'pointer' }}>
             <span>播完自动播放下一集</span>

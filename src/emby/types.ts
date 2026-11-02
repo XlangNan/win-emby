@@ -35,6 +35,12 @@ export interface MediaStream {
   VideoRangeType?: string;
   ColorTransfer?: string;
   IsForced?: boolean;
+  RealFrameRate?: number;
+  AverageFrameRate?: number;
+  BitDepth?: number;
+  Profile?: string;
+  ChannelLayout?: string;
+  SampleRate?: number;
 }
 
 export interface MediaSource {
@@ -53,6 +59,14 @@ export interface MediaSource {
   DefaultAudioStreamIndex?: number;
   DefaultSubtitleStreamIndex?: number;
   MediaStreams?: MediaStream[];
+  Path?: string;
+  Chapters?: Chapter[];
+}
+
+export interface Chapter {
+  StartPositionTicks: number;
+  Name?: string;
+  MarkerType?: string;
 }
 
 export interface EmbyItem {
@@ -86,6 +100,8 @@ export interface EmbyItem {
   UserData?: UserData;
   MediaSources?: MediaSource[];
   MediaStreams?: MediaStream[];
+  Path?: string;
+  Chapters?: Chapter[];
 }
 
 export interface ItemsResult {
@@ -103,6 +119,7 @@ export interface Session {
   server: string;
   userId: string;
   userName: string;
+  serverName?: string;
   token: string;
   deviceId: string;
 }

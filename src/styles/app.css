@@ -168,3 +168,66 @@ html.mpv-on, html.mpv-on body, html.mpv-on #root { background: transparent !impo
 .we-d-ep-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .we-d-ep-info { min-width: 0; flex: 1; display: flex; flex-direction: column; justify-content: center; }
 .we-d-ep-title { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+
+/* ================= 横版海报 / 右键菜单 ================= */
+.card-media.we-land .card img, .card-media.we-land .card .no-cover { aspect-ratio: 16/9; width: 100%; height: auto; object-fit: cover; }
+.we-ctx {
+  position: fixed; z-index: 9999; min-width: 190px; padding: 6px; border-radius: 10px;
+  background: #1f232b; color: #f2f4f8; border: 1px solid #3a4050; box-shadow: 0 12px 30px rgba(0, 0, 0, .6); font-size: 13px;
+}
+.we-ctx-item { padding: 8px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+.we-ctx-item:hover { background: #2c3340; }
+.we-ctx-item.danger { color: #ffb4b4; }
+
+
+/* ================= 播放器：固定配色（不随皮肤变，四套皮肤下都清楚） ================= */
+.we-player { --text: #fff; --text-dim: rgba(255, 255, 255, .78); color: #fff; color-scheme: dark; }
+.we-player button { text-shadow: 0 1px 3px rgba(0, 0, 0, .8); }
+.we-player .we-btn, .we-player .we-time, .we-player .we-title, .we-player .we-badge, .we-player .we-menu-item,
+.we-player .we-volnum, .we-player .we-drawer-tabs button.active { color: #fff !important; }
+.we-player .we-btn { background: transparent; border: none; }
+.we-player .we-btn:hover { background: rgba(255, 255, 255, .22) !important; }
+.we-player .we-menu-item.active { color: var(--accent) !important; font-weight: 600; }
+.we-player .we-badge { background: rgba(0, 0, 0, .55); border: 1px solid rgba(255, 255, 255, .25); }
+.we-player .we-badge-hi { background: var(--accent); color: var(--on-accent, #000) !important; border-color: transparent; font-weight: 600; text-shadow: none; }
+.we-player .we-top { background: linear-gradient(180deg, rgba(0, 0, 0, .88), rgba(0, 0, 0, 0)); flex-wrap: wrap; row-gap: 6px; }
+.we-player .we-bottom { background: linear-gradient(0deg, rgba(0, 0, 0, .9), rgba(0, 0, 0, 0)); }
+.we-player .we-menu { background: rgba(14, 14, 18, .97); border-color: rgba(255, 255, 255, .22); }
+.we-menu-eps { min-width: 260px; max-height: 360px; }
+.we-menu-head { padding: 6px 12px; font-size: 12px; color: rgba(255, 255, 255, .7); }
+.we-volgrp { display: flex; align-items: center; gap: 4px; }
+.we-volnum { font-size: 12px; min-width: 30px; text-align: right; }
+.we-top, .we-bottom, .we-drawer { transition: opacity .5s ease; }
+.we-skip {
+  position: absolute; right: 28px; bottom: 36px; z-index: 5; padding: 11px 22px; border-radius: 8px; font-size: 15px;
+  background: rgba(20, 20, 24, .85); color: #fff; border: 1px solid rgba(255, 255, 255, .6); transition: bottom .3s ease;
+}
+.we-skip.up { bottom: 96px; }
+.we-skip:hover { background: #fff; color: #000; }
+.we-thin { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, .2); pointer-events: none; }
+.we-thin > div { height: 100%; background: var(--accent); }
+
+/* 详情页：文件信息 */
+.we-fileinfo { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 16px; font-size: 13px; }
+.we-fi-k { font-size: 12px; }
+.we-fi-line { font-size: 12px; margin-top: 8px; line-height: 1.6; }
+@media (max-width: 900px) { .we-fileinfo { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* 电视直播 */
+.we-live-groups { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.we-live-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+.we-live-ch {
+  position: relative; display: flex; align-items: center; gap: 10px; padding: 10px 34px 10px 10px; border-radius: var(--radius-sm);
+  background: var(--surface-2); border: 1px solid var(--border-soft); cursor: pointer;
+}
+.we-live-ch:hover { border-color: var(--accent); }
+.we-live-ch img, .we-live-ph { width: 40px; height: 40px; border-radius: 6px; object-fit: contain; background: var(--surface-3); flex: none; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+.we-live-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.we-live-n { position: absolute; right: 34px; bottom: 4px; font-size: 10px; }
+.we-live-star { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); background: none; border: none; box-shadow: none; padding: 4px 6px; color: var(--accent); }
+.we-filebtn { display: inline-flex; align-items: center; padding: 0 14px; border-radius: var(--radius-sm); cursor: pointer; background: var(--surface-3); border: 1px solid var(--border-soft); white-space: nowrap; }
+.we-chlist { position: absolute; left: 12px; top: 64px; bottom: 80px; width: 250px; z-index: 4; display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; background: rgba(14, 14, 18, .93); border: 1px solid rgba(255, 255, 255, .16); }
+.we-chlist-head { padding: 10px 12px; font-size: 12px; color: rgba(255, 255, 255, .75); border-bottom: 1px solid rgba(255, 255, 255, .1); }
+.we-chlist-body { flex: 1; overflow: auto; padding: 4px; }
+.we-player.hide-ui .we-chlist { opacity: 0; pointer-events: none; }

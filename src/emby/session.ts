@@ -37,13 +37,51 @@ export function getSession(): Session | null {
   }
 }
 
+const ACC_KEY = 'wemby-accounts';
+
+/** 已登录过的全部账号（多服务器、同服务器多用户），只存 token */
+export function listAccounts(): Session[] {
+  try {
+    const a = JSON.parse(localStorage.getItem(ACC_KEY) || '[]') as Session[];
+    return Array.isArray(a) ? a.filter((x) => x && x.server && x.token && x.userId) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeAccounts(list: Session[]): void {
+  try {
+    localStorage.setItem(ACC_KEY, JSON.stringify(list));
+  } catch {
+    /* ignore */
+  }
+}
+
+export const sameAccount = (a: Session, b: Session): boolean => a.server === b.server && a.userId === b.userId;
+
 export function saveSession(s: Session): void {
   try {
     localStorage.setItem(KEY, JSON.stringify(s));
   } catch {
     /* ignore */
   }
+  const list = listAccounts().filter((x) => !sameAccount(x, s));
+  list.push(s);
+  writeAccounts(list);
   window.dispatchEvent(new Event(SESSION_EVENT));
+}
+
+/** 只退出当前账号并从列表删掉；还有别的账号就自动切过去 */
+export function removeAccount(s: Session): void {
+  const rest = listAccounts().filter((x) => !sameAccount(x, s));
+  writeAccounts(rest);
+  const cur = getSession();
+  if (cur && sameAccount(cur, s)) {
+    if (rest.length) saveSession(rest[rest.length - 1]);
+    else clearSession();
+  } else {
+    window.dispatchEvent(new Event(SESSION_EVENT));
+  }
 }
 
 export function clearSession(): void {

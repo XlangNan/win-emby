@@ -27,6 +27,10 @@ const OBSERVED: unknown[] = [
   ['sid', 'int64', 'none'],
   ['eof-reached', 'flag', 'none'],
   ['hwdec-current', 'string', 'none'],
+  ['container-fps', 'double', 'none'],
+  ['width', 'int64', 'none'],
+  ['height', 'int64', 'none'],
+  ['video-bitrate', 'double', 'none'],
 ];
 
 let queue: Promise<unknown> = Promise.resolve();
