@@ -188,6 +188,22 @@ export const emby = {
     });
   },
 
+  /** 库里所有电影 / 剧集的 TMDB 编号，形如 movie:123、tv:456（用来标「已入库」） */
+  async tmdbIndex(): Promise<Set<string>> {
+    const s = need();
+    const out = new Set<string>();
+    for (const [type, tag] of [['Movie', 'movie'], ['Series', 'tv']] as const) {
+      const r = await api<ItemsResult & { Items: { ProviderIds?: Record<string, string> }[] }>('GET', `/Users/${s.userId}/Items`, {
+        IncludeItemTypes: type, Recursive: true, Fields: 'ProviderIds', EnableImages: false, EnableUserData: false, Limit: 20000,
+      });
+      for (const it of r.Items as { ProviderIds?: Record<string, string> }[]) {
+        const id = it.ProviderIds?.Tmdb || it.ProviderIds?.tmdb;
+        if (id) out.add(`${tag}:${id}`);
+      }
+    }
+    return out;
+  },
+
   async seasons(seriesId: string): Promise<EmbyItem[]> {
     const s = need();
     const r = await api<ItemsResult>('GET', `/Shows/${seriesId}/Seasons`, {

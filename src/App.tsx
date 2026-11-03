@@ -10,6 +10,7 @@ import { SESSION_EVENT, clearSession, getSession } from './emby/session';
 import ConfigPage from './pages/ConfigPage';
 import DetailPage from './pages/DetailPage';
 import DiscoverDetail from './pages/DiscoverDetail';
+import DiscoverMore from './pages/DiscoverMore';
 import DiscoverPage from './pages/DiscoverPage';
 import FavoritesPage from './pages/FavoritesPage';
 import HistoryPage from './pages/HistoryPage';
@@ -165,6 +166,7 @@ function AppShell() {
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/live" element={<LivePage />} />
         <Route path="/discover" element={<DiscoverPage />} />
+        <Route path="/discover/more/:row" element={<DiscoverMore />} />
         <Route path="/discover/:media/:id" element={<DiscoverDetail />} />
         <Route path="/config" element={<ConfigPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

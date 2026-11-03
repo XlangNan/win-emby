@@ -6,8 +6,11 @@ export const isTauri = (): boolean => typeof window !== 'undefined' && '__TAURI_
 
 let tauriFetch: Promise<FetchFn> | null = null;
 
-export async function httpFetch(input: string, init?: RequestInit): Promise<Response> {
+/** proxy：形如 http://127.0.0.1:7890，只在桌面端生效（访问 TMDB 用） */
+export async function httpFetch(input: string, init?: RequestInit, opts?: { proxy?: string }): Promise<Response> {
   if (!isTauri()) return fetch(input, init);
   tauriFetch ??= import('@tauri-apps/plugin-http').then((m) => m.fetch as FetchFn);
-  return (await tauriFetch)(input, init);
+  const p = opts?.proxy?.trim();
+  const full = p ? ({ ...(init || {}), proxy: { all: p } } as RequestInit) : init;
+  return (await tauriFetch)(input, full);
 }
