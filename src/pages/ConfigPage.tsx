@@ -5,6 +5,8 @@ import { getSession, listAccounts, removeAccount, sameAccount, saveSession } fro
 import type { EmbyItem, Session } from '../emby/types';
 import { applyTheme, useTheme } from '../lib/theme';
 import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
+import { kg, loadKg, saveKg } from '../lib/kg';
+import { loadTmdb, saveTmdb, tmdbSearch } from '../lib/tmdb';
 import { ALL_THEMES, THEME_LABELS } from '../lib/themeTokens';
 
 const LANGS: [string, string][] = [
@@ -127,6 +129,85 @@ function HomeLibs({ prefs, set }: { prefs: ReturnType<typeof loadPlayPrefs>; set
   );
 }
 
+/** TMDB 设置：片库数据直接来自 TMDB，国内访问需要代理 */
+function TmdbSettings() {
+  const [c, setC] = useState(loadTmdb);
+  const [adv, setAdv] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  const test = async (): Promise<void> => {
+    saveTmdb(c);
+    setBusy(true);
+    setMsg('');
+    try {
+      const r = await tmdbSearch('肖申克的救赎');
+      setMsg(`连接成功（搜到 ${r.items.length} 条），已保存`);
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="card we-set" style={{ marginBottom: 14 }}>
+      <h3>TMDB（片库数据）</h3>
+      <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>
+        在 themoviedb.org 免费申请：填 v3「API 密钥」或 v4「API 读访问令牌」都行。国内直连通常不通，请在下面填代理（如 Clash 默认 http://127.0.0.1:7890）。
+      </div>
+      <div style={{ display: 'grid', gap: 8 }}>
+        <input type="password" value={c.apiKey} onChange={(e) => setC({ ...c, apiKey: e.target.value })} placeholder="TMDB API Key / 读访问令牌" spellCheck={false} />
+        <input value={c.proxy} onChange={(e) => setC({ ...c, proxy: e.target.value })} placeholder="代理（HTTP），如 http://127.0.0.1:7890；留空 = 直连" spellCheck={false} />
+        {adv && (
+          <>
+            <input value={c.apiBase} onChange={(e) => setC({ ...c, apiBase: e.target.value })} placeholder="API 地址（默认 https://api.themoviedb.org/3）" spellCheck={false} />
+            <input value={c.imgBase} onChange={(e) => setC({ ...c, imgBase: e.target.value })} placeholder="图片地址（默认 https://image.tmdb.org）" spellCheck={false} />
+          </>
+        )}
+        <div className="row" style={{ gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button className="primary" disabled={busy || !c.apiKey.trim()} onClick={() => void test()}>{busy ? '连接中…' : '保存并测试连接'}</button>
+          <button onClick={() => setAdv((v) => !v)}>{adv ? '收起高级' : '自定义域名（有反代时用）'}</button>
+          {msg && <span className="muted" style={{ fontSize: 12 }}>{msg}</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** 追更服务（kuakego-plus）连接设置 */
+function KgSettings() {
+  const [c, setC] = useState(loadKg);
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  const test = async (): Promise<void> => {
+    saveKg(c);
+    setBusy(true);
+    setMsg('');
+    try {
+      const r = await kg<{ version?: string }>('/api/status');
+      setMsg(`连接成功${r?.version ? `（kuakego-plus ${r.version}）` : ''}，已保存`);
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="card we-set" style={{ marginBottom: 14 }}>
+      <h3>追更服务（kuakego-plus）</h3>
+      <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>片库里点「想看 / 订阅」时，由追更服务自动找资源存入网盘（只用来订阅，不影响浏览）。需要追更服务升级到 1.45.0 或更新。</div>
+      <div style={{ display: 'grid', gap: 8 }}>
+        <input value={c.url} onChange={(e) => setC({ ...c, url: e.target.value })} placeholder="地址，如 192.168.1.10:8088" spellCheck={false} />
+        <input value={c.username} onChange={(e) => setC({ ...c, username: e.target.value })} placeholder="用户名（默认 admin）" spellCheck={false} />
+        <input type="password" value={c.password} onChange={(e) => setC({ ...c, password: e.target.value })} placeholder="密码（WEBUI_PASSWORD）" />
+        <div className="row" style={{ gap: 10, alignItems: 'center' }}>
+          <button className="primary" disabled={busy || !c.url.trim()} onClick={() => void test()}>{busy ? '连接中…' : '保存并测试连接'}</button>
+          {msg && <span className="muted" style={{ fontSize: 12 }}>{msg}</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ConfigPage() {
   const theme = useTheme();
   const [prefs, setPrefs] = useState(loadPlayPrefs);
@@ -138,6 +219,8 @@ export default function ConfigPage() {
       <div className="content">
         <Accounts />
         <HomeLibs prefs={prefs} set={set} />
+        <TmdbSettings />
+        <KgSettings />
 
         <div className="card we-set" style={{ marginBottom: 14 }}>
           <h3>界面皮肤</h3>

@@ -88,6 +88,8 @@ export interface ListOpts {
   genres?: string;
   recursive?: boolean;
   extraFields?: string;
+  /** 按外部编号找，如 tmdb.12345 */
+  providerId?: string;
 }
 
 export const emby = {
@@ -132,6 +134,7 @@ export const emby = {
       Limit: o.limit ?? 60,
       Filters: o.filters,
       SearchTerm: o.search,
+      AnyProviderIdEquals: o.providerId,
       Genres: o.genres,
       Fields: o.extraFields ? `${LIST_FIELDS},${o.extraFields}` : LIST_FIELDS,
       ImageTypeLimit: 1,
@@ -183,6 +186,22 @@ export const emby = {
     return api<EmbyItem>('GET', `/Users/${s.userId}/Items/${id}`, {
       Fields: 'Overview,People,Genres,Studios,Taglines,MediaSources,MediaStreams,ProviderIds,Chapters,Path',
     });
+  },
+
+  /** 库里所有电影 / 剧集的 TMDB 编号，形如 movie:123、tv:456（用来标「已入库」） */
+  async tmdbIndex(): Promise<Set<string>> {
+    const s = need();
+    const out = new Set<string>();
+    for (const [type, tag] of [['Movie', 'movie'], ['Series', 'tv']] as const) {
+      const r = await api<ItemsResult & { Items: { ProviderIds?: Record<string, string> }[] }>('GET', `/Users/${s.userId}/Items`, {
+        IncludeItemTypes: type, Recursive: true, Fields: 'ProviderIds', EnableImages: false, EnableUserData: false, Limit: 20000,
+      });
+      for (const it of r.Items as { ProviderIds?: Record<string, string> }[]) {
+        const id = it.ProviderIds?.Tmdb || it.ProviderIds?.tmdb;
+        if (id) out.add(`${tag}:${id}`);
+      }
+    }
+    return out;
   },
 
   async seasons(seriesId: string): Promise<EmbyItem[]> {

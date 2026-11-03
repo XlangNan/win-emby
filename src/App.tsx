@@ -9,6 +9,9 @@ import { emby } from './emby/client';
 import { SESSION_EVENT, clearSession, getSession } from './emby/session';
 import ConfigPage from './pages/ConfigPage';
 import DetailPage from './pages/DetailPage';
+import DiscoverDetail from './pages/DiscoverDetail';
+import DiscoverMore from './pages/DiscoverMore';
+import DiscoverPage from './pages/DiscoverPage';
 import FavoritesPage from './pages/FavoritesPage';
 import HistoryPage from './pages/HistoryPage';
 import HomePage from './pages/HomePage';
@@ -112,6 +115,7 @@ function AppShell() {
     [views],
   );
   const myNav: NavItem[] = [
+    { to: '/discover', label: '片库', ico: '🎞' },
     { to: '/live', label: '直播', ico: '📡' },
     { to: '/favorites', label: '收藏', ico: '⭐' },
     { to: '/history', label: '历史', ico: '🕘' },
@@ -161,6 +165,9 @@ function AppShell() {
         <Route path="/favorites" element={<FavoritesPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/live" element={<LivePage />} />
+        <Route path="/discover" element={<DiscoverPage />} />
+        <Route path="/discover/more/:row" element={<DiscoverMore />} />
+        <Route path="/discover/:media/:id" element={<DiscoverDetail />} />
         <Route path="/config" element={<ConfigPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
