@@ -4,6 +4,7 @@ import { emby } from '../emby/client';
 import { getSession, listAccounts, removeAccount, sameAccount, saveSession } from '../emby/session';
 import type { EmbyItem, Session } from '../emby/types';
 import { applyTheme, useTheme } from '../lib/theme';
+import { applyFont, FONT_PRESETS, loadFont } from '../lib/font';
 import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
 import { kg, loadKg, saveKg } from '../lib/kg';
 import { loadTmdb, saveTmdb, tmdbSearch } from '../lib/tmdb';
@@ -208,6 +209,33 @@ function KgSettings() {
   );
 }
 
+function FontSettings() {
+  const [f, setF] = useState(loadFont());
+  const upd = (n: Partial<typeof f>): void => {
+    const next = { ...f, ...n };
+    setF(next);
+    applyFont(next);
+  };
+  const cur = FONT_PRESETS.find((x) => x.id === f.id);
+  return (
+    <div className="card we-set" style={{ marginBottom: 14 }}>
+      <h3>界面字体</h3>
+      <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+        {FONT_PRESETS.map((p) => (
+          <button key={p.id} className={`tag ${!f.custom && f.id === p.id ? 'active' : ''}`} aria-pressed={!f.custom && f.id === p.id}
+            style={p.stack ? { fontFamily: p.stack } : undefined} onClick={() => upd({ id: p.id, custom: '' })}>
+            {p.label}
+          </button>
+        ))}
+      </div>
+      <div className="we-set-row" style={{ marginTop: 10 }}>
+        <span>自定义字体名<span className="muted" style={{ display: 'block', fontSize: 12 }}>填已安装在系统里的字体名称（如「霞鹜文楷」「LXGW WenKai」），留空则用上面的选择</span></span>
+        <input value={f.custom} placeholder={cur?.label || ''} onChange={(e) => upd({ custom: e.target.value })} style={{ width: 200 }} />
+      </div>
+    </div>
+  );
+}
+
 export default function ConfigPage() {
   const theme = useTheme();
   const [prefs, setPrefs] = useState(loadPlayPrefs);
@@ -221,6 +249,8 @@ export default function ConfigPage() {
         <HomeLibs prefs={prefs} set={set} />
         <TmdbSettings />
         <KgSettings />
+
+        <FontSettings />
 
         <div className="card we-set" style={{ marginBottom: 14 }}>
           <h3>界面皮肤</h3>

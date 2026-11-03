@@ -7,6 +7,16 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_libmpv::init())
+        .setup(|app| {
+            // 明确设置窗口 / 任务栏图标（不依赖默认值，避免任务栏显示旧图标或默认图标）
+            use tauri::Manager;
+            if let Some(w) = app.get_webview_window("main") {
+                if let Ok(img) = tauri::image::Image::from_bytes(include_bytes!("../icons/icon.png")) {
+                    let _ = w.set_icon(img);
+                }
+            }
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("启动 Win-Emby 失败");
 }

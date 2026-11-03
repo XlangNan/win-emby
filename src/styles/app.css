@@ -276,7 +276,7 @@ html.mpv-on, html.mpv-on body, html.mpv-on #root { background: transparent !impo
 
 
 /* ================= 网飝皮肤：仿流媒体网站详情 ================= */
-.nfd { position: relative; background: #141414; color: #fff; margin: 0 -30px -36px; min-height: 100%; }
+.nfd { position: relative; background: #141414; color: #fff; margin: 0; min-height: 100%; }
 .nfd-back { position: absolute; left: 16px; top: 12px; z-index: 5; }
 .nfd-hero { position: relative; min-height: 78vh; overflow: hidden; display: flex; align-items: flex-end; }
 .nfd-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 20%; }

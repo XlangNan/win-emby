@@ -10,7 +10,7 @@ import { openMpv, type MpvSession } from '../lib/mpv';
 import { loadPlayPrefs, savePlayPrefs, setTrackMemory } from '../lib/prefs';
 import { pickInitialTracks } from '../lib/tracks';
 import { usePlayItem } from '../lib/usePlayItem';
-import { winClose, winIsFullscreen, winMinimize, winSetFullscreen, winToggleMax } from '../lib/win';
+import { winClose, winIsFullscreen, winMinimize, winOnClose, winSetFullscreen, winToggleMax } from '../lib/win';
 
 /** 告诉 Emby「什么都能直接播」，只是为了拿到 PlaySessionId，真正的文件由 mpv 解码 */
 const DIRECT_ALL_PROFILE = {
@@ -58,6 +58,9 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const posRef = useRef(0);
   const pausedRef = useRef(true);
   const endedRef = useRef(false);
+  const startedRef = useRef(false); // 已经收到真实播放位置（之前不回报，避免用 0 覆盖续播进度）
+  const stoppedRef = useRef(false);
+  const hoverUi = useRef(false);
   const hideTimer = useRef<number | null>(null);
   const extSid = useRef<Map<number, number>>(new Map());
   const nextRef = useRef<EmbyItem | null>(null);
@@ -104,9 +107,14 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   }, [item]);
 
   // ───────── 进度回报 ─────────
-  const report = useCallback((kind: 'start' | 'progress' | 'stop') => {
+  const report = useCallback((kind: 'start' | 'progress' | 'stop'): Promise<void> => {
     const p = playRef.current;
-    if (!p) return;
+    if (!p) return Promise.resolve();
+    if (kind !== 'start' && !startedRef.current) return Promise.resolve();
+    if (kind === 'stop') {
+      if (stoppedRef.current) return Promise.resolve();
+      stoppedRef.current = true;
+    }
     const b = {
       itemId: id,
       mediaSourceId: p.source.Id,
@@ -115,19 +123,30 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       paused: pausedRef.current,
       method: 'DirectPlay' as const,
     };
-    if (kind === 'start') void emby.reportStart(b);
-    else if (kind === 'progress') void emby.reportProgress(b);
-    else void emby.reportStop(b);
+    if (kind === 'start') return emby.reportStart(b);
+    if (kind === 'progress') return emby.reportProgress(b);
+    return emby.reportStop(b);
   }, [id]);
 
   // ───────── mpv 属性回调 ─────────
   const onProp = useCallback((name: string, data: unknown) => {
     switch (name) {
-      case 'pause': pausedRef.current = !!data; setPaused(!!data); if (data) report('progress'); break;
-      case 'time-pos': if (typeof data === 'number') { posRef.current = data; setCur(data); setBusy(false); } break;
+      case 'pause': pausedRef.current = !!data; setPaused(!!data); if (data) void report('progress'); break;
+      case 'time-pos':
+        if (typeof data === 'number') {
+          posRef.current = data;
+          setCur(data);
+          setBusy(false);
+          if (!startedRef.current) {
+            startedRef.current = true;
+            void syncPauseRef.current(); // 初始 pause 事件可能没送达：起播后主动读一次
+          }
+        }
+        break;
       case 'duration':
         if (typeof data === 'number') {
           setDur(data);
+          void syncPauseRef.current();
           const p = pendingSub.current;
           if (p) {
             pendingSub.current = null;
@@ -148,7 +167,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       case 'eof-reached':
         if (data === true && !endedRef.current) {
           endedRef.current = true;
-          report('stop');
+          void report('stop');
           const n = nextRef.current;
           if (loadPlayPrefs().autoNext && n) nav(`/player/${n.Id}`, { replace: true });
           else setUiShown(true);
@@ -159,6 +178,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   }, [nav, report]);
   // 稳定的 ref 回调：只在菜单刚打开时滚到当前集（内联函数每次渲染都会触发，导致滚动被拉回）
   const scrollToActive = useCallback((el: HTMLElement | null) => el?.scrollIntoView({ block: 'center' }), []);
+  const syncPauseRef = useRef<() => Promise<void>>(async () => undefined);
   const pickSubRef = useRef<(s: MediaStream | null, silent?: boolean) => Promise<void>>(async () => undefined);
   const onPropRef = useRef(onProp);
   onPropRef.current = onProp;
@@ -173,6 +193,14 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     }
     let dead = false;
     endedRef.current = false;
+    startedRef.current = false;
+    stoppedRef.current = false;
+    posRef.current = 0;
+    playRef.current = null;
+    pausedRef.current = false;
+    setPaused(false);
+    setBusy(true);
+    setCur(0);
     document.documentElement.classList.add('mpv-on'); // 页面背景透明，让底下的 mpv 画面透出来
     (async () => {
       try {
@@ -189,6 +217,14 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           return;
         }
         sessRef.current = sess;
+        syncPauseRef.current = async () => {
+          try {
+            const v = await sess.get('pause', 'flag');
+            if (dead || sessRef.current !== sess || typeof v !== 'boolean') return;
+            pausedRef.current = v;
+            setPaused(v);
+          } catch { /* ignore */ }
+        };
         await sess.set('volume', Math.round(loadPlayPrefs().volume * 100));
         const mst = psrc.MediaStreams || src.MediaStreams || [];
         const pick = pickInitialTracks(id, mst, loadPlayPrefs(), {
@@ -211,14 +247,16 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         }
         await sess.loadfile(directStreamUrl(id, psrc, info.PlaySessionId), opts);
         if (loadPlayPrefs().autoSkipIntro) autoSkipArmed.current = true;
-        report('start');
+        void report('start');
+        void syncPauseRef.current();
+        poke();
       } catch (e) {
         if (!dead) onFail(e instanceof Error ? e.message : String(e));
       }
     })();
     return () => {
       dead = true;
-      report('stop');
+      void report('stop');
       const s = sessRef.current;
       sessRef.current = null;
       void s?.close();
@@ -227,10 +265,23 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item?.Id]);
 
+  // 关窗口（✕ / Alt+F4 / 任务栏）前先把进度写回 Emby
+  useEffect(() => {
+    let un: (() => void) | null = null;
+    let gone = false;
+    void winOnClose(async () => {
+      await Promise.race([report('stop'), new Promise((r) => setTimeout(r, 1500))]);
+    }).then((f) => (gone ? f() : (un = f)));
+    return () => {
+      gone = true;
+      un?.();
+    };
+  }, [report]);
+
   // 每 10 秒回报进度
   useEffect(() => {
     const t = setInterval(() => {
-      if (!pausedRef.current) report('progress');
+      if (!pausedRef.current) void report('progress');
     }, 10000);
     return () => clearInterval(t);
   }, [report]);
@@ -245,14 +296,14 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
 
   // ───────── 操作 ─────────
   const toggle = useCallback(() => {
-    void sessRef.current?.cmd('cycle', ['pause']);
+    void sessRef.current?.cmd('cycle', ['pause']).then(() => syncPauseRef.current());
   }, []);
   const seekBy = useCallback((d: number) => {
     void sessRef.current?.cmd('seek', [String(d), 'relative']);
   }, []);
   const seekTo = (sec: number): void => {
     void sessRef.current?.cmd('seek', [String(sec), 'absolute']);
-    report('progress');
+    void report('progress');
   };
   const setVolume = useCallback((v: number) => {
     const c = Math.max(0, Math.min(100, v));
@@ -265,13 +316,14 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     setFull(next);
   }, []);
   const exit = useCallback(async () => {
+    await Promise.race([report('stop'), new Promise((r) => setTimeout(r, 1500))]); // 先把进度写回 Emby 再离开
     if (await winIsFullscreen()) {
       await winSetFullscreen(false);
       setFull(false);
     }
     if (window.history.length > 1) nav(-1);
     else nav('/', { replace: true });
-  }, [nav]);
+  }, [nav, report]);
   const goNext = useCallback(() => {
     if (nextRef.current) nav(`/player/${nextRef.current.Id}`, { replace: true });
   }, [nav]);
@@ -331,8 +383,16 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     setUiShown(true);
     if (hideTimer.current) window.clearTimeout(hideTimer.current);
     hideTimer.current = window.setTimeout(() => {
-      if (!pausedRef.current) setUiShown(false);
+      if (!pausedRef.current && !hoverUi.current) setUiShown(false);
     }, 3000);
+  }, []);
+
+  // 暂停 ↔ 播放切换时重新计时：恢复播放后，不动鼠标 3 秒也会渐隐
+  useEffect(() => {
+    if (!paused) poke();
+  }, [paused, poke]);
+  useEffect(() => () => {
+    if (hideTimer.current) window.clearTimeout(hideTimer.current);
   }, []);
 
   useEffect(() => {
@@ -377,7 +437,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       {(busy || caching) && !err && <div className="we-loading"><span className="spinner" aria-hidden="true" />{busy ? '正在加载…' : '缓冲中…'}</div>}
       {err && <div className="we-error">{err}</div>}
 
-      <div className="we-top">
+      <div className="we-top" onMouseEnter={() => { hoverUi.current = true; }} onMouseLeave={() => { hoverUi.current = false; poke(); }}>
         <button className="we-btn we-back" title="返回（Esc）" onClick={(e) => { e.stopPropagation(); void exit(); }}>
           <svg width="18" height="18" viewBox="0 0 24 24"><path d="M15.5 5l-7 7 7 7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
           <span>返回</span>
@@ -424,7 +484,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       )}
       {!showUi && <div className="we-thin"><div style={{ width: `${pct}%` }} /></div>}
 
-      <div className="we-bottom" onClick={(e) => e.stopPropagation()}>
+      <div className="we-bottom" onClick={(e) => e.stopPropagation()} onMouseEnter={() => { hoverUi.current = true; }} onMouseLeave={() => { hoverUi.current = false; poke(); }}>
         <div
           className="we-seek"
           onClick={(e) => {

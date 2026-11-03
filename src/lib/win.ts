@@ -75,3 +75,18 @@ export async function winSetFullscreen(on: boolean): Promise<void> {
 export async function winIsFullscreen(): Promise<boolean> {
   return isTauri() ? (await cur()).isFullscreen() : !!document.fullscreenElement;
 }
+
+/** 拦截窗口关闭（点 ✕ / Alt+F4 / 任务栏关闭）：先跑 before，再真正销毁窗口。返回取消函数。 */
+export async function winOnClose(before: () => Promise<void>): Promise<() => void> {
+  if (!isTauri()) return () => undefined;
+  const w = await cur();
+  const un = await w.onCloseRequested(async (e) => {
+    e.preventDefault();
+    try {
+      await before();
+    } finally {
+      await w.destroy();
+    }
+  });
+  return un;
+}

@@ -100,6 +100,8 @@ export interface TmdbItem {
   poster: string;
   backdrop: string;
   overview: string;
+  date: string;
+  pop: number;
 }
 
 interface RawItem {
@@ -113,6 +115,8 @@ interface RawItem {
   poster_path?: string | null;
   backdrop_path?: string | null;
   overview?: string;
+  popularity?: number;
+  vote_count?: number;
 }
 
 function norm(x: RawItem, forced?: 'movie' | 'tv'): TmdbItem | null {
@@ -127,6 +131,8 @@ function norm(x: RawItem, forced?: 'movie' | 'tv'): TmdbItem | null {
     poster: x.poster_path || '',
     backdrop: x.backdrop_path || '',
     overview: x.overview || '',
+    date: x.release_date || x.first_air_date || '',
+    pop: x.popularity || 0,
   };
 }
 
