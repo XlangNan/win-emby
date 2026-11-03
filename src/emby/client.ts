@@ -367,6 +367,13 @@ export function backdropUrl(it: EmbyItem, width = 1600): string {
   return '';
 }
 
+/** 片名 Logo（有的话用来代替文字标题） */
+export function logoUrl(it: EmbyItem, width = 600): string {
+  if (!getSession()) return '';
+  const tag = it.ImageTags?.Logo;
+  return tag ? withAuth(`/Items/${it.Id}/Images/Logo`, { maxWidth: width, quality: 90, tag }) : '';
+}
+
 export function personUrl(p: { Id: string; PrimaryImageTag?: string }, width = 200): string {
   if (!getSession() || !p.PrimaryImageTag) return '';
   return withAuth(`/Items/${p.Id}/Images/Primary`, { maxWidth: width, quality: 85, tag: p.PrimaryImageTag });
