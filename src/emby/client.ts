@@ -88,6 +88,8 @@ export interface ListOpts {
   genres?: string;
   recursive?: boolean;
   extraFields?: string;
+  /** 按外部编号找，如 tmdb.12345 */
+  providerId?: string;
 }
 
 export const emby = {
@@ -132,6 +134,7 @@ export const emby = {
       Limit: o.limit ?? 60,
       Filters: o.filters,
       SearchTerm: o.search,
+      AnyProviderIdEquals: o.providerId,
       Genres: o.genres,
       Fields: o.extraFields ? `${LIST_FIELDS},${o.extraFields}` : LIST_FIELDS,
       ImageTypeLimit: 1,

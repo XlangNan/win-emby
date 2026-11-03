@@ -231,3 +231,7 @@ html.mpv-on, html.mpv-on body, html.mpv-on #root { background: transparent !impo
 .we-chlist-head { padding: 10px 12px; font-size: 12px; color: rgba(255, 255, 255, .75); border-bottom: 1px solid rgba(255, 255, 255, .1); }
 .we-chlist-body { flex: 1; overflow: auto; padding: 4px; }
 .we-player.hide-ui .we-chlist { opacity: 0; pointer-events: none; }
+
+/* 片库 */
+.we-kg-badge { position: absolute; left: 6px; top: 6px; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--accent); color: var(--on-accent, #000); }
+.card-media .no-cover { min-height: 120px; }

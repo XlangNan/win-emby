@@ -5,6 +5,7 @@ import { getSession, listAccounts, removeAccount, sameAccount, saveSession } fro
 import type { EmbyItem, Session } from '../emby/types';
 import { applyTheme, useTheme } from '../lib/theme';
 import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
+import { kg, loadKg, saveKg } from '../lib/kg';
 import { ALL_THEMES, THEME_LABELS } from '../lib/themeTokens';
 
 const LANGS: [string, string][] = [
@@ -127,6 +128,44 @@ function HomeLibs({ prefs, set }: { prefs: ReturnType<typeof loadPlayPrefs>; set
   );
 }
 
+/** 追更服务（kuakego-plus）连接设置 */
+function KgSettings() {
+  const [c, setC] = useState(loadKg);
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  const test = async (): Promise<void> => {
+    saveKg(c);
+    setBusy(true);
+    setMsg('');
+    try {
+      const r = await kg<{ version?: string }>('/api/status');
+      setMsg(`连接成功${r?.version ? `（kuakego-plus ${r.version}）` : ''}，已保存`);
+      await kg('/api/tmdb/home?scope=movie').catch((e: Error) => {
+        throw new Error(`连上了，但推荐数据取不到：${e.message}（先在追更服务里填 TMDB API Key）`);
+      });
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="card we-set" style={{ marginBottom: 14 }}>
+      <h3>追更服务（kuakego-plus）</h3>
+      <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>连接后，导航里的「片库」会显示推荐电影和剧集，点进去可以「想看 / 订阅」，由追更服务自动找资源存入网盘。需要追更服务升级到 1.45.0 或更新。</div>
+      <div style={{ display: 'grid', gap: 8 }}>
+        <input value={c.url} onChange={(e) => setC({ ...c, url: e.target.value })} placeholder="地址，如 192.168.1.10:8088" spellCheck={false} />
+        <input value={c.username} onChange={(e) => setC({ ...c, username: e.target.value })} placeholder="用户名（默认 admin）" spellCheck={false} />
+        <input type="password" value={c.password} onChange={(e) => setC({ ...c, password: e.target.value })} placeholder="密码（WEBUI_PASSWORD）" />
+        <div className="row" style={{ gap: 10, alignItems: 'center' }}>
+          <button className="primary" disabled={busy || !c.url.trim()} onClick={() => void test()}>{busy ? '连接中…' : '保存并测试连接'}</button>
+          {msg && <span className="muted" style={{ fontSize: 12 }}>{msg}</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ConfigPage() {
   const theme = useTheme();
   const [prefs, setPrefs] = useState(loadPlayPrefs);
@@ -138,6 +177,7 @@ export default function ConfigPage() {
       <div className="content">
         <Accounts />
         <HomeLibs prefs={prefs} set={set} />
+        <KgSettings />
 
         <div className="card we-set" style={{ marginBottom: 14 }}>
           <h3>界面皮肤</h3>
