@@ -71,6 +71,18 @@ export async function kgTasks(): Promise<KgTask[]> {
   return (await kg<{ tasks: KgTask[] }>('/api/tasks')).tasks.filter((t) => t.tmdb_id);
 }
 
-export const kgSubscribe = (media: 'tv' | 'movie', id: number, season?: number) =>
-  kg<{ task: { id: string } }>('/api/quick-subscribe', { method: 'POST', body: { media, tmdb_id: id, season } });
+export interface KgAccount { id: string; drive: 'quark' | 'xunlei' | 'guangya'; name: string; primary: boolean; state: string; logged: boolean; nickname: string }
+export const DRIVE_NAMES: Record<string, string> = { quark: '夸克', xunlei: '迅雷', guangya: '光鸭' };
+
+/** 追更服务里已有的网盘账号（每个网盘的主账号 + 其他账号） */
+export async function kgAccounts(): Promise<KgAccount[]> {
+  return (await kg<{ accounts: KgAccount[] }>('/api/accounts')).accounts;
+}
+
+export const accountKey = (a: { drive: string; id: string }): string => `${a.drive}|${a.id}`;
+export const accountLabel = (a: KgAccount): string =>
+  `${DRIVE_NAMES[a.drive] || a.drive} · ${a.name}${a.nickname ? `（${a.nickname}）` : ''}${a.logged ? (a.state === 'bad' ? ' · 登录失效' : '') : ' · 未登录'}`;
+
+export const kgSubscribe = (media: 'tv' | 'movie', id: number, season?: number, drive?: string, account?: string) =>
+  kg<{ task: { id: string } }>('/api/quick-subscribe', { method: 'POST', body: { media, tmdb_id: id, season, drive, account } });
 export const kgUnsubscribe = (taskId: string) => kg<unknown>(`/api/tasks/${encodeURIComponent(taskId)}`, { method: 'DELETE' });

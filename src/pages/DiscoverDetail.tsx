@@ -1,11 +1,11 @@
 // 片库详情（MoviePilot 风格）：背景大图 + 海报 + 信息 + 订阅按钮，下方演员和相关推荐
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import BackButton from '../components/BackButton';
 import HScrollRow from '../components/HScrollRow';
 import TmdbImg from '../components/TmdbImg';
 import { emby } from '../emby/client';
-import { kgReady, kgSubscribe, kgUnsubscribe } from '../lib/kg';
+import { accountKey, accountLabel, kgAccounts, kgReady, kgSubscribe, kgUnsubscribe } from '../lib/kg';
 import { tmdbDetail } from '../lib/tmdb';
 import { useAsync } from '../lib/useAsync';
 import { PosterCard, useStatus } from './DiscoverPage';
@@ -21,6 +21,24 @@ export default function DiscoverDetail() {
     () => emby.items({ providerId: `tmdb.${id}`, types: media === 'movie' ? 'Movie' : 'Series', limit: 1 }).then((r) => r.Items[0]?.Id || '').catch(() => ''),
     [media, id],
   );
+  const accounts = useAsync(() => (kgReady() ? kgAccounts().catch(() => []) : Promise.resolve([])), []);
+  const [acct, setAcct] = useState(() => localStorage.getItem('wemby-kg-acct') || '');
+  const usable = (accounts.data || []).filter((a) => a.logged && a.state !== 'bad');
+  // 默认选上次用的；上次的不可用就选第一个已登录的
+  useEffect(() => {
+    if (!accounts.data) return;
+    if (!usable.some((a) => accountKey(a) === acct)) setAcct(usable[0] ? accountKey(usable[0]) : '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accounts.data]);
+  const pickAcct = (v: string): void => {
+    setAcct(v);
+    try {
+      localStorage.setItem('wemby-kg-acct', v);
+    } catch {
+      /* ignore */
+    }
+  };
+  const [drv, accId] = acct.split('|');
   const [season, setSeason] = useState(1);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
@@ -93,9 +111,18 @@ export default function DiscoverDetail() {
                         <button disabled={busy} onClick={() => void act(() => kgUnsubscribe(curTask.id), '已取消订阅')}>取消订阅</button>
                       </>
                     ) : (
-                      <button className={embyId.data ? '' : 'primary'} disabled={busy} onClick={() => void act(() => kgSubscribe(media, id, season), media === 'movie' ? '已提交，追更服务会自动找资源存入网盘' : `已订阅第 ${season} 季，追更服务会自动找资源存入网盘`)}>
+                      <>
+                      {(accounts.data || []).length > 0 && (
+                        <select value={acct} onChange={(e) => pickAcct(e.target.value)} aria-label="存入哪个网盘" title="存入哪个网盘">
+                          {(accounts.data || []).map((a) => (
+                            <option key={accountKey(a)} value={accountKey(a)} disabled={!a.logged || a.state === 'bad'}>{accountLabel(a)}</option>
+                          ))}
+                        </select>
+                      )}
+                      <button className={embyId.data ? '' : 'primary'} disabled={busy || ((accounts.data || []).length > 0 && usable.length === 0)} onClick={() => void act(() => kgSubscribe(media, id, season, drv || undefined, accId || undefined), media === 'movie' ? '已提交，追更服务会自动找资源存入网盘' : `已订阅第 ${season} 季，追更服务会自动找资源存入网盘`)}>
                         {busy ? '提交中…' : media === 'movie' ? '＋ 想看（自动找资源）' : '＋ 订阅（自动找资源）'}
                       </button>
+                      </>
                     )}
                   </div>
                   {msg && <div className="muted" style={{ marginTop: 8 }}>{msg}</div>}

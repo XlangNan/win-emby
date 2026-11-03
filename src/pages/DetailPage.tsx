@@ -6,6 +6,7 @@ import BackButton from '../components/BackButton';
 import HeroBackdrop from '../components/HeroBackdrop';
 import HScrollRow from '../components/HScrollRow';
 import MediaCard from '../components/MediaCard';
+import NfDetail from '../components/NfDetail';
 import PlayOptions, { type PlayChoice } from '../components/PlayOptions';
 import { backdropUrl, emby, personUrl, posterUrl, thumbUrl } from '../emby/client';
 import { fmtDuration, fmtRuntime, progressPct, ticksToSec } from '../emby/format';
@@ -146,6 +147,30 @@ export default function DetailPage() {
       {fav ? '已收藏' : '收藏'}
     </button>
   );
+
+  // 网飝皮肤：仿流媒体网站的详情（电影 / 剧集），合集仍用通用布局
+  if (nf && it && !isBox && it.Type !== 'Episode' && it.Type !== 'Season') {
+    return (
+      <NfDetail
+        it={it}
+        isSeries={isSeries}
+        seasons={seasons}
+        curSeason={curSeason}
+        onSeason={setSeasonId}
+        epsLoading={eps.loading}
+        selEpId={selEpId}
+        target={isSeries ? selEp || resumeEp : it}
+        playLabel={playLabel}
+        onPlay={play}
+        fav={fav}
+        onFav={() => void toggleFav()}
+        played={played}
+        onPlayed={() => void togglePlayed()}
+        similar={similar.data || []}
+        onChoice={setChoice}
+      />
+    );
+  }
 
   return (
     <>
