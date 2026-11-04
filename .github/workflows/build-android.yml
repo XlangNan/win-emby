@@ -1,0 +1,100 @@
+name: build-android
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['android-v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Use official registries
+        run: |
+          rm -f src-tauri/.cargo/config.toml
+          rm -f .npmrc
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      # 用同一张图标生成安卓启动图标（会写入 src-tauri/icons/android）
+      - name: Generate icons
+        run: pnpm tauri icon src-tauri/icons/icon.png
+
+      - name: Install NDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;27.2.12479018" "platforms;android-35" "build-tools;35.0.0"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
+
+      # 下载 libmpv 的 AAR，探测里面 MPVLib 的类名，并把接口签名打到日志里（排错用）
+      - name: Inspect libmpv AAR
+        run: |
+          mkdir -p /tmp/mpv && cd /tmp/mpv
+          curl -fsSL -o libmpv.aar https://repo1.maven.org/maven2/dev/jdtech/mpv/libmpv/1.0.0/libmpv-1.0.0.aar
+          unzip -q -o libmpv.aar
+          unzip -l classes.jar | grep -i MPVLib || true
+          CLS=$(unzip -Z1 classes.jar | grep -E 'MPVLib\.class$' | head -1 | sed 's/\.class$//; s#/#.#g')
+          echo "MPVLib 类：$CLS"
+          test -n "$CLS"
+          echo "MPVLIB_CLASS=$CLS" >> "$GITHUB_ENV"
+          javap -cp classes.jar "$CLS" || true
+          javap -cp classes.jar "$CLS\$EventObserver" || true
+          ls jni || true
+
+      - name: Init Android project
+        run: pnpm tauri android init --ci
+
+      - name: Patch Android project
+        run: node scripts/android-patch.mjs
+
+      - name: Build APK
+        run: pnpm tauri android build --apk --target aarch64
+
+      - name: Sign APK
+        run: |
+          APK=$(find src-tauri/gen/android -name '*.apk' -path '*release*' | head -1)
+          echo "原始 APK：$APK"
+          BT="$ANDROID_HOME/build-tools/35.0.0"
+          "$BT/zipalign" -f -p 4 "$APK" /tmp/aligned.apk
+          mkdir -p out
+          "$BT/apksigner" sign --ks android/winemby.keystore --ks-pass pass:winemby2026 --key-pass pass:winemby2026 --ks-key-alias winemby --out out/Win-Emby.apk /tmp/aligned.apk
+          ls -la out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Win-Emby-android
+          path: out/Win-Emby.apk
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/android-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: out/Win-Emby.apk
