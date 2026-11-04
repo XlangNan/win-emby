@@ -86,20 +86,20 @@ export default function LibraryPage() {
     <>
       <div className="topbar">
         <BackButton fallback="/" label="返回" />
-        <h3 style={{ margin: 0 }}>{title}</h3>
-        <span className="muted" style={{ fontSize: 12 }}>{total ? `${total} 项` : ''}</span>
+        <h3 style={{ margin: 0, whiteSpace: 'nowrap', flexShrink: 0 }}>{title}</h3>
+        <span className="muted" style={{ fontSize: 12, whiteSpace: 'nowrap', flexShrink: 0 }}>{total ? `${total} 项` : ''}</span>
         <span style={{ flex: 1 }} />
-        <label className="muted" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }} title="海报大小">
+        <label className="muted" style={{ fontSize: 12, whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }} title="海报大小">
           海报
           <input type="range" min={90} max={260} step={10} value={size} aria-label="海报大小"
             onChange={(e) => { const v = Number(e.target.value); setSize(v); savePlayPrefs({ posterSize: v }); }} style={{ width: 90 }} />
         </label>
-        <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="排序">
+        <select style={{ maxWidth: 130, minWidth: 0 }} value={sort} onChange={(e) => setSort(e.target.value)} aria-label="排序">
           {SORTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
         </select>
-        <select value={genre} onChange={(e) => setGenre(e.target.value)} aria-label="类型">
+        <select style={{ maxWidth: 160, minWidth: 0, textOverflow: 'ellipsis' }} value={genre} onChange={(e) => setGenre(e.target.value)} aria-label="类型">
           <option value="">全部类型</option>
-          {(genres.data || []).map((g) => <option key={g} value={g}>{g}</option>)}
+          {(genres.data || []).filter((g) => g.length <= 12).map((g) => <option key={g} value={g}>{g}</option>)}
         </select>
       </div>
       <div className="content">
