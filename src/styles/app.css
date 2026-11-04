@@ -344,3 +344,12 @@ html.mpv-on, html.mpv-on body, html.mpv-on #root { background: transparent !impo
   .spot-art-layer.spot-in-r, .spot-art-layer.spot-in-l, .spot-art-layer.spot-out-l, .spot-art-layer.spot-out-r, .spot-body { animation: none; }
 }
 .seg { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+
+/* ── 安卓 / 触屏 ── */
+.we-hud { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); z-index: 20; padding: 8px 18px; border-radius: 999px; background: rgba(0, 0, 0, .66); color: #fff; font-size: 16px; pointer-events: none; }
+.we-surface { touch-action: none; }
+html.android body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+html.android .we-btn { min-width: 44px; height: 44px; }
+html.android .we-seek { height: 14px; }
+html.android .we-top { padding-top: max(12px, env(safe-area-inset-top)); }
+html.android .we-volgrp { display: none; } /* 手机用手势调音量 */

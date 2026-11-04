@@ -7,6 +7,7 @@ import { directStreamUrl, emby, subtitleUrl } from '../emby/client';
 import { fmtDuration, ticksToSec } from '../emby/format';
 import type { EmbyItem, MediaSource, MediaStream } from '../emby/types';
 import { openMpv, type MpvSession } from '../lib/mpv';
+import { androidBridge, isAndroid } from '../lib/platform';
 import { loadPlayPrefs, savePlayPrefs, setTrackMemory } from '../lib/prefs';
 import { pickInitialTracks } from '../lib/tracks';
 import { usePlayItem } from '../lib/usePlayItem';
@@ -418,6 +419,91 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     return () => window.removeEventListener('keydown', onKey);
   }, [toggle, seekBy, setVolume, vol, toggleFull, goNext, exit, poke, drawer]);
 
+  // ───────── 触屏手势（安卓）：单击显隐控制条 / 双击左右快进快退、中间暂停 / 横滑进度 / 右侧竖滑音量 / 左侧竖滑亮度 ─────────
+  const [hud, setHud] = useState('');
+  const hudTimer = useRef<number | null>(null);
+  const showHud = (t: string): void => {
+    setHud(t);
+    if (hudTimer.current) window.clearTimeout(hudTimer.current);
+    hudTimer.current = window.setTimeout(() => setHud(''), 900);
+  };
+  const tg = useRef<{ x: number; y: number; w: number; h: number; mode: '' | 'seek' | 'vol' | 'bri'; base: number; val: number } | null>(null);
+  const lastTap = useRef(0);
+  const tapTimer = useRef<number | null>(null);
+  const tapAct = useRef<(x: number, w: number, dbl: boolean) => void>(() => undefined);
+  tapAct.current = (x, w, dbl) => {
+    if (menu) { setMenu(''); return; }
+    if (dbl) {
+      if (x < w / 3) { seekBy(-10); showHud('« 10 秒'); }
+      else if (x > (w * 2) / 3) { seekBy(10); showHud('10 秒 »'); }
+      else toggle();
+      poke();
+      return;
+    }
+    if (uiShown && !paused) {
+      if (hideTimer.current) window.clearTimeout(hideTimer.current);
+      setUiShown(false);
+    } else poke();
+  };
+  const onTouchStart = (e: React.TouchEvent): void => {
+    const t = e.touches[0];
+    const r = e.currentTarget.getBoundingClientRect();
+    tg.current = { x: t.clientX, y: t.clientY, w: r.width, h: r.height, mode: '', base: 0, val: 0 };
+  };
+  const onTouchMove = (e: React.TouchEvent): void => {
+    const g = tg.current;
+    if (!g) return;
+    const t = e.touches[0];
+    const dx = t.clientX - g.x, dy = t.clientY - g.y;
+    if (!g.mode) {
+      if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy)) { g.mode = 'seek'; g.base = cur; }
+      else if (Math.abs(dy) > 14) {
+        if (g.x < g.w / 2) { g.mode = 'bri'; g.base = androidBridge()?.getBrightness() ?? 0.5; }
+        else { g.mode = 'vol'; g.base = vol; }
+      } else return;
+    }
+    if (g.mode === 'seek') {
+      g.val = Math.max(0, Math.min(total || 0, g.base + (dx / g.w) * 150));
+      showHud(`${fmtDuration(g.val)} / ${fmtDuration(total)}`);
+    } else if (g.mode === 'vol') {
+      g.val = Math.max(0, Math.min(100, g.base - (dy / g.h) * 130));
+      setVolume(g.val);
+      showHud(`音量 ${Math.round(g.val)}%`);
+    } else {
+      g.val = Math.max(0.02, Math.min(1, g.base - (dy / g.h) * 1.3));
+      androidBridge()?.setBrightness(g.val);
+      showHud(`亮度 ${Math.round(g.val * 100)}%`);
+    }
+  };
+  const onTouchEnd = (e: React.TouchEvent): void => {
+    e.preventDefault(); // 不要再触发合成的鼠标点击
+    const g = tg.current;
+    tg.current = null;
+    if (!g) return;
+    if (g.mode === 'seek') { seekTo(g.val); return; }
+    if (g.mode) return;
+    const now = Date.now();
+    if (now - lastTap.current < 300) {
+      lastTap.current = 0;
+      if (tapTimer.current) window.clearTimeout(tapTimer.current);
+      tapAct.current(g.x, g.w, true);
+    } else {
+      lastTap.current = now;
+      if (tapTimer.current) window.clearTimeout(tapTimer.current);
+      tapTimer.current = window.setTimeout(() => tapAct.current(g.x, g.w, false), 300);
+    }
+  };
+
+  // 安卓：进入播放页即横屏沉浸全屏，离开时恢复
+  useEffect(() => {
+    if (!isAndroid) return;
+    void winSetFullscreen(true);
+    setFull(true);
+    return () => {
+      void winSetFullscreen(false);
+    };
+  }, []);
+
   // ───────── 渲染 ─────────
   const title = item
     ? item.Type === 'Episode'
@@ -432,7 +518,12 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   return (
     <div className={`we-player mpv${showUi ? '' : ' hide-ui'}`} onMouseMove={poke} onClick={() => menu && setMenu('')}>
       {/* 透明点击层：mpv 画面在它下面的原生窗口里 */}
-      <div className="we-surface" onClick={(e) => { e.stopPropagation(); if (menu) setMenu(''); else toggle(); }} onDoubleClick={() => void toggleFull()} />
+      {isAndroid ? (
+        <div className="we-surface" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} />
+      ) : (
+        <div className="we-surface" onClick={(e) => { e.stopPropagation(); if (menu) setMenu(''); else toggle(); }} onDoubleClick={() => void toggleFull()} />
+      )}
+      {hud && <div className="we-hud">{hud}</div>}
 
       {(busy || caching) && !err && <div className="we-loading"><span className="spinner" aria-hidden="true" />{busy ? '正在加载…' : '缓冲中…'}</div>}
       {err && <div className="we-error">{err}</div>}
@@ -452,7 +543,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         <button className="we-btn we-txt" title="简介 / 演职员 / 选集（I）" onClick={(e) => { e.stopPropagation(); setDrawer((v) => !v); }}>
           {drawer ? '收起信息' : '信息'}
         </button>
-        {!full && (
+        {!full && !isAndroid && (
           <div className="we-winbtns">
             <button className="we-btn" title="最小化" onClick={(e) => { e.stopPropagation(); void winMinimize(); }}>
               <svg width="12" height="12" viewBox="0 0 16 16"><line x1="3.5" y1="8" x2="12.5" y2="8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>

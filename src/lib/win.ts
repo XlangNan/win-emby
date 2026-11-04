@@ -1,5 +1,6 @@
 // 窗口控制（Tauri）。浏览器里调试时退化为无操作 / 浏览器全屏。
 import { isTauri } from '../emby/http';
+import { androidBridge, isAndroid } from './platform';
 
 async function cur() {
   const m = await import('@tauri-apps/api/window');
@@ -7,34 +8,46 @@ async function cur() {
 }
 
 export async function winMinimize(): Promise<void> {
+  if (isAndroid) return;
   if (isTauri()) await (await cur()).minimize();
 }
 
 export async function winToggleMax(): Promise<boolean> {
-  if (!isTauri()) return false;
+  if (!isTauri() || isAndroid) return false;
   const w = await cur();
   await w.toggleMaximize();
   return w.isMaximized();
 }
 
 export async function winIsMaximized(): Promise<boolean> {
-  return isTauri() ? (await cur()).isMaximized() : false;
+  return isTauri() && !isAndroid ? (await cur()).isMaximized() : false;
 }
 
 export async function winClose(): Promise<void> {
+  if (isAndroid) {
+    androidBridge()?.exit();
+    return;
+  }
   if (isTauri()) await (await cur()).close();
   else window.close();
 }
 
 export async function winStartDrag(): Promise<void> {
+  if (isAndroid) return;
   if (isTauri()) await (await cur()).startDragging();
 }
 
 // 进全屏前记下窗口的位置 / 大小 / 是否最大化，退出全屏时原样还原
 // （Windows 贴边半屏等状态，直接 setFullscreen(false) 会回到默认尺寸）
+let androidFull = false;
 let saved: { x: number; y: number; w: number; h: number; max: boolean } | null = null;
 
 export async function winSetFullscreen(on: boolean): Promise<void> {
+  if (isAndroid) {
+    androidFull = on;
+    androidBridge()?.setFullscreen(on);
+    return;
+  }
   if (isTauri()) {
     const w = await cur();
     if (on) {
@@ -73,12 +86,13 @@ export async function winSetFullscreen(on: boolean): Promise<void> {
 }
 
 export async function winIsFullscreen(): Promise<boolean> {
+  if (isAndroid) return androidFull;
   return isTauri() ? (await cur()).isFullscreen() : !!document.fullscreenElement;
 }
 
 /** 拦截窗口关闭（点 ✕ / Alt+F4 / 任务栏关闭）：先跑 before，再真正销毁窗口。返回取消函数。 */
 export async function winOnClose(before: () => Promise<void>): Promise<() => void> {
-  if (!isTauri()) return () => undefined;
+  if (!isTauri() || isAndroid) return () => undefined;
   const w = await cur();
   const un = await w.onCloseRequested(async (e) => {
     e.preventDefault();

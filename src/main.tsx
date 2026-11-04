@@ -5,6 +5,7 @@ import App from './App';
 import { installDragRegion } from './lib/dragRegion';
 import { initTheme } from './lib/theme';
 import { initFont } from './lib/font';
+import './lib/platform';
 import './styles/global.css';
 import './styles/netflix.css';
 import './styles/bilibili.css';
