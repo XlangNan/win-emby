@@ -22,6 +22,10 @@ import LoginPage from './pages/LoginPage';
 import PlayerPage from './pages/PlayerPage';
 import SearchPage from './pages/SearchPage';
 import { useSkinLayout } from './lib/theme';
+import { isAndroid } from './lib/platform';
+import MobileShell from './mobile/MobileShell';
+import MePage from './mobile/MePage';
+import MobileSearch from './mobile/MobileSearch';
 import type { EmbyItem } from './emby/types';
 
 interface NavItem { to: string; label: string; ico: string; end?: boolean }
@@ -161,7 +165,8 @@ function AppShell() {
         <Route path="/" element={<HomePage />} />
         <Route path="/lib/:id" element={<LibraryPage />} />
         <Route path="/detail/:id" element={<DetailPage />} />
-        <Route path="/search" element={<SearchPage />} />
+        <Route path="/search" element={isAndroid ? <MobileSearch /> : <SearchPage />} />
+        <Route path="/me" element={<MePage />} />
         <Route path="/favorites" element={<FavoritesPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/live" element={<LivePage />} />
@@ -183,6 +188,9 @@ function AppShell() {
       </Routes>
     );
   }
+
+  // ── 安卓手机：底部标签栏外壳 ──
+  if (isAndroid) return <MobileShell views={views} routes={routes} />;
 
   // ── 大果：全宽工具栏 + 玻璃侧边栏 ──
   if (shell === 'sidebar') {

@@ -4,6 +4,7 @@ import { emby } from '../emby/client';
 import { getSession, listAccounts, removeAccount, sameAccount, saveSession } from '../emby/session';
 import type { EmbyItem, Session } from '../emby/types';
 import { applyTheme, useTheme } from '../lib/theme';
+import { isAndroid } from '../lib/platform';
 import { applyFont, FONT_PRESETS, loadFont } from '../lib/font';
 import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
 import { kg, loadKg, saveKg } from '../lib/kg';
@@ -289,7 +290,7 @@ export default function ConfigPage() {
 
         <FontSettings />
 
-        <div className="card we-set" style={{ marginBottom: 14 }}>
+        {!isAndroid && <div className="card we-set" style={{ marginBottom: 14 }}>
           <h3>界面皮肤</h3>
           <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
             {ALL_THEMES.map((t) => (
@@ -298,7 +299,7 @@ export default function ConfigPage() {
               </button>
             ))}
           </div>
-        </div>
+        </div>}
 
         <div className="card we-set">
           <h3>播放</h3>

@@ -10,6 +10,7 @@ import type { EmbyItem } from '../emby/types';
 import { useAsync } from '../lib/useAsync';
 import { useSkinLayout } from '../lib/theme';
 import { loadPlayPrefs } from '../lib/prefs';
+import { isAndroid } from '../lib/platform';
 
 interface Section {
   id: string;
@@ -105,7 +106,7 @@ export default function HomePage() {
 
   return (
     <div className="content">
-      {data && data.spot.length > 0 && <HomeSpotlight items={data.spot} landscape={nf} onOpen={open} onPlay={play} />}
+      {data && data.spot.length > 0 && <HomeSpotlight items={data.spot} landscape={nf && !isAndroid} onOpen={open} onPlay={play} />}
       {loading && !data ? (
         <div className="empty"><span className="spinner" aria-hidden="true" />加载中…</div>
       ) : error ? (
