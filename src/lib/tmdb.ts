@@ -143,10 +143,23 @@ async function list(path: string, forced: 'movie' | 'tv' | undefined, params: Re
   return { items: d.results.map((x) => norm(x, forced)).filter((x): x is TmdbItem => !!x && !!x.poster), pages: Math.min(d.total_pages || 1, 500) };
 }
 
-export interface RowDef { id: string; title: string; load: (page: number) => Promise<Page> }
+export type SortId = 'default' | 'date' | 'pop' | 'rating';
 
-const tvD = (p: Record<string, string>) => (page: number) => list('/discover/tv', 'tv', { sort_by: 'popularity.desc', 'vote_count.gte': 20, ...p }, page);
-const mvD = (p: Record<string, string>) => (page: number) => list('/discover/movie', 'movie', { sort_by: 'popularity.desc', 'vote_count.gte': 20, ...p }, page);
+/** 榜单行：load(page, sort)。server = true 的行由 TMDB 服务端按 sort 排序（整库有序）；否则前端只排每一页内部 */
+export interface RowDef { id: string; title: string; server?: boolean; load: (page: number, sort?: SortId) => Promise<Page> }
+
+const today = (): string => new Date().toISOString().slice(0, 10);
+
+/** 发现接口的排序参数（date 只取已上映 / 已播出的，rating 要求有足够票数避免冷门高分） */
+function sortParams(kind: 'movie' | 'tv', sort: SortId = 'default'): Record<string, string | number> {
+  const f = kind === 'movie' ? 'primary_release_date' : 'first_air_date';
+  if (sort === 'date') return { sort_by: `${f}.desc`, [`${f}.lte`]: today() };
+  if (sort === 'rating') return { sort_by: 'vote_average.desc', 'vote_count.gte': 200 };
+  return { sort_by: 'popularity.desc' };
+}
+
+const tvD = (p: Record<string, string>) => (page: number, sort?: SortId) => list('/discover/tv', 'tv', { 'vote_count.gte': 20, ...p, ...sortParams('tv', sort) }, page);
+const mvD = (p: Record<string, string>) => (page: number, sort?: SortId) => list('/discover/movie', 'movie', { 'vote_count.gte': 20, ...p, ...sortParams('movie', sort) }, page);
 
 const R = {
   trending: { id: 'trending', title: '流行趋势', load: (p: number) => list('/trending/all/week', undefined, {}, p) },
@@ -154,20 +167,20 @@ const R = {
   upcoming: { id: 'upcoming', title: '即将上映', load: (p: number) => list('/movie/upcoming', 'movie', { region: 'CN' }, p) },
   popMovie: { id: 'popm', title: '热门电影', load: (p: number) => list('/movie/popular', 'movie', {}, p) },
   topMovie: { id: 'topm', title: '高分电影', load: (p: number) => list('/movie/top_rated', 'movie', {}, p) },
-  cnMovie: { id: 'cnm', title: '华语电影', load: mvD({ with_original_language: 'zh|cn' }) },
-  asiaMovie: { id: 'asm', title: '日韩电影', load: mvD({ with_original_language: 'ja|ko' }) },
-  westMovie: { id: 'wsm', title: '欧美电影', load: mvD({ with_original_language: 'en|fr|de|es|it' }) },
+  cnMovie: { id: 'cnm', title: '华语电影', server: true, load: mvD({ with_original_language: 'zh|cn' }) },
+  asiaMovie: { id: 'asm', title: '日韩电影', server: true, load: mvD({ with_original_language: 'ja|ko' }) },
+  westMovie: { id: 'wsm', title: '欧美电影', server: true, load: mvD({ with_original_language: 'en|fr|de|es|it' }) },
   popTv: { id: 'poptv', title: '热门电视剧', load: (p: number) => list('/tv/popular', 'tv', {}, p) },
   airing: { id: 'air', title: '正在播出', load: (p: number) => list('/tv/on_the_air', 'tv', {}, p) },
   topTv: { id: 'toptv', title: '高分剧集', load: (p: number) => list('/tv/top_rated', 'tv', {}, p) },
-  cnTv: { id: 'cntv', title: '国产剧', load: tvD({ with_origin_country: 'CN', without_genres: '16,10764,10767' }) },
-  asiaTv: { id: 'astv', title: '日韩剧', load: tvD({ with_origin_country: 'JP|KR', without_genres: '16,10764,10767' }) },
-  westTv: { id: 'wstv', title: '欧美剧', load: tvD({ with_origin_country: 'US|GB|FR|DE|ES|IT', without_genres: '16,10764,10767' }) },
-  anime: { id: 'anime', title: '日本动漫', load: tvD({ with_genres: '16', with_origin_country: 'JP' }) },
-  cnAnime: { id: 'cnanime', title: '国产动漫', load: tvD({ with_genres: '16', with_origin_country: 'CN' }) },
-  animeMovie: { id: 'animem', title: '动画电影', load: mvD({ with_genres: '16' }) },
-  variety: { id: 'variety', title: '综艺', load: tvD({ with_genres: '10764|10767' }) },
-  docu: { id: 'docu', title: '纪录片', load: tvD({ with_genres: '99' }) },
+  cnTv: { id: 'cntv', title: '国产剧', server: true, load: tvD({ with_origin_country: 'CN', without_genres: '16,10764,10767' }) },
+  asiaTv: { id: 'astv', title: '日韩剧', server: true, load: tvD({ with_origin_country: 'JP|KR', without_genres: '16,10764,10767' }) },
+  westTv: { id: 'wstv', title: '欧美剧', server: true, load: tvD({ with_origin_country: 'US|GB|FR|DE|ES|IT', without_genres: '16,10764,10767' }) },
+  anime: { id: 'anime', title: '日本动漫', server: true, load: tvD({ with_genres: '16', with_origin_country: 'JP' }) },
+  cnAnime: { id: 'cnanime', title: '国产动漫', server: true, load: tvD({ with_genres: '16', with_origin_country: 'CN' }) },
+  animeMovie: { id: 'animem', title: '动画电影', server: true, load: mvD({ with_genres: '16' }) },
+  variety: { id: 'variety', title: '综艺', server: true, load: tvD({ with_genres: '10764|10767' }) },
+  docu: { id: 'docu', title: '纪录片', server: true, load: tvD({ with_genres: '99' }) },
 };
 
 export const TABS: { id: string; label: string; rows: RowDef[] }[] = [
