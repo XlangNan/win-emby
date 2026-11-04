@@ -6,6 +6,7 @@ import HScrollRow from '../components/HScrollRow';
 import TmdbImg from '../components/TmdbImg';
 import { emby } from '../emby/client';
 import { accountKey, accountLabel, kgAccounts, kgReady, kgSubscribe, kgUnsubscribe } from '../lib/kg';
+import { mpReady, mpSubscribe, mpUnsubscribe } from '../lib/mp';
 import { tmdbDetail } from '../lib/tmdb';
 import { useAsync } from '../lib/useAsync';
 import { PosterCard, useStatus } from './DiscoverPage';
@@ -39,6 +40,18 @@ export default function DiscoverDetail() {
     }
   };
   const [drv, accId] = acct.split('|');
+  const kgOn = kgReady();
+  const mpOn = mpReady();
+  const [target, setTarget] = useState<'kg' | 'mp'>(() => (localStorage.getItem('wemby-sub-target') === 'mp' ? 'mp' : 'kg'));
+  const tgt: 'kg' | 'mp' = target === 'mp' ? (mpOn ? 'mp' : 'kg') : kgOn ? 'kg' : 'mp';
+  const pickTarget = (v: 'kg' | 'mp'): void => {
+    setTarget(v);
+    try {
+      localStorage.setItem('wemby-sub-target', v);
+    } catch {
+      /* ignore */
+    }
+  };
   const [season, setSeason] = useState(1);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
@@ -47,6 +60,8 @@ export default function DiscoverDetail() {
   const it = d.data;
   const tasks = status.subs.get(`${media}:${id}`) || [];
   const curTask = media === 'movie' ? tasks[0] : tasks.find((t) => (t.season || 1) === season);
+  const mpTasks = status.mps.get(`${media}:${id}`) || [];
+  const curMp = media === 'movie' ? mpTasks[0] : mpTasks.find((t) => (t.season || 1) === season);
 
   const act = async (fn: () => Promise<unknown>, ok: string): Promise<void> => {
     setBusy(true);
@@ -98,30 +113,53 @@ export default function DiscoverDetail() {
                     {media === 'tv' && it.seasons.length > 0 && (
                       <select value={season} onChange={(e) => setSeason(Number(e.target.value))} aria-label="季">
                         {it.seasons.map((s) => {
-                          const sub = tasks.some((t) => (t.season || 1) === s.season_number);
+                          const sub = tasks.some((t) => (t.season || 1) === s.season_number) || mpTasks.some((t) => (t.season || 1) === s.season_number);
                           return <option key={s.season_number} value={s.season_number}>{s.name || `第 ${s.season_number} 季`}（{s.episode_count} 集）{sub ? ' ✓已订阅' : ''}</option>;
                         })}
                       </select>
                     )}
-                    {!kgReady() ? (
-                      <button onClick={() => nav('/config')}>设置追更服务后可订阅</button>
-                    ) : curTask ? (
-                      <>
-                        <span className="mp-chip on">{media === 'movie' ? '已想看' : `第 ${season} 季已订阅`}{curTask.status ? ` · ${curTask.status}` : ''}</span>
-                        <button disabled={busy} onClick={() => void act(() => kgUnsubscribe(curTask.id), '已取消订阅')}>取消订阅</button>
-                      </>
+                    {!kgOn && !mpOn ? (
+                      <button onClick={() => nav('/config')}>去设置追更服务 / MoviePilot 后可订阅</button>
                     ) : (
                       <>
-                      {(accounts.data || []).length > 0 && (
-                        <select value={acct} onChange={(e) => pickAcct(e.target.value)} aria-label="存入哪个网盘" title="存入哪个网盘">
-                          {(accounts.data || []).map((a) => (
-                            <option key={accountKey(a)} value={accountKey(a)} disabled={!a.logged || a.state === 'bad'}>{accountLabel(a)}</option>
-                          ))}
-                        </select>
-                      )}
-                      <button className={embyId.data ? '' : 'primary'} disabled={busy || ((accounts.data || []).length > 0 && usable.length === 0)} onClick={() => void act(() => kgSubscribe(media, id, season, drv || undefined, accId || undefined), media === 'movie' ? '已提交，追更服务会自动找资源存入网盘' : `已订阅第 ${season} 季，追更服务会自动找资源存入网盘`)}>
-                        {busy ? '提交中…' : media === 'movie' ? '＋ 想看（自动找资源）' : '＋ 订阅（自动找资源）'}
-                      </button>
+                        {kgOn && mpOn && (
+                          <div className="seg" role="group" aria-label="订阅方式">
+                            <button type="button" className={`tag ${tgt === 'kg' ? 'active' : ''}`} aria-pressed={tgt === 'kg'} onClick={() => pickTarget('kg')}>转存网盘 · kuake go</button>
+                            <button type="button" className={`tag ${tgt === 'mp' ? 'active' : ''}`} aria-pressed={tgt === 'mp'} onClick={() => pickTarget('mp')}>下载本地 · MoviePilot</button>
+                          </div>
+                        )}
+                        {tgt === 'kg' && (curTask ? (
+                          <>
+                            <span className="mp-chip on">{media === 'movie' ? '网盘 · 已想看' : `网盘 · 第 ${season} 季已订阅`}{curTask.status ? ` · ${curTask.status}` : ''}</span>
+                            <button disabled={busy} onClick={() => void act(() => kgUnsubscribe(curTask.id), '已取消网盘订阅')}>取消订阅</button>
+                          </>
+                        ) : (
+                          <>
+                            {(accounts.data || []).length > 0 && (
+                              <select value={acct} onChange={(e) => pickAcct(e.target.value)} aria-label="存入哪个网盘" title="存入哪个网盘">
+                                {(accounts.data || []).map((a) => (
+                                  <option key={accountKey(a)} value={accountKey(a)} disabled={!a.logged || a.state === 'bad'}>{accountLabel(a)}</option>
+                                ))}
+                              </select>
+                            )}
+                            <button className={embyId.data ? '' : 'primary'} disabled={busy || ((accounts.data || []).length > 0 && usable.length === 0)} onClick={() => void act(() => kgSubscribe(media, id, season, drv || undefined, accId || undefined), media === 'movie' ? '已提交，追更服务会自动找资源存入网盘' : `已订阅第 ${season} 季，追更服务会自动找资源存入网盘`)}>
+                              {busy ? '提交中…' : media === 'movie' ? '＋ 想看（转存网盘）' : '＋ 订阅（转存网盘）'}
+                            </button>
+                          </>
+                        ))}
+                        {tgt === 'mp' && (curMp ? (
+                          <>
+                            <span className="mp-chip on">{media === 'movie' ? 'MoviePilot · 已订阅' : `MoviePilot · 第 ${season} 季已订阅`}</span>
+                            <button disabled={busy} onClick={() => void act(() => mpUnsubscribe(curMp.id), '已取消 MoviePilot 订阅')}>取消订阅</button>
+                          </>
+                        ) : (
+                          <button className={embyId.data ? '' : 'primary'} disabled={busy} onClick={() => void act(() => mpSubscribe(media, id, it.title, it.year, season), media === 'movie' ? '已提交，MoviePilot 会自动搜索并下载到本地' : `已订阅第 ${season} 季，MoviePilot 会自动搜索并下载到本地`)}>
+                            {busy ? '提交中…' : media === 'movie' ? '＋ 订阅（下载本地）' : '＋ 订阅（下载本地）'}
+                          </button>
+                        ))}
+                        {kgOn && mpOn && (curTask || curMp) && tgt === (curTask ? 'mp' : 'kg') && (
+                          <span className="muted" style={{ fontSize: 12 }}>{curTask ? '已在网盘订阅' : '已在 MoviePilot 订阅'}</span>
+                        )}
                       </>
                     )}
                   </div>
@@ -152,7 +190,7 @@ export default function DiscoverDetail() {
                   <HScrollRow style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 8 }}>
                     {it.similar.map((s) => {
                       const k = `${s.media}:${s.id}`;
-                      return <div key={k} className="mp-cell"><PosterCard it={s} have={status.have.has(k)} subbed={status.subs.has(k)} /></div>;
+                      return <div key={k} className="mp-cell"><PosterCard it={s} have={status.have.has(k)} subbed={status.anySub(k)} /></div>;
                     })}
                   </HScrollRow>
                 </section>

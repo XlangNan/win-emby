@@ -6,16 +6,26 @@ import HScrollRow from '../components/HScrollRow';
 import TmdbImg from '../components/TmdbImg';
 import { emby } from '../emby/client';
 import { kgReady, kgTasks, type KgTask } from '../lib/kg';
+import { mpMediaKey, mpReady, mpSubs, type MpSub } from '../lib/mp';
 import { TABS, embyTmdbIndex, tmdbReady, tmdbSearch, type Page, type RowDef, type TmdbItem } from '../lib/tmdb';
 import { useAsync } from '../lib/useAsync';
 
 const TAB_KEY = 'wemby-disc-tab';
 
 /** 已入库 / 已订阅状态（整页共用，只查一次） */
-export function useStatus(): { have: Set<string>; subs: Map<string, KgTask[]>; reload: () => void } {
+export function useStatus(): { have: Set<string>; subs: Map<string, KgTask[]>; mps: Map<string, MpSub[]>; anySub: (k: string) => boolean; reload: () => void } {
   const [tick, setTick] = useState(0);
   const have = useAsync(() => embyTmdbIndex(() => emby.tmdbIndex()), [tick]);
   const tasks = useAsync(() => (kgReady() ? kgTasks().catch(() => [] as KgTask[]) : Promise.resolve([] as KgTask[])), [tick]);
+  const mpl = useAsync(() => (mpReady() ? mpSubs().catch(() => [] as MpSub[]) : Promise.resolve([] as MpSub[])), [tick]);
+  const mps = useMemo(() => {
+    const m = new Map<string, MpSub[]>();
+    for (const t of mpl.data || []) {
+      const k = mpMediaKey(t);
+      m.set(k, [...(m.get(k) || []), t]);
+    }
+    return m;
+  }, [mpl.data]);
   const subs = useMemo(() => {
     const m = new Map<string, KgTask[]>();
     for (const t of tasks.data || []) {
@@ -24,7 +34,7 @@ export function useStatus(): { have: Set<string>; subs: Map<string, KgTask[]>; r
     }
     return m;
   }, [tasks.data]);
-  return { have: have.data || new Set(), subs, reload: () => setTick((n) => n + 1) };
+  return { have: have.data || new Set(), subs, mps, anySub: (k: string) => subs.has(k) || mps.has(k), reload: () => setTick((n) => n + 1) };
 }
 
 export function PosterCard({ it, have, subbed }: { it: TmdbItem; have: boolean; subbed: boolean }) {
@@ -67,7 +77,7 @@ function Row({ def, status }: { def: RowDef; status: ReturnType<typeof useStatus
         <HScrollRow style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 8 }}>
           {(d.data?.items || []).map((it) => {
             const k = `${it.media}:${it.id}`;
-            return <div key={k} className="mp-cell"><PosterCard it={it} have={status.have.has(k)} subbed={status.subs.has(k)} /></div>;
+            return <div key={k} className="mp-cell"><PosterCard it={it} have={status.have.has(k)} subbed={status.anySub(k)} /></div>;
           })}
         </HScrollRow>
       )}
@@ -145,7 +155,7 @@ export default function DiscoverPage() {
             <div className="mp-grid">
               {(page?.items || []).map((it) => {
                 const k = `${it.media}:${it.id}`;
-                return <PosterCard key={k} it={it} have={status.have.has(k)} subbed={status.subs.has(k)} />;
+                return <PosterCard key={k} it={it} have={status.have.has(k)} subbed={status.anySub(k)} />;
               })}
             </div>
             {!busy && page && page.items.length === 0 && !err && <div className="empty">没有找到「{kw}」</div>}

@@ -98,7 +98,7 @@ export default function DiscoverMore() {
         <div className="mp-grid">
           {shown.map((it) => {
             const k = `${it.media}:${it.id}`;
-            return <PosterCard key={k} it={it} have={status.have.has(k)} subbed={status.subs.has(k)} />;
+            return <PosterCard key={k} it={it} have={status.have.has(k)} subbed={status.anySub(k)} />;
           })}
         </div>
         {err && <div className="err">{err}<button style={{ marginLeft: 10 }} onClick={() => void more()}>重试</button></div>}

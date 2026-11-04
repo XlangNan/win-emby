@@ -318,3 +318,29 @@ html.mpv-on, html.mpv-on body, html.mpv-on #root { background: transparent !impo
 .nfd-sim { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px 12px; }
 .nfd-cast { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 8px; }
 @media (max-width: 1000px) { .nfd-side { position: static; width: auto; padding: 0 4% 20px; } .nfd-hero { flex-direction: column; justify-content: flex-end; align-items: stretch; } .nfd-ep-thumb { width: 130px; } }
+
+/* ── 首页大海报：左右滑动切换 ── */
+@keyframes spotInR { from { translate: 100% 0; } to { translate: 0 0; } }
+@keyframes spotInL { from { translate: -100% 0; } to { translate: 0 0; } }
+@keyframes spotOutL { from { translate: 0 0; } to { translate: -100% 0; } }
+@keyframes spotOutR { from { translate: 0 0; } to { translate: 100% 0; } }
+@keyframes spotTextIn { from { opacity: 0; transform: translateX(46px); } to { opacity: 1; transform: none; } }
+.spot-art-layer.spot-in-r { animation: spotInR 700ms cubic-bezier(.22, .8, .24, 1) both; }
+.spot-art-layer.spot-in-l { animation: spotInL 700ms cubic-bezier(.22, .8, .24, 1) both; }
+.spot-art-layer.spot-out-l { animation: spotOutL 700ms cubic-bezier(.22, .8, .24, 1) both; }
+.spot-art-layer.spot-out-r { animation: spotOutR 700ms cubic-bezier(.22, .8, .24, 1) both; }
+.spot-body { animation: spotTextIn 520ms cubic-bezier(.22, .8, .24, 1) both; }
+.spot-arrow {
+  position: absolute; top: 50%; z-index: 5; width: 44px; height: 64px; margin-top: -32px; padding: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 34px; line-height: 1;
+  color: #fff; background: rgba(0, 0, 0, .34); border: none; border-radius: 10px;
+  opacity: 0; transition: opacity 200ms, background 200ms;
+}
+.spot-arrow.prev { left: 12px; }
+.spot-arrow.next { right: 12px; }
+.spot:hover .spot-arrow { opacity: 1; }
+.spot-arrow:hover { background: rgba(0, 0, 0, .6); }
+@media (prefers-reduced-motion: reduce) {
+  .spot-art-layer.spot-in-r, .spot-art-layer.spot-in-l, .spot-art-layer.spot-out-l, .spot-art-layer.spot-out-r, .spot-body { animation: none; }
+}
+.seg { display: inline-flex; gap: 6px; flex-wrap: wrap; }

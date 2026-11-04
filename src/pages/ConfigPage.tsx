@@ -7,6 +7,7 @@ import { applyTheme, useTheme } from '../lib/theme';
 import { applyFont, FONT_PRESETS, loadFont } from '../lib/font';
 import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
 import { kg, loadKg, saveKg } from '../lib/kg';
+import { loadMp, mp, saveMp } from '../lib/mp';
 import { loadTmdb, saveTmdb, tmdbSearch } from '../lib/tmdb';
 import { ALL_THEMES, THEME_LABELS } from '../lib/themeTokens';
 
@@ -209,6 +210,41 @@ function KgSettings() {
   );
 }
 
+function MpSettings() {
+  const [c, setC] = useState(loadMp);
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  const test = async (): Promise<void> => {
+    saveMp(c);
+    setBusy(true);
+    setMsg('');
+    try {
+      const subs = await mp<unknown[]>('/subscribe/');
+      setMsg(`连接成功，MoviePilot 里现有 ${Array.isArray(subs) ? subs.length : 0} 个订阅，已保存`);
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="card we-set" style={{ marginBottom: 14 }}>
+      <h3>MoviePilot（下载到本地）</h3>
+      <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>片库里订阅时可选「MoviePilot」，由它搜索资源并下载到本地。填用户名密码即可；只想用 API 令牌的话，用户名留空、填下面的令牌。与追更服务可同时配置，订阅时二选一。</div>
+      <div style={{ display: 'grid', gap: 8 }}>
+        <input value={c.url} onChange={(e) => setC({ ...c, url: e.target.value })} placeholder="地址，如 192.168.1.10:3000（不用加 /api/v1）" spellCheck={false} />
+        <input value={c.username} onChange={(e) => setC({ ...c, username: e.target.value })} placeholder="用户名（如 admin）" spellCheck={false} />
+        <input type="password" value={c.password} onChange={(e) => setC({ ...c, password: e.target.value })} placeholder="密码" />
+        <input type="password" value={c.apiToken} onChange={(e) => setC({ ...c, apiToken: e.target.value })} placeholder="API 令牌（可选，用户名留空时才用）" spellCheck={false} />
+        <div className="row" style={{ gap: 10, alignItems: 'center' }}>
+          <button className="primary" disabled={busy || !c.url.trim()} onClick={() => void test()}>{busy ? '连接中…' : '保存并测试连接'}</button>
+          {msg && <span className="muted" style={{ fontSize: 12 }}>{msg}</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FontSettings() {
   const [f, setF] = useState(loadFont());
   const upd = (n: Partial<typeof f>): void => {
@@ -249,6 +285,7 @@ export default function ConfigPage() {
         <HomeLibs prefs={prefs} set={set} />
         <TmdbSettings />
         <KgSettings />
+        <MpSettings />
 
         <FontSettings />
 
