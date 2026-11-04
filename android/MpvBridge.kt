@@ -27,6 +27,9 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
     private var lastTime = -10.0
     private var lastCache = -10.0
     private val lock = Any()
+    // 这个版本的 libmpv 是「实例」接口：MPVLib.create(context) 返回实例，之后都调实例方法
+    private var mpv: MPVLib? = null
+    private val m: MPVLib get() = mpv ?: throw IllegalStateException("mpv 未初始化")
 
     // ───────── 初始化 / 销毁 ─────────
     @JavascriptInterface
@@ -36,18 +39,18 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
             val cfg = JSONObject(json)
             val opts = cfg.getJSONObject("options")
             act.runOnUiThread { addSurface() }
-            MPVLib.create(act.applicationContext)
+            mpv = MPVLib.create(act.applicationContext)
             val keys = opts.keys()
             while (keys.hasNext()) {
                 val k = keys.next()
-                MPVLib.setOptionString(k, opts.getString(k))
+                m.setOptionString(k, opts.getString(k))
             }
-            MPVLib.init()
-            MPVLib.addObserver(this)
+            m.init()
+            m.addObserver(this)
             val obs = cfg.getJSONArray("observed")
             for (i in 0 until obs.length()) {
                 val o = obs.getJSONArray(i)
-                MPVLib.observeProperty(o.getString(0), fmt(o.getString(1)))
+                m.observeProperty(o.getString(0), fmt(o.getString(1)))
             }
             synchronized(lock) { alive = true }
             act.runOnUiThread { act.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
@@ -79,9 +82,9 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
             if (!alive || !haveSurface || attached) return
             val s = sv?.holder?.surface ?: return
             try {
-                MPVLib.attachSurface(s)
-                MPVLib.setOptionString("force-window", "yes")
-                MPVLib.setPropertyString("vo", "gpu")
+                m.attachSurface(s)
+                m.setOptionString("force-window", "yes")
+                m.setPropertyString("vo", "gpu")
                 attached = true
             } catch (_: Throwable) {
                 return
@@ -97,7 +100,7 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
         if (alive && attached) {
-            try { MPVLib.setPropertyString("android-surface-size", "${width}x$height") } catch (_: Throwable) {}
+            try { m.setPropertyString("android-surface-size", "${width}x$height") } catch (_: Throwable) {}
         }
     }
 
@@ -106,9 +109,9 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
         synchronized(lock) {
             if (alive && attached) {
                 try {
-                    MPVLib.setPropertyString("vo", "null")
-                    MPVLib.setOptionString("force-window", "no")
-                    MPVLib.detachSurface()
+                    m.setPropertyString("vo", "null")
+                    m.setOptionString("force-window", "no")
+                    m.detachSurface()
                 } catch (_: Throwable) {}
             }
             attached = false
@@ -125,8 +128,9 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
             alive = false
         }
         if (wasAlive) {
-            try { MPVLib.removeObserver(this) } catch (_: Throwable) {}
-            try { MPVLib.destroy() } catch (_: Throwable) {}
+            try { m.removeObserver(this) } catch (_: Throwable) {}
+            try { m.destroy() } catch (_: Throwable) {}
+            mpv = null
         }
         attached = false
         haveSurface = false
@@ -139,7 +143,7 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
 
     /** 切到后台时暂停，免得一直在后台出声 */
     fun pauseForBackground() {
-        if (alive) try { MPVLib.setPropertyBoolean("pause", true) } catch (_: Throwable) {}
+        if (alive) try { m.setPropertyBoolean("pause", true) } catch (_: Throwable) {}
     }
 
     // ───────── 命令 / 属性 ─────────
@@ -147,7 +151,7 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
     fun command(json: String): String {
         return try {
             val a = JSONArray(json)
-            MPVLib.command(Array(a.length()) { a.getString(it) })
+            m.command(Array(a.length()) { a.getString(it) })
             "ok"
         } catch (t: Throwable) {
             "命令失败：$t"
@@ -158,10 +162,10 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
     fun getProp(name: String, type: String): String {
         return try {
             when (type) {
-                "flag" -> MPVLib.getPropertyBoolean(name)?.toString() ?: "null"
-                "int64" -> MPVLib.getPropertyInt(name)?.toString() ?: "null"
-                "double" -> MPVLib.getPropertyDouble(name)?.toString() ?: "null"
-                else -> MPVLib.getPropertyString(name)?.let { JSONObject.quote(it) } ?: "null"
+                "flag" -> m.getPropertyBoolean(name)?.toString() ?: "null"
+                "int64" -> m.getPropertyInt(name)?.toString() ?: "null"
+                "double" -> m.getPropertyDouble(name)?.toString() ?: "null"
+                else -> m.getPropertyString(name)?.let { JSONObject.quote(it) } ?: "null"
             }
         } catch (_: Throwable) {
             "null"
