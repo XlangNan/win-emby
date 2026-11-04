@@ -151,6 +151,7 @@ export default function DetailPage() {
   // 网飝皮肤：仿流媒体网站的详情（电影 / 剧集），合集仍用通用布局
   if (nf && it && !isBox && it.Type !== 'Episode' && it.Type !== 'Season') {
     return (
+      <div className="content" style={{ padding: 0 }}>
       <NfDetail
         it={it}
         isSeries={isSeries}
@@ -169,6 +170,7 @@ export default function DetailPage() {
         similar={similar.data || []}
         onChoice={setChoice}
       />
+      </div>
     );
   }
 

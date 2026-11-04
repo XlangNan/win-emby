@@ -23,11 +23,13 @@ export interface PlayPrefs {
   rememberTracks: boolean;
   /** 自动跳过片头 */
   autoSkipIntro: boolean;
+  /** 媒体库海报宽度（px，最小列宽） */
+  posterSize: number;
 }
 
 const KEY = 'wemby-play-prefs';
 const DEFAULTS: PlayPrefs = { maxMbps: 0, hevc: false, autoNext: true, volume: 1, engine: 'mpv', hdr: true,
-  hiddenLibs: [], libOrder: [], audioLang: '', subLang: '', rememberTracks: true, autoSkipIntro: false,
+  hiddenLibs: [], libOrder: [], audioLang: '', subLang: '', rememberTracks: true, autoSkipIntro: false, posterSize: 138,
 };
 
 export function loadPlayPrefs(): PlayPrefs {

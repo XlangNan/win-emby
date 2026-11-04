@@ -5,6 +5,7 @@ import BackButton from '../components/BackButton';
 import MediaCard from '../components/MediaCard';
 import { emby } from '../emby/client';
 import type { EmbyItem } from '../emby/types';
+import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
 import { useAsync } from '../lib/useAsync';
 
 const PAGE = 60;
@@ -38,6 +39,7 @@ export default function LibraryPage() {
   const [sort, setSort] = useState('added');
   const [filter, setFilter] = useState('all');
   const [genre, setGenre] = useState('');
+  const [size, setSize] = useState(loadPlayPrefs().posterSize);
   const [items, setItems] = useState<EmbyItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -84,15 +86,20 @@ export default function LibraryPage() {
     <>
       <div className="topbar">
         <BackButton fallback="/" label="返回" />
-        <h3 style={{ margin: 0 }}>{title}</h3>
-        <span className="muted" style={{ fontSize: 12 }}>{total ? `${total} 项` : ''}</span>
+        <h3 style={{ margin: 0, whiteSpace: 'nowrap', flexShrink: 0 }}>{title}</h3>
+        <span className="muted" style={{ fontSize: 12, whiteSpace: 'nowrap', flexShrink: 0 }}>{total ? `${total} 项` : ''}</span>
         <span style={{ flex: 1 }} />
-        <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="排序">
+        <label className="muted" style={{ fontSize: 12, whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }} title="海报大小">
+          海报
+          <input type="range" min={90} max={260} step={10} value={size} aria-label="海报大小"
+            onChange={(e) => { const v = Number(e.target.value); setSize(v); savePlayPrefs({ posterSize: v }); }} style={{ width: 90 }} />
+        </label>
+        <select style={{ maxWidth: 130, minWidth: 0 }} value={sort} onChange={(e) => setSort(e.target.value)} aria-label="排序">
           {SORTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
         </select>
-        <select value={genre} onChange={(e) => setGenre(e.target.value)} aria-label="类型">
+        <select style={{ maxWidth: 160, minWidth: 0, textOverflow: 'ellipsis' }} value={genre} onChange={(e) => setGenre(e.target.value)} aria-label="类型">
           <option value="">全部类型</option>
-          {(genres.data || []).map((g) => <option key={g} value={g}>{g}</option>)}
+          {(genres.data || []).filter((g) => g.length <= 12).map((g) => <option key={g} value={g}>{g}</option>)}
         </select>
       </div>
       <div className="content">
@@ -111,7 +118,7 @@ export default function LibraryPage() {
           <div className="empty">没有符合条件的内容</div>
         ) : (
           <>
-            <div className="grid">
+            <div className="grid" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${size}px, 1fr))` }}>
               {items.map((it) => <MediaCard key={it.Id} it={it} />)}
             </div>
             {more && (

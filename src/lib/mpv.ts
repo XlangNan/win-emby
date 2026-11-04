@@ -2,6 +2,7 @@
 // 原理：mpv 把画面渲染进主窗口里的一个原生子窗口，网页层（透明背景）叠在上面当控制层。
 // 所有对 mpv 的操作串行执行：React StrictMode / 切集时 init → destroy → init 不会交错。
 import * as lib from 'tauri-plugin-libmpv-api';
+import { androidBridge } from './platform';
 
 interface MpvApi {
   init(cfg: { initialOptions: Record<string, string>; observedProperties: unknown[] }): Promise<unknown>;
@@ -56,7 +57,87 @@ export interface MpvOpenOpts {
   onProp: (name: string, data: unknown) => void;
 }
 
+/** 安卓：走 Kotlin 桥（android/MpvBridge.kt），接口与桌面端一致 */
+function openAndroid(o: MpvOpenOpts): Promise<MpvSession> {
+  return enqueue(async () => {
+    const b = androidBridge();
+    if (!b) throw new Error('没有找到安卓 MPV 桥（应用版本不对？）');
+    const w = window as unknown as { __mpvEvt?: (name: string, data: unknown) => void };
+    let ready!: () => void;
+    const readyP = new Promise<void>((r) => (ready = r));
+    w.__mpvEvt = (name, data) => {
+      if (name === '__ready') ready();
+      else o.onProp(name, data);
+    };
+    const r = b.init(
+      JSON.stringify({
+        options: {
+          vo: 'gpu',
+          'gpu-context': 'android',
+          'opengl-es': 'yes',
+          hwdec: 'mediacodec,mediacodec-copy',
+          'hwdec-codecs': 'all',
+          ao: 'audiotrack,opensles',
+          'force-window': 'no',
+          idle: 'yes',
+          'keep-open': 'yes',
+          config: 'no',
+          'load-scripts': 'no',
+          ytdl: 'no',
+          cache: 'yes',
+          'demuxer-max-bytes': '64MiB',
+          'demuxer-max-back-bytes': '32MiB',
+          'demuxer-readahead-secs': '60',
+          'sub-auto': 'no',
+          slang: 'chi,zho,chs,cht,zh,eng',
+          'sub-fonts-dir': '/system/fonts',
+          'audio-display': 'no',
+          'target-colorspace-hint': o.hdr ? 'yes' : 'no',
+        },
+        observed: OBSERVED,
+      }),
+    );
+    if (r !== 'ok') throw new Error(r);
+    await Promise.race([readyP, new Promise<void>((_, rej) => setTimeout(() => rej(new Error('视频画面层没有就绪（超时）')), 8000))]);
+    const call = (cmd: string[]): void => {
+      const res = b.command(JSON.stringify(cmd));
+      if (res !== 'ok') throw new Error(res);
+    };
+    const sess: MpvSession = {
+      async loadfile(url, opts = {}) {
+        const kv = Object.entries(opts).map(([k, v]) => `${k}=${v}`).join(',');
+        call(['loadfile', url, 'replace', '-1', kv]);
+      },
+      async set(name, value) {
+        call(['set', name, String(value)]);
+      },
+      async cmd(name, args = []) {
+        call([name, ...args]);
+      },
+      async get(name, type) {
+        try {
+          return JSON.parse(b.getProp(name, type));
+        } catch {
+          return null;
+        }
+      },
+      close() {
+        return enqueue(async () => {
+          try {
+            b.destroy();
+          } catch {
+            /* ignore */
+          }
+          w.__mpvEvt = undefined;
+        });
+      },
+    };
+    return sess;
+  });
+}
+
 export function openMpv(o: MpvOpenOpts): Promise<MpvSession> {
+  if (androidBridge()) return openAndroid(o);
   return enqueue(async () => {
     await api.init({
       initialOptions: {

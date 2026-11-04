@@ -7,10 +7,11 @@ import { directStreamUrl, emby, subtitleUrl } from '../emby/client';
 import { fmtDuration, ticksToSec } from '../emby/format';
 import type { EmbyItem, MediaSource, MediaStream } from '../emby/types';
 import { openMpv, type MpvSession } from '../lib/mpv';
+import { androidBridge, isAndroid } from '../lib/platform';
 import { loadPlayPrefs, savePlayPrefs, setTrackMemory } from '../lib/prefs';
 import { pickInitialTracks } from '../lib/tracks';
 import { usePlayItem } from '../lib/usePlayItem';
-import { winClose, winIsFullscreen, winMinimize, winSetFullscreen, winToggleMax } from '../lib/win';
+import { winClose, winIsFullscreen, winMinimize, winOnClose, winSetFullscreen, winToggleMax } from '../lib/win';
 
 /** 告诉 Emby「什么都能直接播」，只是为了拿到 PlaySessionId，真正的文件由 mpv 解码 */
 const DIRECT_ALL_PROFILE = {
@@ -58,6 +59,9 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const posRef = useRef(0);
   const pausedRef = useRef(true);
   const endedRef = useRef(false);
+  const startedRef = useRef(false); // 已经收到真实播放位置（之前不回报，避免用 0 覆盖续播进度）
+  const stoppedRef = useRef(false);
+  const hoverUi = useRef(false);
   const hideTimer = useRef<number | null>(null);
   const extSid = useRef<Map<number, number>>(new Map());
   const nextRef = useRef<EmbyItem | null>(null);
@@ -104,9 +108,14 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   }, [item]);
 
   // ───────── 进度回报 ─────────
-  const report = useCallback((kind: 'start' | 'progress' | 'stop') => {
+  const report = useCallback((kind: 'start' | 'progress' | 'stop'): Promise<void> => {
     const p = playRef.current;
-    if (!p) return;
+    if (!p) return Promise.resolve();
+    if (kind !== 'start' && !startedRef.current) return Promise.resolve();
+    if (kind === 'stop') {
+      if (stoppedRef.current) return Promise.resolve();
+      stoppedRef.current = true;
+    }
     const b = {
       itemId: id,
       mediaSourceId: p.source.Id,
@@ -115,19 +124,30 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       paused: pausedRef.current,
       method: 'DirectPlay' as const,
     };
-    if (kind === 'start') void emby.reportStart(b);
-    else if (kind === 'progress') void emby.reportProgress(b);
-    else void emby.reportStop(b);
+    if (kind === 'start') return emby.reportStart(b);
+    if (kind === 'progress') return emby.reportProgress(b);
+    return emby.reportStop(b);
   }, [id]);
 
   // ───────── mpv 属性回调 ─────────
   const onProp = useCallback((name: string, data: unknown) => {
     switch (name) {
-      case 'pause': pausedRef.current = !!data; setPaused(!!data); if (data) report('progress'); break;
-      case 'time-pos': if (typeof data === 'number') { posRef.current = data; setCur(data); setBusy(false); } break;
+      case 'pause': pausedRef.current = !!data; setPaused(!!data); if (data) void report('progress'); break;
+      case 'time-pos':
+        if (typeof data === 'number') {
+          posRef.current = data;
+          setCur(data);
+          setBusy(false);
+          if (!startedRef.current) {
+            startedRef.current = true;
+            void syncPauseRef.current(); // 初始 pause 事件可能没送达：起播后主动读一次
+          }
+        }
+        break;
       case 'duration':
         if (typeof data === 'number') {
           setDur(data);
+          void syncPauseRef.current();
           const p = pendingSub.current;
           if (p) {
             pendingSub.current = null;
@@ -148,7 +168,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       case 'eof-reached':
         if (data === true && !endedRef.current) {
           endedRef.current = true;
-          report('stop');
+          void report('stop');
           const n = nextRef.current;
           if (loadPlayPrefs().autoNext && n) nav(`/player/${n.Id}`, { replace: true });
           else setUiShown(true);
@@ -159,6 +179,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   }, [nav, report]);
   // 稳定的 ref 回调：只在菜单刚打开时滚到当前集（内联函数每次渲染都会触发，导致滚动被拉回）
   const scrollToActive = useCallback((el: HTMLElement | null) => el?.scrollIntoView({ block: 'center' }), []);
+  const syncPauseRef = useRef<() => Promise<void>>(async () => undefined);
   const pickSubRef = useRef<(s: MediaStream | null, silent?: boolean) => Promise<void>>(async () => undefined);
   const onPropRef = useRef(onProp);
   onPropRef.current = onProp;
@@ -173,6 +194,14 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     }
     let dead = false;
     endedRef.current = false;
+    startedRef.current = false;
+    stoppedRef.current = false;
+    posRef.current = 0;
+    playRef.current = null;
+    pausedRef.current = false;
+    setPaused(false);
+    setBusy(true);
+    setCur(0);
     document.documentElement.classList.add('mpv-on'); // 页面背景透明，让底下的 mpv 画面透出来
     (async () => {
       try {
@@ -189,6 +218,14 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           return;
         }
         sessRef.current = sess;
+        syncPauseRef.current = async () => {
+          try {
+            const v = await sess.get('pause', 'flag');
+            if (dead || sessRef.current !== sess || typeof v !== 'boolean') return;
+            pausedRef.current = v;
+            setPaused(v);
+          } catch { /* ignore */ }
+        };
         await sess.set('volume', Math.round(loadPlayPrefs().volume * 100));
         const mst = psrc.MediaStreams || src.MediaStreams || [];
         const pick = pickInitialTracks(id, mst, loadPlayPrefs(), {
@@ -211,14 +248,16 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         }
         await sess.loadfile(directStreamUrl(id, psrc, info.PlaySessionId), opts);
         if (loadPlayPrefs().autoSkipIntro) autoSkipArmed.current = true;
-        report('start');
+        void report('start');
+        void syncPauseRef.current();
+        poke();
       } catch (e) {
         if (!dead) onFail(e instanceof Error ? e.message : String(e));
       }
     })();
     return () => {
       dead = true;
-      report('stop');
+      void report('stop');
       const s = sessRef.current;
       sessRef.current = null;
       void s?.close();
@@ -227,10 +266,23 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item?.Id]);
 
+  // 关窗口（✕ / Alt+F4 / 任务栏）前先把进度写回 Emby
+  useEffect(() => {
+    let un: (() => void) | null = null;
+    let gone = false;
+    void winOnClose(async () => {
+      await Promise.race([report('stop'), new Promise((r) => setTimeout(r, 1500))]);
+    }).then((f) => (gone ? f() : (un = f)));
+    return () => {
+      gone = true;
+      un?.();
+    };
+  }, [report]);
+
   // 每 10 秒回报进度
   useEffect(() => {
     const t = setInterval(() => {
-      if (!pausedRef.current) report('progress');
+      if (!pausedRef.current) void report('progress');
     }, 10000);
     return () => clearInterval(t);
   }, [report]);
@@ -245,14 +297,14 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
 
   // ───────── 操作 ─────────
   const toggle = useCallback(() => {
-    void sessRef.current?.cmd('cycle', ['pause']);
+    void sessRef.current?.cmd('cycle', ['pause']).then(() => syncPauseRef.current());
   }, []);
   const seekBy = useCallback((d: number) => {
     void sessRef.current?.cmd('seek', [String(d), 'relative']);
   }, []);
   const seekTo = (sec: number): void => {
     void sessRef.current?.cmd('seek', [String(sec), 'absolute']);
-    report('progress');
+    void report('progress');
   };
   const setVolume = useCallback((v: number) => {
     const c = Math.max(0, Math.min(100, v));
@@ -265,13 +317,14 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     setFull(next);
   }, []);
   const exit = useCallback(async () => {
+    await Promise.race([report('stop'), new Promise((r) => setTimeout(r, 1500))]); // 先把进度写回 Emby 再离开
     if (await winIsFullscreen()) {
       await winSetFullscreen(false);
       setFull(false);
     }
     if (window.history.length > 1) nav(-1);
     else nav('/', { replace: true });
-  }, [nav]);
+  }, [nav, report]);
   const goNext = useCallback(() => {
     if (nextRef.current) nav(`/player/${nextRef.current.Id}`, { replace: true });
   }, [nav]);
@@ -331,8 +384,16 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     setUiShown(true);
     if (hideTimer.current) window.clearTimeout(hideTimer.current);
     hideTimer.current = window.setTimeout(() => {
-      if (!pausedRef.current) setUiShown(false);
+      if (!pausedRef.current && !hoverUi.current) setUiShown(false);
     }, 3000);
+  }, []);
+
+  // 暂停 ↔ 播放切换时重新计时：恢复播放后，不动鼠标 3 秒也会渐隐
+  useEffect(() => {
+    if (!paused) poke();
+  }, [paused, poke]);
+  useEffect(() => () => {
+    if (hideTimer.current) window.clearTimeout(hideTimer.current);
   }, []);
 
   useEffect(() => {
@@ -358,6 +419,91 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     return () => window.removeEventListener('keydown', onKey);
   }, [toggle, seekBy, setVolume, vol, toggleFull, goNext, exit, poke, drawer]);
 
+  // ───────── 触屏手势（安卓）：单击显隐控制条 / 双击左右快进快退、中间暂停 / 横滑进度 / 右侧竖滑音量 / 左侧竖滑亮度 ─────────
+  const [hud, setHud] = useState('');
+  const hudTimer = useRef<number | null>(null);
+  const showHud = (t: string): void => {
+    setHud(t);
+    if (hudTimer.current) window.clearTimeout(hudTimer.current);
+    hudTimer.current = window.setTimeout(() => setHud(''), 900);
+  };
+  const tg = useRef<{ x: number; y: number; w: number; h: number; mode: '' | 'seek' | 'vol' | 'bri'; base: number; val: number } | null>(null);
+  const lastTap = useRef(0);
+  const tapTimer = useRef<number | null>(null);
+  const tapAct = useRef<(x: number, w: number, dbl: boolean) => void>(() => undefined);
+  tapAct.current = (x, w, dbl) => {
+    if (menu) { setMenu(''); return; }
+    if (dbl) {
+      if (x < w / 3) { seekBy(-10); showHud('« 10 秒'); }
+      else if (x > (w * 2) / 3) { seekBy(10); showHud('10 秒 »'); }
+      else toggle();
+      poke();
+      return;
+    }
+    if (uiShown && !paused) {
+      if (hideTimer.current) window.clearTimeout(hideTimer.current);
+      setUiShown(false);
+    } else poke();
+  };
+  const onTouchStart = (e: React.TouchEvent): void => {
+    const t = e.touches[0];
+    const r = e.currentTarget.getBoundingClientRect();
+    tg.current = { x: t.clientX, y: t.clientY, w: r.width, h: r.height, mode: '', base: 0, val: 0 };
+  };
+  const onTouchMove = (e: React.TouchEvent): void => {
+    const g = tg.current;
+    if (!g) return;
+    const t = e.touches[0];
+    const dx = t.clientX - g.x, dy = t.clientY - g.y;
+    if (!g.mode) {
+      if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy)) { g.mode = 'seek'; g.base = cur; }
+      else if (Math.abs(dy) > 14) {
+        if (g.x < g.w / 2) { g.mode = 'bri'; g.base = androidBridge()?.getBrightness() ?? 0.5; }
+        else { g.mode = 'vol'; g.base = vol; }
+      } else return;
+    }
+    if (g.mode === 'seek') {
+      g.val = Math.max(0, Math.min(total || 0, g.base + (dx / g.w) * 150));
+      showHud(`${fmtDuration(g.val)} / ${fmtDuration(total)}`);
+    } else if (g.mode === 'vol') {
+      g.val = Math.max(0, Math.min(100, g.base - (dy / g.h) * 130));
+      setVolume(g.val);
+      showHud(`音量 ${Math.round(g.val)}%`);
+    } else {
+      g.val = Math.max(0.02, Math.min(1, g.base - (dy / g.h) * 1.3));
+      androidBridge()?.setBrightness(g.val);
+      showHud(`亮度 ${Math.round(g.val * 100)}%`);
+    }
+  };
+  const onTouchEnd = (e: React.TouchEvent): void => {
+    e.preventDefault(); // 不要再触发合成的鼠标点击
+    const g = tg.current;
+    tg.current = null;
+    if (!g) return;
+    if (g.mode === 'seek') { seekTo(g.val); return; }
+    if (g.mode) return;
+    const now = Date.now();
+    if (now - lastTap.current < 300) {
+      lastTap.current = 0;
+      if (tapTimer.current) window.clearTimeout(tapTimer.current);
+      tapAct.current(g.x, g.w, true);
+    } else {
+      lastTap.current = now;
+      if (tapTimer.current) window.clearTimeout(tapTimer.current);
+      tapTimer.current = window.setTimeout(() => tapAct.current(g.x, g.w, false), 300);
+    }
+  };
+
+  // 安卓：进入播放页即横屏沉浸全屏，离开时恢复
+  useEffect(() => {
+    if (!isAndroid) return;
+    void winSetFullscreen(true);
+    setFull(true);
+    return () => {
+      void winSetFullscreen(false);
+    };
+  }, []);
+
   // ───────── 渲染 ─────────
   const title = item
     ? item.Type === 'Episode'
@@ -372,12 +518,17 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   return (
     <div className={`we-player mpv${showUi ? '' : ' hide-ui'}`} onMouseMove={poke} onClick={() => menu && setMenu('')}>
       {/* 透明点击层：mpv 画面在它下面的原生窗口里 */}
-      <div className="we-surface" onClick={(e) => { e.stopPropagation(); if (menu) setMenu(''); else toggle(); }} onDoubleClick={() => void toggleFull()} />
+      {isAndroid ? (
+        <div className="we-surface" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} />
+      ) : (
+        <div className="we-surface" onClick={(e) => { e.stopPropagation(); if (menu) setMenu(''); else toggle(); }} onDoubleClick={() => void toggleFull()} />
+      )}
+      {hud && <div className="we-hud">{hud}</div>}
 
       {(busy || caching) && !err && <div className="we-loading"><span className="spinner" aria-hidden="true" />{busy ? '正在加载…' : '缓冲中…'}</div>}
       {err && <div className="we-error">{err}</div>}
 
-      <div className="we-top">
+      <div className="we-top" onMouseEnter={() => { hoverUi.current = true; }} onMouseLeave={() => { hoverUi.current = false; poke(); }}>
         <button className="we-btn we-back" title="返回（Esc）" onClick={(e) => { e.stopPropagation(); void exit(); }}>
           <svg width="18" height="18" viewBox="0 0 24 24"><path d="M15.5 5l-7 7 7 7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
           <span>返回</span>
@@ -392,7 +543,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         <button className="we-btn we-txt" title="简介 / 演职员 / 选集（I）" onClick={(e) => { e.stopPropagation(); setDrawer((v) => !v); }}>
           {drawer ? '收起信息' : '信息'}
         </button>
-        {!full && (
+        {!full && !isAndroid && (
           <div className="we-winbtns">
             <button className="we-btn" title="最小化" onClick={(e) => { e.stopPropagation(); void winMinimize(); }}>
               <svg width="12" height="12" viewBox="0 0 16 16"><line x1="3.5" y1="8" x2="12.5" y2="8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
@@ -424,7 +575,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       )}
       {!showUi && <div className="we-thin"><div style={{ width: `${pct}%` }} /></div>}
 
-      <div className="we-bottom" onClick={(e) => e.stopPropagation()}>
+      <div className="we-bottom" onClick={(e) => e.stopPropagation()} onMouseEnter={() => { hoverUi.current = true; }} onMouseLeave={() => { hoverUi.current = false; poke(); }}>
         <div
           className="we-seek"
           onClick={(e) => {

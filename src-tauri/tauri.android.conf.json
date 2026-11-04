@@ -1,0 +1,8 @@
+{
+  "bundle": {
+    "resources": [],
+    "android": {
+      "minSdkVersion": 26
+    }
+  }
+}
