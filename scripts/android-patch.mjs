@@ -25,7 +25,12 @@ if (!g.includes('dev.jdtech.mpv:libmpv')) {
   const dep = gk.endsWith('.kts') ? '    implementation("dev.jdtech.mpv:libmpv:1.0.0")\n' : "    implementation 'dev.jdtech.mpv:libmpv:1.0.0'\n";
   g = g.replace(/dependencies\s*\{\n/, (m) => m + dep);
 }
+// libmpv 要求 Android 8.0（API 26）以上
+g = g.replace(/minSdk(Version)?\s*=\s*\d+/, 'minSdk = 26').replace(/minSdk(Version)?\s+\d+/, 'minSdk 26');
+// 兜底：在文件末尾再强制设一次（后面的赋值会覆盖前面的）
+if (gk.endsWith('.kts') && !g.includes('/* winemby-minsdk */')) g += '\n/* winemby-minsdk */\nandroid {\n    defaultConfig {\n        minSdk = 26\n    }\n}\n';
 fs.writeFileSync(gp, g);
+console.log('minSdk 相关行：', g.split('\n').filter((l) => /minSdk/.test(l)).join(' | '));
 
 // 3. Kotlin 源码
 const pkg = (x.match(/package="([^"]+)"/) || [])[1];
