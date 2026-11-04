@@ -65,12 +65,20 @@ export default function NfDetail(p: NfDetailProps) {
               <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" /></svg>
               {p.playLabel.replace(/^▶\s*/, '')}
             </button>
-            <button className={`nfd-circle${p.fav ? ' on' : ''}`} title={p.fav ? '已收藏' : '加入收藏'} aria-pressed={p.fav} onClick={p.onFav}>
-              {p.fav ? '✓' : '＋'}
-            </button>
-            <button className={`nfd-circle${p.played ? ' on' : ''}`} title={p.played ? '标为未看' : '标为已看'} aria-pressed={p.played} onClick={p.onPlayed}>
-              👁
-            </button>
+            <div className="nfd-circles">
+              <div className="nfd-act">
+                <button className={`nfd-circle${p.fav ? ' on' : ''}`} title={p.fav ? '已收藏' : '加入收藏'} aria-pressed={p.fav} onClick={p.onFav}>
+                  {p.fav ? '✓' : '＋'}
+                </button>
+                <span className="nfd-act-l">{p.fav ? '已收藏' : '收藏'}</span>
+              </div>
+              <div className="nfd-act">
+                <button className={`nfd-circle${p.played ? ' on' : ''}`} title={p.played ? '标为未看' : '标为已看'} aria-pressed={p.played} onClick={p.onPlayed}>
+                  👁
+                </button>
+                <span className="nfd-act-l">{p.played ? '已看' : '标为已看'}</span>
+              </div>
+            </div>
           </div>
         </div>
         <div className="nfd-side">

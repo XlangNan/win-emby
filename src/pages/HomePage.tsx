@@ -11,6 +11,7 @@ import { useAsync } from '../lib/useAsync';
 import { useSkinLayout } from '../lib/theme';
 import { loadPlayPrefs } from '../lib/prefs';
 import { isAndroid } from '../lib/platform';
+import MobileHero from '../mobile/MobileHero';
 
 interface Section {
   id: string;
@@ -106,7 +107,9 @@ export default function HomePage() {
 
   return (
     <div className="content">
-      {data && data.spot.length > 0 && <HomeSpotlight items={data.spot} landscape={nf && !isAndroid} onOpen={open} onPlay={play} />}
+      {isAndroid && <div className="m-home-top" />}
+      {isAndroid && data && data.spot.length > 0 && <MobileHero items={data.spot} onOpen={open} onPlay={play} />}
+      {!isAndroid && data && data.spot.length > 0 && <HomeSpotlight items={data.spot} landscape={nf && !isAndroid} onOpen={open} onPlay={play} />}
       {loading && !data ? (
         <div className="empty"><span className="spinner" aria-hidden="true" />加载中…</div>
       ) : error ? (

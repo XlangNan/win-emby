@@ -353,3 +353,6 @@ html.android .we-btn { min-width: 44px; height: 44px; }
 html.android .we-seek { height: 14px; }
 html.android .we-top { padding-top: max(12px, env(safe-area-inset-top)); }
 html.android .we-volgrp { display: none; } /* 手机用手势调音量 */
+.nfd-circles { display: flex; align-items: center; gap: 12px; }
+.nfd-act { display: contents; }
+.nfd-act-l { display: none; }
