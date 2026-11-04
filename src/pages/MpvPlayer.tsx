@@ -226,8 +226,16 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
             setPaused(v);
           } catch { /* ignore */ }
         };
-        await sess.set('volume', Math.round(loadPlayPrefs().volume * 100));
+        // 安卓：mpv 内部音量固定 100%，音量完全跟随手机的媒体音量（音量键 / 手势）
+        await sess.set('volume', isAndroid ? 100 : Math.round(loadPlayPrefs().volume * 100));
         const mst = psrc.MediaStreams || src.MediaStreams || [];
+        // 杜比视界 Profile 5（没有 HDR10 / SDR 兼容层）：硬解拿不到 RPU 元数据，画面会偏紫偏绿 → 改软解，交给 libplacebo 重塑
+        if (isAndroid) {
+          const v = mst.find((x) => x.Type === 'Video');
+          const tag = `${v?.VideoRangeType ?? ''} ${v?.ExtendedVideoSubType ?? ''} ${v?.ExtendedVideoSubTypeDescription ?? ''} ${v?.DvProfile ?? ''}`.toLowerCase();
+          const p5 = /profile\s*5|doviprofile50|dovi50/.test(tag) || String(v?.VideoRangeType ?? '').toLowerCase() === 'dovi' || Number(v?.DvProfile) === 5;
+          await sess.set('hwdec', p5 ? 'no' : 'mediacodec-copy');
+        }
         const pick = pickInitialTracks(id, mst, loadPlayPrefs(), {
           audio: qs.get('aud') ? Number(qs.get('aud')) : undefined,
           sub: qs.get('sub') ? Number(qs.get('sub')) : undefined,
@@ -459,7 +467,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy)) { g.mode = 'seek'; g.base = cur; }
       else if (Math.abs(dy) > 14) {
         if (g.x < g.w / 2) { g.mode = 'bri'; g.base = androidBridge()?.getBrightness() ?? 0.5; }
-        else { g.mode = 'vol'; g.base = vol; }
+        else { g.mode = 'vol'; g.base = (androidBridge()?.getSysVolume() ?? 0.5) * 100; }
       } else return;
     }
     if (g.mode === 'seek') {
@@ -467,7 +475,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       showHud(`${fmtDuration(g.val)} / ${fmtDuration(total)}`);
     } else if (g.mode === 'vol') {
       g.val = Math.max(0, Math.min(100, g.base - (dy / g.h) * 130));
-      setVolume(g.val);
+      androidBridge()?.setSysVolume(g.val / 100); // 直接调系统媒体音量
       showHud(`音量 ${Math.round(g.val)}%`);
     } else {
       g.val = Math.max(0.02, Math.min(1, g.base - (dy / g.h) * 1.3));

@@ -72,10 +72,13 @@ function openAndroid(o: MpvOpenOpts): Promise<MpvSession> {
     const r = b.init(
       JSON.stringify({
         options: {
-          vo: 'gpu',
+          // gpu-next（libplacebo）负责 HDR → SDR 色调映射和杜比视界重塑；没有就退回 gpu
+          vo: 'gpu-next,gpu',
           'gpu-context': 'android',
           'opengl-es': 'yes',
-          hwdec: 'mediacodec,mediacodec-copy',
+          // copy 模式把画面读回内存再交给 libplacebo，颜色才对（零拷贝模式 HDR 会发灰）
+          hwdec: 'mediacodec-copy',
+          'tone-mapping': 'bt.2390',
           'hwdec-codecs': 'all',
           ao: 'audiotrack,opensles',
           'force-window': 'no',

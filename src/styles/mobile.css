@@ -130,3 +130,48 @@ html.android body { font-size: 15px; }
 :root.android[data-shell] .nfd-cast .we-cast img, :root.android[data-shell] .nfd-cast .we-cast-ph { width: 64px; height: 64px; margin: 0 auto 6px; }
 :root.android[data-shell] .nfd-cast .we-cast-name { font-size: 12px; }
 :root.android[data-shell] .nfd-cast .we-cast-role { font-size: 11px; }
+
+/* ══ 第三版打磨：对齐流媒体手机 App 的质感 ══ */
+.m-iconbtn { background: none !important; border: none !important; box-shadow: none !important; width: 40px; height: 40px; padding: 0 !important; color: #fff !important; }
+.m-head { padding: 4px 14px 10px; }
+.m-head-top { height: 42px; }
+.m-brand { font-size: 21px; letter-spacing: .06em; }
+.m-chips { gap: 8px; padding: 4px 0 2px; }
+.m-chip { padding: 5px 13px; font-size: 13px; background: transparent; border-color: rgba(255, 255, 255, .5); }
+.m-home-top { height: 96px; }
+.m-tabs { background: #000; border-top: 1px solid #1f1f1f; padding-bottom: 0; }
+.m-tab { padding: 7px 0 5px; font-size: 10px; gap: 3px; }
+.m-tab svg { width: 23px; height: 23px; }
+
+:root.android[data-shell] .nf-row-title::before { display: none !important; }
+:root.android[data-shell] .nf-row-title { display: block; font-size: 17px; font-weight: 700; letter-spacing: 0; margin: 0 0 8px; padding: 0 12px; color: #fff; }
+:root.android[data-shell] .nf-row-scroll { padding: 0 12px 4px; gap: 6px; }
+:root.android[data-shell] .nf-row-scroll > div { flex: 0 0 106px !important; }
+:root.android[data-shell] .nf-row-scroll > div[style*="280px"] { flex: 0 0 168px !important; }
+:root.android[data-shell] .nf-row { margin-bottom: 20px; }
+:root.android[data-shell] .card-media img, :root.android[data-shell] .card-media .no-cover { border-radius: 4px; }
+:root.android[data-shell] .card-media .card { border-radius: 4px; }
+:root.android[data-shell] .we-played { top: 4px; left: 4px; width: 18px; height: 18px; font-size: 11px; }
+:root.android[data-shell] .nf-row-scroll .we-land .meta { display: block; padding: 4px 0 0; }
+:root.android[data-shell] .nf-row-scroll .we-land .name { font-size: 12px; }
+
+.mh-card { border-radius: 8px; margin: 0 12px; }
+.mh-btns button { height: 40px; font-size: 14.5px; border-radius: 4px; }
+.mh-dots { margin-top: 8px; }
+
+/* 详情：信息区 */
+:root.android[data-shell] .nfd-side { font-size: 12.5px; line-height: 1.55; padding: 4px 16px 4px; }
+:root.android[data-shell] .nfd-side > div { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+:root.android[data-shell] .nfd-meta { font-size: 13px; }
+:root.android[data-shell] .nfd-sec { margin-bottom: 24px; }
+:root.android[data-shell] .nfd-sec-head { margin-bottom: 10px; }
+:root.android[data-shell] .nfd-sec-head h2 { font-size: 17px; }
+:root.android[data-shell] .nfd-select { font-size: 13px; padding: 5px 10px; }
+
+/* 页面顶栏、设置：更贴近手机 */
+:root.android[data-shell] .topbar { background: #000; border-bottom: none; }
+:root.android[data-shell] .topbar h3 { font-size: 18px; }
+:root.android[data-shell] .card { border-radius: 10px; }
+:root.android[data-shell] button, :root.android[data-shell] select, :root.android[data-shell] input { -webkit-tap-highlight-color: transparent; }
+:root.android[data-shell] .tag { padding: 6px 14px; }
+:root.android[data-shell] .empty { padding: 40px 0; }

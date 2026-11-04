@@ -1,13 +1,16 @@
 package com.winemby.app
 
 import android.app.Activity
+import android.content.Context
 import android.content.pm.ActivityInfo
+import android.media.AudioManager
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -27,6 +30,13 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
     private var lastTime = -10.0
     private var lastCache = -10.0
     private val lock = Any()
+    private var voName = "gpu"
+    private val audio: AudioManager by lazy { act.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
+
+    companion object {
+        /** 播放页全屏时为 true：此时不给内容区加系统栏留白 */
+        @Volatile var fullscreen = false
+    }
     // 这个版本的 libmpv 是「实例」接口：MPVLib.create(context) 返回实例，之后都调实例方法
     private var mpv: MPVLib? = null
     private val m: MPVLib get() = mpv ?: throw IllegalStateException("mpv 未初始化")
@@ -38,6 +48,7 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
             release()
             val cfg = JSONObject(json)
             val opts = cfg.getJSONObject("options")
+            voName = opts.optString("vo", "gpu")
             act.runOnUiThread { addSurface() }
             mpv = MPVLib.create(act.applicationContext)
             val keys = opts.keys()
@@ -84,7 +95,7 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
             try {
                 m.attachSurface(s)
                 m.setOptionString("force-window", "yes")
-                m.setPropertyString("vo", "gpu")
+                m.setPropertyString("vo", voName)
                 attached = true
             } catch (_: Throwable) {
                 return
@@ -178,8 +189,8 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
         act.runOnUiThread {
             val w = act.window
             val c = WindowInsetsControllerCompat(w, w.decorView)
+            fullscreen = on
             if (on) {
-                WindowCompat.setDecorFitsSystemWindows(w, false)
                 c.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                 c.hide(WindowInsetsCompat.Type.systemBars())
                 val lp = w.attributes
@@ -188,9 +199,9 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
                 act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
             } else {
                 c.show(WindowInsetsCompat.Type.systemBars())
-                WindowCompat.setDecorFitsSystemWindows(w, true)
                 act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             }
+            ViewCompat.requestApplyInsets(act.findViewById(android.R.id.content))
         }
     }
 
@@ -201,6 +212,19 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
             lp.screenBrightness = if (v < 0f) WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE else v.coerceIn(0.02f, 1f)
             act.window.attributes = lp
         }
+    }
+
+    /** 系统「媒体音量」0..1：应用里的音量手势直接调系统音量，和手机音量键一致 */
+    @JavascriptInterface
+    fun getSysVolume(): Float {
+        val max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        return if (max > 0) audio.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() / max else 0f
+    }
+
+    @JavascriptInterface
+    fun setSysVolume(v: Float) {
+        val max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        audio.setStreamVolume(AudioManager.STREAM_MUSIC, Math.round(v.coerceIn(0f, 1f) * max), 0)
     }
 
     @JavascriptInterface

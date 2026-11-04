@@ -33,6 +33,9 @@ export interface MediaStream {
   BitRate?: number;
   VideoRange?: string;
   VideoRangeType?: string;
+  ExtendedVideoSubType?: string;
+  ExtendedVideoSubTypeDescription?: string;
+  DvProfile?: number;
   ColorTransfer?: string;
   IsForced?: boolean;
   RealFrameRate?: number;
