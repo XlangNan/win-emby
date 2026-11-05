@@ -290,7 +290,7 @@ export default function DetailPage() {
                 <div className="muted" style={{ marginBottom: 8 }}>演职员</div>
                 <HScrollRow style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 6 }}>
                   {cast.map((p) => (
-                    <div key={`${p.Id}-${p.Role}`} className="we-cast" title={p.Role ? `${p.Name} 饰 ${p.Role}` : p.Name}>
+                    <div key={`${p.Id}-${p.Role}`} className="we-cast we-cast-link" role="button" tabIndex={0} title={p.Role ? `${p.Name} 饰 ${p.Role}` : p.Name} onClick={() => nav(`/person/${p.Id}`)} onKeyDown={(e) => e.key === 'Enter' && nav(`/person/${p.Id}`)}>
                       {personUrl(p) ? <img src={personUrl(p)} loading="lazy" alt="" /> : <div className="we-cast-ph">{p.Name.slice(0, 1)}</div>}
                       <div className="we-cast-name">{p.Name}</div>
                       {p.Role && <div className="muted we-cast-role">{p.Role}</div>}

@@ -38,6 +38,7 @@ class MainActivity : TauriActivity() {
         val b = MpvBridge(this, webView)
         bridge = b
         webView.addJavascriptInterface(b, "AndroidMpv")
+        webView.addJavascriptInterface(NetBridge(webView), "AndroidNet")
     }
 
     override fun onPause() {

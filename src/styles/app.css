@@ -356,3 +356,64 @@ html.android .we-volgrp { display: none; } /* 手机用手势调音量 */
 .nfd-circles { display: flex; align-items: center; gap: 12px; }
 .nfd-act { display: contents; }
 .nfd-act-l { display: none; }
+
+/* 演员页 */
+.we-cast-link { cursor: pointer; }
+.we-cast-link:hover .we-cast-name { color: var(--accent); }
+.we-person { display: flex; gap: 20px; align-items: flex-start; padding: 8px 0 18px; }
+.we-person-img { width: 140px; height: 140px; border-radius: 50%; object-fit: cover; flex: none; background: var(--surface-3); }
+.we-person-info { min-width: 0; flex: 1; }
+.we-person-info h2 { margin: 6px 0 4px; font-size: 24px; }
+.we-person-meta { font-size: 13px; margin-bottom: 10px; }
+.we-person-ov { font-size: 14px; line-height: 1.6; color: var(--text-dim); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+.we-person-ov.open { -webkit-line-clamp: unset; display: block; }
+.we-person-more { margin-top: 6px; padding: 0; border: none; background: none; box-shadow: none; color: var(--accent); font-size: 13px; }
+.we-person-h { margin: 6px 0 12px; font-size: 17px; }
+
+/* ================= 播放器：网飞风格（电脑 + 手机共用）================= */
+.we-player { --accent: #f0414b; }
+.we-player .we-top { flex-wrap: nowrap; align-items: center; padding: 14px 20px 44px; background: linear-gradient(180deg, rgba(0, 0, 0, .8), rgba(0, 0, 0, 0)); }
+.we-player .we-bottom { padding: 56px 24px 16px; background: linear-gradient(0deg, rgba(0, 0, 0, .85), rgba(0, 0, 0, 0)); }
+.we-back { min-width: 40px; width: 40px; height: 40px; padding: 0; border-radius: 50%; }
+.we-titlebox { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.we-player .we-title { font-size: 17px; font-weight: 600; flex: none; }
+.we-subline { font-size: 11.5px; color: rgba(255, 255, 255, .6); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.we-center { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); display: flex; justify-content: center; align-items: center; gap: 64px; pointer-events: none; transition: opacity .3s ease; z-index: 6; }
+.we-player.hide-ui .we-center { opacity: 0; }
+.we-player.hide-ui .we-center .we-cbtn { pointer-events: none; }
+.we-cbtn { pointer-events: auto; width: 76px; height: 76px; padding: 0; border: none; border-radius: 50%; background: transparent; color: #fff; display: inline-flex; align-items: center; justify-content: center; box-shadow: none; text-shadow: none; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, .6)); }
+.we-cbtn:hover { background: rgba(255, 255, 255, .14); box-shadow: none; }
+.we-cplay { width: 96px; height: 96px; }
+.we-seekrow { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+.we-seekrow .we-seek { flex: 1; height: 22px; margin: 0; }
+.we-seek::before, .we-seek-buf, .we-seek-cur { height: 3px; border-radius: 0; }
+.we-seek:hover::before { height: 5px; }
+.we-seek:hover .we-seek-buf, .we-seek:hover .we-seek-cur { height: 5px; }
+.we-seek-dot { width: 14px; height: 14px; margin-left: -7px; box-shadow: 0 0 0 4px rgba(240, 65, 75, .25); }
+.we-seekrow .we-time { margin: 0; font-size: 14px; min-width: 52px; text-align: right; }
+.we-lbl { gap: 8px; padding: 0 12px; font-size: 14px; }
+.we-lbl > span { white-space: nowrap; }
+.we-menu-sep { height: 1px; margin: 4px 6px; background: rgba(255, 255, 255, .14); }
+.we-substyle { min-width: 250px; padding: 8px 12px 10px; cursor: default; }
+.we-ss { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; margin: 8px 0; }
+.we-ss input[type=range] { width: 100%; accent-color: var(--accent); background: none; border: none; padding: 0; }
+.we-ss-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
+.we-player .we-badge-hi { background: var(--accent); }
+
+/* 手机：中间按钮略小，底部按钮图标在上、文字在下，居中排布，和网飞手机端一致 */
+html.android .we-center { gap: 44px; }
+html.android .we-cbtn { width: 64px; height: 64px; }
+html.android .we-cbtn svg { width: 40px; height: 40px; }
+html.android .we-cplay { width: 80px; height: 80px; }
+html.android .we-cplay svg { width: 56px; height: 56px; }
+html.android .we-player .we-top { padding: max(14px, env(safe-area-inset-top)) 16px 40px; }
+html.android .we-player .we-bottom { padding: 48px 20px max(12px, env(safe-area-inset-bottom)); }
+html.android .we-ctrls { justify-content: center; gap: 6px; }
+html.android .we-ctrls > span[style] { display: none; }
+html.android .we-lbl { flex-direction: column; gap: 2px; height: auto; min-width: 64px; padding: 4px 8px; font-size: 11.5px; }
+html.android .we-menu { bottom: 62px; right: auto; left: 50%; transform: translateX(-50%); max-height: 56vh; }
+html.android .we-menu-wrap { position: static; }
+html.android .we-seek-dot { width: 16px; height: 16px; margin-left: -8px; }
+
+/* 窗口标题栏左上角：和手机一致的品牌字样 */
+.tb-brand, .we-wordmark { font-weight: 800; letter-spacing: .06em; color: var(--accent); }

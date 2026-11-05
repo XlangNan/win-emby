@@ -8,6 +8,7 @@ import TitleBar from './components/TitleBar';
 import { emby } from './emby/client';
 import { SESSION_EVENT, clearSession, getSession } from './emby/session';
 import ConfigPage from './pages/ConfigPage';
+import PersonPage from './pages/PersonPage';
 import DetailPage from './pages/DetailPage';
 import DiscoverDetail from './pages/DiscoverDetail';
 import DiscoverMore from './pages/DiscoverMore';
@@ -165,6 +166,7 @@ function AppShell() {
         <Route path="/" element={<HomePage />} />
         <Route path="/lib/:id" element={<LibraryPage />} />
         <Route path="/detail/:id" element={<DetailPage />} />
+        <Route path="/person/:id" element={<PersonPage />} />
         <Route path="/search" element={isAndroid ? <MobileSearch /> : <SearchPage />} />
         <Route path="/me" element={<MePage />} />
         <Route path="/favorites" element={<FavoritesPage />} />
@@ -218,7 +220,7 @@ function AppShell() {
           <aside className="ap-sidebar">
             <div className="ap-brand" title="回到首页" role="button" tabIndex={0} style={{ cursor: 'pointer' }} onClick={() => nav('/')} onKeyDown={(e) => e.key === 'Enter' && nav('/')}>
               <img className="ap-brand-ico" src="/icon.png" alt="" draggable={false} />
-              <span className="ap-brand-name">织影</span>
+              <span className="ap-brand-name">WEAVE</span>
             </div>
             {groups.map((g) => (
               <div key={g.label} className="ap-group">

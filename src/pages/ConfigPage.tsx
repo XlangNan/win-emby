@@ -9,6 +9,7 @@ import { applyFont, FONT_PRESETS, loadFont } from '../lib/font';
 import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
 import { kg, loadKg, saveKg } from '../lib/kg';
 import { loadMp, mp, saveMp } from '../lib/mp';
+import { HOSTS_TEMPLATE, loadHostsText, saveHostsText } from '../lib/net';
 import { loadTmdb, saveTmdb, tmdbSearch } from '../lib/tmdb';
 import { ALL_THEMES, THEME_LABELS } from '../lib/themeTokens';
 
@@ -136,10 +137,12 @@ function HomeLibs({ prefs, set }: { prefs: ReturnType<typeof loadPlayPrefs>; set
 function TmdbSettings() {
   const [c, setC] = useState(loadTmdb);
   const [adv, setAdv] = useState(false);
+  const [hosts, setHosts] = useState(loadHostsText);
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const test = async (): Promise<void> => {
     saveTmdb(c);
+    saveHostsText(hosts);
     setBusy(true);
     setMsg('');
     try {
@@ -159,7 +162,24 @@ function TmdbSettings() {
       </div>
       <div style={{ display: 'grid', gap: 8 }}>
         <input type="password" value={c.apiKey} onChange={(e) => setC({ ...c, apiKey: e.target.value })} placeholder="TMDB API Key / 读访问令牌" spellCheck={false} />
-        <input value={c.proxy} onChange={(e) => setC({ ...c, proxy: e.target.value })} placeholder="代理（HTTP），如 http://127.0.0.1:7890；留空 = 直连" spellCheck={false} />
+        <input value={c.proxy} onChange={(e) => setC({ ...c, proxy: e.target.value })} placeholder="代理，如 http://127.0.0.1:7890 或 socks5://127.0.0.1:7891；留空 = 直连" spellCheck={false} />
+        {isAndroid && (
+          <>
+            <div className="muted" style={{ fontSize: 12 }}>
+              手机上没有代理时，可以在这里写 hosts（域名 → IP，IPv4 / IPv6 都行）。填了代理就以代理为准，hosts 不再生效。
+            </div>
+            <textarea
+              value={hosts}
+              onChange={(e) => setHosts(e.target.value)}
+              rows={6}
+              spellCheck={false}
+              autoCapitalize="off"
+              placeholder={HOSTS_TEMPLATE}
+              style={{ width: '100%', boxSizing: 'border-box', fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: 12.5, padding: 8, borderRadius: 8, background: 'var(--surface-3)', color: 'inherit', border: '1px solid var(--border-soft)', resize: 'vertical' }}
+            />
+            <div><button type="button" onClick={() => setHosts((t) => (t.trim() ? t : HOSTS_TEMPLATE))}>插入示例</button></div>
+          </>
+        )}
         {adv && (
           <>
             <input value={c.apiBase} onChange={(e) => setC({ ...c, apiBase: e.target.value })} placeholder="API 地址（默认 https://api.themoviedb.org/3）" spellCheck={false} />

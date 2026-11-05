@@ -1,6 +1,8 @@
 // 手机外壳（安卓）：底部标签栏 + 首页顶部品牌/分类条。结构参照主流流媒体手机 App 的交互习惯。
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import type { EmbyItem } from '../emby/types';
+import { listSources } from '../lib/live';
 
 const ICON = {
   home: <path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z" />,
@@ -14,6 +16,12 @@ const ICON = {
     <>
       <circle cx="11" cy="11" r="6.5" />
       <path d="m20 20-4.2-4.2" />
+    </>
+  ),
+  live: (
+    <>
+      <rect x="3" y="6" width="18" height="12" rx="2" />
+      <path d="m9 3 3 3 3-3" />
     </>
   ),
   me: (
@@ -35,8 +43,9 @@ function Ico({ k }: { k: keyof typeof ICON }) {
 const TABS: { to: string; label: string; ico: keyof typeof ICON; end?: boolean; also?: string[] }[] = [
   { to: '/', label: '首页', ico: 'home', end: true },
   { to: '/discover', label: '片库', ico: 'disc' },
+  { to: '/live', label: '直播', ico: 'live' },
   { to: '/search', label: '搜索', ico: 'search' },
-  { to: '/me', label: '我的', ico: 'me', also: ['/favorites', '/history', '/live', '/config'] },
+  { to: '/me', label: '我的', ico: 'me', also: ['/favorites', '/history', '/config'] },
 ];
 
 export default function MobileShell({ views, routes }: { views: EmbyItem[]; routes: React.ReactNode }) {
@@ -44,7 +53,13 @@ export default function MobileShell({ views, routes }: { views: EmbyItem[]; rout
   const nav = useNavigate();
   const p = loc.pathname;
   const home = p === '/';
-  const hideTabs = p.startsWith('/detail') || /^\/discover\/(movie|tv)\//.test(p);
+  const [hasLive, setHasLive] = useState(() => listSources().length > 0);
+  useEffect(() => {
+    const f = (): void => setHasLive(listSources().length > 0);
+    window.addEventListener('wemby-live-changed', f);
+    return () => window.removeEventListener('wemby-live-changed', f);
+  }, []);
+  const hideTabs = p.startsWith('/live/play') || p.startsWith('/detail') || /^\/discover\/(movie|tv)\//.test(p);
 
   return (
     <div className="m-app">
@@ -68,7 +83,7 @@ export default function MobileShell({ views, routes }: { views: EmbyItem[]; rout
       </div>
       {!hideTabs && (
         <nav className="m-tabs" aria-label="主导航">
-          {TABS.map((t) => {
+          {TABS.filter((t) => t.to !== '/live' || hasLive).map((t) => {
             const active = t.end ? p === t.to : p.startsWith(t.to) || !!t.also?.some((a) => p.startsWith(a));
             return (
               <NavLink key={t.to} to={t.to} end={t.end} className={`m-tab${active ? ' active' : ''}`}>

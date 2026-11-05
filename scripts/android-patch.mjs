@@ -44,7 +44,7 @@ let dir = null;
 })(javaRoot);
 if (!dir) throw new Error('找不到生成的 MainActivity.kt');
 const pkgLine = (fs.readFileSync(path.join(dir, 'MainActivity.kt'), 'utf8').match(/^package\s+(\S+)/m) || [])[1];
-for (const f of ['MpvBridge.kt', 'MainActivity.kt']) {
+for (const f of ['MpvBridge.kt', 'MainActivity.kt', 'NetBridge.kt']) {
   let s = fs.readFileSync(path.resolve('android', f), 'utf8').replace(/^package\s+\S+/m, `package ${pkgLine}`).replace('__MPVLIB__', mpvClass);
   fs.writeFileSync(path.join(dir, f), s);
 }

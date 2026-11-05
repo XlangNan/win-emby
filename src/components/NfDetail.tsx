@@ -1,4 +1,5 @@
 // 网飞皮肤的电影 / 剧集详情：整幅背景大图 + 大标题 + 白色播放按钮，下方剧集列表、更多类似内容、详细信息
+import { useNavigate } from 'react-router-dom';
 import BackButton from './BackButton';
 import MediaCard from './MediaCard';
 import PlayOptions, { type PlayChoice } from './PlayOptions';
@@ -35,6 +36,7 @@ const resBadge = (it: EmbyItem): string => {
 
 export default function NfDetail(p: NfDetailProps) {
   const { it } = p;
+  const nav = useNavigate();
   const bg = backdropUrl(it, 1920);
   const logo = logoUrl(it);
   const actors = (it.People || []).filter((x) => x.Type === 'Actor' || x.Type === 'GuestStar');
@@ -65,6 +67,7 @@ export default function NfDetail(p: NfDetailProps) {
               <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" /></svg>
               {p.playLabel.replace(/^▶\s*/, '')}
             </button>
+            <div id="nfd-opts-slot" />
             <div className="nfd-circles">
               <div className="nfd-act">
                 <button className={`nfd-circle${p.fav ? ' on' : ''}`} title={p.fav ? '已收藏' : '加入收藏'} aria-pressed={p.fav} onClick={p.onFav}>
@@ -143,7 +146,7 @@ export default function NfDetail(p: NfDetailProps) {
           {actors.length > 0 && (
             <div className="nfd-cast">
               {actors.slice(0, 12).map((x) => (
-                <div key={`${x.Id}-${x.Role}`} className="we-cast" title={x.Role ? `${x.Name} 饰 ${x.Role}` : x.Name}>
+                <div key={`${x.Id}-${x.Role}`} className="we-cast we-cast-link" role="button" tabIndex={0} title={x.Role ? `${x.Name} 饰 ${x.Role}` : x.Name} onClick={() => nav(`/person/${x.Id}`)} onKeyDown={(e) => e.key === 'Enter' && nav(`/person/${x.Id}`)}>
                   {personUrl(x) ? <img src={personUrl(x)} loading="lazy" alt="" /> : <div className="we-cast-ph">{x.Name.slice(0, 1)}</div>}
                   <div className="we-cast-name">{x.Name}</div>
                   {x.Role && <div className="muted we-cast-role">{x.Role}</div>}

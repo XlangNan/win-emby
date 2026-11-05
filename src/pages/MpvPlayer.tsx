@@ -9,6 +9,7 @@ import type { EmbyItem, MediaSource, MediaStream } from '../emby/types';
 import { openMpv, type MpvSession } from '../lib/mpv';
 import { androidBridge, isAndroid } from '../lib/platform';
 import { loadPlayPrefs, savePlayPrefs, setTrackMemory } from '../lib/prefs';
+import { applySubStyle, loadSubStyle, saveSubStyle, SUB_DEFAULT, type SubStyle } from '../lib/substyle';
 import { pickInitialTracks } from '../lib/tracks';
 import { usePlayItem } from '../lib/usePlayItem';
 import { winClose, winIsFullscreen, winMinimize, winOnClose, winSetFullscreen, winToggleMax } from '../lib/win';
@@ -82,7 +83,8 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const [hw, setHw] = useState('');
   const [full, setFull] = useState(false);
   const [uiShown, setUiShown] = useState(true);
-  const [menu, setMenu] = useState<'' | 'audio' | 'sub' | 'speed' | 'eps'>('');
+  const [menu, setMenu] = useState<'' | 'audio' | 'sub' | 'speed' | 'eps' | 'substyle'>('');
+  const [subStyle, setSubStyleState] = useState<SubStyle>(loadSubStyle);
   const [fps, setFps] = useState(0);
   const [vbr, setVbr] = useState(0);
   const autoSkipArmed = useRef(false);
@@ -228,6 +230,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         };
         // 安卓：mpv 内部音量固定 100%，音量完全跟随手机的媒体音量（音量键 / 手势）
         await sess.set('volume', isAndroid ? 100 : Math.round(loadPlayPrefs().volume * 100));
+        await applySubStyle(sess, loadSubStyle());
         const mst = psrc.MediaStreams || src.MediaStreams || [];
         // 杜比视界 Profile 5（没有 HDR10 / SDR 兼容层）：硬解拿不到 RPU 元数据，画面会偏紫偏绿 → 改软解，交给 libplacebo 重塑
         if (isAndroid) {
@@ -372,6 +375,13 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   };
 
   pickSubRef.current = pickSub;
+
+  const changeSubStyle = (patch: Partial<SubStyle>): void => {
+    const next = { ...subStyle, ...patch };
+    setSubStyleState(next);
+    saveSubStyle(next);
+    if (sessRef.current) void applySubStyle(sessRef.current, next);
+  };
 
   const setSpeed = (r: number): void => {
     setMenu('');
@@ -537,19 +547,17 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       {err && <div className="we-error">{err}</div>}
 
       <div className="we-top" onMouseEnter={() => { hoverUi.current = true; }} onMouseLeave={() => { hoverUi.current = false; poke(); }}>
-        <button className="we-btn we-back" title="返回（Esc）" onClick={(e) => { e.stopPropagation(); void exit(); }}>
-          <svg width="18" height="18" viewBox="0 0 24 24"><path d="M15.5 5l-7 7 7 7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          <span>返回</span>
+        <button className="we-btn we-back" title="返回（Esc）" aria-label="返回" onClick={(e) => { e.stopPropagation(); void exit(); }}>
+          <svg width="26" height="26" viewBox="0 0 24 24"><path d="M15.5 5l-7 7 7 7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </button>
-        <div className="we-title" title={title}>{title}</div>
-        {vstream?.Width && vstream?.Height ? <span className="we-badge" title="分辨率">{vstream.Width}×{vstream.Height}</span> : null}
-        {badge && <span className="we-badge" title="画面">{badge}</span>}
-        {vstream?.Codec && <span className="we-badge" title="视频编码">{vstream.Codec.toUpperCase()}</span>}
-        {fpsShow > 0 && <span className="we-badge we-badge-hi" title="帧率">{Number(fpsShow.toFixed(3))} fps</span>}
-        {vbr > 0 && <span className="we-badge" title="当前视频码率">{(vbr / 1e6).toFixed(1)} Mbps</span>}
-        <span className="we-badge" title="播放内核">MPV{hw && hw !== 'no' ? ` · ${hw}` : ''}</span>
+        <div className="we-titlebox">
+          <div className="we-title" title={title}>{title}</div>
+          <div className="we-subline">
+            {[vstream?.Width && vstream?.Height ? `${vstream.Width}×${vstream.Height}` : '', badge, vstream?.Codec?.toUpperCase(), fpsShow > 0 ? `${Number(fpsShow.toFixed(3))} fps` : '', vbr > 0 ? `${(vbr / 1e6).toFixed(1)} Mbps` : '', `MPV${hw && hw !== 'no' ? ` · ${hw}` : ''}`].filter(Boolean).join('  ·  ')}
+          </div>
+        </div>
         <button className="we-btn we-txt" title="简介 / 演职员 / 选集（I）" onClick={(e) => { e.stopPropagation(); setDrawer((v) => !v); }}>
-          {drawer ? '收起信息' : '信息'}
+          {drawer ? '收起' : '信息'}
         </button>
         {!full && !isAndroid && (
           <div className="we-winbtns">
@@ -564,6 +572,23 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
             </button>
           </div>
         )}
+      </div>
+
+      {/* 中间大按钮：后退 10 秒 / 播放暂停 / 快进 10 秒 */}
+      <div className="we-center" onClick={(e) => e.stopPropagation()}>
+        <button className="we-cbtn" title="后退 10 秒（←）" aria-label="后退 10 秒" onClick={() => { seekBy(-10); poke(); }}>
+          <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4" /><text x="8.4" y="15.2" fontSize="6.6" fill="currentColor" stroke="none" fontWeight="700">10</text></svg>
+        </button>
+        <button className="we-cbtn we-cplay" title="播放/暂停（空格）" aria-label={paused ? '播放' : '暂停'} onClick={toggle}>
+          {paused ? (
+            <svg width="64" height="64" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" /></svg>
+          ) : (
+            <svg width="64" height="64" viewBox="0 0 24 24"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z" fill="currentColor" /></svg>
+          )}
+        </button>
+        <button className="we-cbtn" title="快进 10 秒（→）" aria-label="快进 10 秒" onClick={() => { seekBy(10); poke(); }}>
+          <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12a8 8 0 1 1-3-6.2M20 4v4h-4" /><text x="8.4" y="15.2" fontSize="6.6" fill="currentColor" stroke="none" fontWeight="700">10</text></svg>
+        </button>
       </div>
 
       {drawer && (
@@ -584,34 +609,21 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       {!showUi && <div className="we-thin"><div style={{ width: `${pct}%` }} /></div>}
 
       <div className="we-bottom" onClick={(e) => e.stopPropagation()} onMouseEnter={() => { hoverUi.current = true; }} onMouseLeave={() => { hoverUi.current = false; poke(); }}>
-        <div
-          className="we-seek"
-          onClick={(e) => {
-            const r = e.currentTarget.getBoundingClientRect();
-            if (total > 0) seekTo(((e.clientX - r.left) / r.width) * total);
-          }}
-        >
-          <div className="we-seek-buf" style={{ width: `${bufPct}%` }} />
-          <div className="we-seek-cur" style={{ width: `${pct}%` }} />
-          <div className="we-seek-dot" style={{ left: `${pct}%` }} />
+        <div className="we-seekrow">
+          <div
+            className="we-seek"
+            onClick={(e) => {
+              const r = e.currentTarget.getBoundingClientRect();
+              if (total > 0) seekTo(((e.clientX - r.left) / r.width) * total);
+            }}
+          >
+            <div className="we-seek-buf" style={{ width: `${bufPct}%` }} />
+            <div className="we-seek-cur" style={{ width: `${pct}%` }} />
+            <div className="we-seek-dot" style={{ left: `${pct}%` }} />
+          </div>
+          <span className="we-time" title={`${fmtDuration(cur)} / ${fmtDuration(total)}`}>{total > 0 ? fmtDuration(Math.max(0, total - cur)) : fmtDuration(cur)}</span>
         </div>
         <div className="we-ctrls">
-          <button className="we-btn" title="播放/暂停（空格）" onClick={toggle}>
-            {paused ? (
-              <svg width="20" height="20" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" /></svg>
-            ) : (
-              <svg width="20" height="20" viewBox="0 0 24 24"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z" fill="currentColor" /></svg>
-            )}
-          </button>
-          <button className="we-btn we-txt" title="后退 10 秒" onClick={() => seekBy(-10)}>-10s</button>
-          <button className="we-btn we-txt" title="快进 10 秒" onClick={() => seekBy(10)}>+10s</button>
-          {nextEp && (
-            <button className="we-btn" title="下一集（N）" onClick={goNext}>
-              <svg width="18" height="18" viewBox="0 0 24 24"><path d="M6 5v14l9-7-9-7Zm10 0h2.5v14H16z" fill="currentColor" /></svg>
-            </button>
-          )}
-          <span className="we-time">{fmtDuration(cur)} / {fmtDuration(total)}</span>
-          <span style={{ flex: 1 }} />
           <div className="we-volgrp" title="鼠标滚轮调节音量" onWheel={(e) => { setVolume(vol + (e.deltaY < 0 ? 5 : -5)); void sessRef.current?.set('mute', 'no'); poke(); }}>
           <button className="we-btn" title="静音（M）" onClick={() => void sessRef.current?.cmd('cycle', ['mute'])}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -623,9 +635,15 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           <span className="we-volnum">{muted ? '静音' : Math.round(vol)}</span>
           </div>
 
+          <span style={{ flex: 1 }} />
+          {nextEp && (
+            <button className="we-btn we-lbl" title="下一集（N）" onClick={goNext}>
+              <svg width="22" height="22" viewBox="0 0 24 24"><path d="M6 5v14l9-7-9-7Zm10 0h2.5v14H16z" fill="currentColor" /></svg><span>下一集</span>
+            </button>
+          )}
           {episodes.length > 1 && (
             <div className="we-menu-wrap">
-              <button className="we-btn we-txt" title="选集" onClick={() => setMenu(menu === 'eps' ? '' : 'eps')}>选集</button>
+              <button className="we-btn we-lbl" title="选集" onClick={() => setMenu(menu === 'eps' ? '' : 'eps')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h10" /></svg><span>选集</span></button>
               {menu === 'eps' && (
                 <div className="we-menu we-menu-eps">
                   <div className="we-menu-head">{item?.SeasonName || item?.SeriesName || '选集'}</div>
@@ -645,7 +663,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           )}
 
           <div className="we-menu-wrap">
-            <button className="we-btn we-txt" onClick={() => setMenu(menu === 'speed' ? '' : 'speed')}>{rate === 1 ? '倍速' : `${rate}x`}</button>
+            <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'speed' ? '' : 'speed')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg><span>{rate === 1 ? '倍速' : `${rate}x`}</span></button>
             {menu === 'speed' && (
               <div className="we-menu">
                 {[0.5, 0.75, 1, 1.25, 1.5, 2, 3].map((r) => (
@@ -657,7 +675,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
 
           {audios.length > 0 && (
             <div className="we-menu-wrap">
-              <button className="we-btn we-txt" onClick={() => setMenu(menu === 'audio' ? '' : 'audio')}>音轨</button>
+              <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'audio' ? '' : 'audio')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4Zm13 0a4 4 0 0 1 0 6" /></svg><span>音轨</span></button>
               {menu === 'audio' && (
                 <div className="we-menu">
                   {audios.map((a, i) => (
@@ -669,7 +687,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           )}
 
           <div className="we-menu-wrap">
-            <button className="we-btn we-txt" onClick={() => setMenu(menu === 'sub' ? '' : 'sub')}>字幕{sid ? ' ●' : ''}</button>
+            <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'sub' || menu === 'substyle' ? '' : 'sub')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 5h16v11H9l-5 4V5Z" /><path d="M8 10h8M8 13h5" /></svg><span>字幕{sid ? ' ●' : ''}</span></button>
             {menu === 'sub' && (
               <div className="we-menu">
                 <div className={`we-menu-item${!sid ? ' active' : ''}`} onClick={() => void pickSub(null)}>关闭</div>
@@ -680,6 +698,20 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
                   <div key={s.Index} className={`we-menu-item${curSub === s ? ' active' : ''}`} onClick={() => void pickSub(s)}>{subLabel(s)}（外挂）</div>
                 ))}
                 {embSubs.length + extSubs.length === 0 && <div className="we-menu-item" style={{ opacity: 0.6 }}>没有字幕轨</div>}
+                <div className="we-menu-sep" />
+                <div className="we-menu-item" onClick={() => setMenu('substyle')}>字幕大小 / 位置 ›</div>
+              </div>
+            )}
+            {menu === 'substyle' && (
+              <div className="we-menu we-substyle" onClick={(e) => e.stopPropagation()}>
+                <div className="we-menu-head">字幕样式</div>
+                <label className="we-ss"><span>大小 {Math.round(subStyle.scale * 100)}%</span>
+                  <input type="range" min={50} max={250} step={5} value={Math.round(subStyle.scale * 100)} onChange={(e) => changeSubStyle({ scale: Number(e.target.value) / 100 })} /></label>
+                <label className="we-ss"><span>位置（抬高 {Math.round(subStyle.lift)}%）</span>
+                  <input type="range" min={0} max={45} step={1} value={Math.round(subStyle.lift)} onChange={(e) => changeSubStyle({ lift: Number(e.target.value) })} /></label>
+                <label className="we-ss"><span>延迟 {subStyle.delay > 0 ? '+' : ''}{subStyle.delay.toFixed(1)} 秒</span>
+                  <input type="range" min={-10} max={10} step={0.5} value={subStyle.delay} onChange={(e) => changeSubStyle({ delay: Number(e.target.value) })} /></label>
+                <div className="we-ss-btns"><button className="we-btn we-txt" onClick={() => changeSubStyle({ ...SUB_DEFAULT })}>恢复默认</button><button className="we-btn we-txt" onClick={() => setMenu('sub')}>返回</button></div>
               </div>
             )}
           </div>

@@ -6,7 +6,7 @@ import { getSession } from '../emby/session';
 const ROWS: { to: string; label: string; sub: string }[] = [
   { to: '/history', label: '观看历史', sub: '看过的影片和进度' },
   { to: '/favorites', label: '我的收藏', sub: '收藏的电影和剧集' },
-  { to: '/live', label: '电视直播', sub: 'M3U 直播源' },
+  { to: '/live', label: '直播源设置', sub: '添加 M3U 直播源后，底部会出现「直播」' },
   { to: '/config', label: '设置', sub: '账号、播放、片库订阅、字体' },
 ];
 

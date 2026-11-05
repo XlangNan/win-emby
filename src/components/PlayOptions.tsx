@@ -1,7 +1,9 @@
 // 详情页「播放选项 + 文件信息」：播放前选版本 / 音轨 / 字幕，并显示大小、帧率、分辨率等文件信息
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { emby } from '../emby/client';
 import type { MediaSource, MediaStream } from '../emby/types';
+import { isAndroid } from '../lib/platform';
 import { loadPlayPrefs } from '../lib/prefs';
 import { pickInitialTracks } from '../lib/tracks';
 import { useAsync } from '../lib/useAsync';
@@ -41,6 +43,11 @@ export default function PlayOptions({ itemId, onChange }: { itemId: string; onCh
   const [srcId, setSrcId] = useState('');
   const [aud, setAud] = useState('');
   const [sub, setSub] = useState('');
+  // 手机：字幕 / 音轨选择放到播放按钮正下方（NfDetail 里的 #nfd-opts-slot），文件信息默认折叠
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    if (isAndroid) setSlot(document.getElementById('nfd-opts-slot'));
+  }, [itemId]);
 
   const sources: MediaSource[] = it?.MediaSources || [];
   const src = sources.find((s) => s.Id === srcId) || sources[0];
@@ -81,9 +88,8 @@ export default function PlayOptions({ itemId, onChange }: { itemId: string; onCh
     ['色深', video?.BitDepth ? `${video.BitDepth} bit` : ''],
   ];
 
-  return (
-    <div className="card we-set" style={{ marginTop: 14 }}>
-      <h3>播放选项</h3>
+  const pickers = (
+    <>
       {sources.length > 1 && (
         <div className="we-set-row">
           <span>版本</span>
@@ -110,8 +116,11 @@ export default function PlayOptions({ itemId, onChange }: { itemId: string; onCh
           {subs.map((s) => <option key={s.Index} value={s.Index}>{subText(s)}</option>)}
         </select>
       </div>
+    </>
+  );
 
-      <h3 style={{ marginTop: 14 }}>文件信息</h3>
+  const fileInfo = (
+    <>
       <div className="we-fileinfo">
         {info.filter(([, v]) => v).map(([k, v]) => (
           <div key={k}><div className="muted we-fi-k">{k}</div><div>{v}</div></div>
@@ -120,6 +129,27 @@ export default function PlayOptions({ itemId, onChange }: { itemId: string; onCh
       {audios.length > 0 && <div className="muted we-fi-line">音轨：{audios.map(audioText).join(' · ')}</div>}
       {subs.length > 0 && <div className="muted we-fi-line">字幕：{subs.map(subText).join(' · ')}</div>}
       {(src.Path || it.Path) && <div className="muted we-fi-line" style={{ wordBreak: 'break-all' }}>路径：{src.Path || it.Path}</div>}
+    </>
+  );
+
+  if (isAndroid) {
+    return (
+      <>
+        {slot && createPortal(<div className="m-pickers">{pickers}</div>, slot)}
+        <details className="m-fileinfo">
+          <summary>媒体文件信息</summary>
+          {fileInfo}
+        </details>
+      </>
+    );
+  }
+
+  return (
+    <div className="card we-set" style={{ marginTop: 14 }}>
+      <h3>播放选项</h3>
+      {pickers}
+      <h3 style={{ marginTop: 14 }}>文件信息</h3>
+      {fileInfo}
     </div>
   );
 }

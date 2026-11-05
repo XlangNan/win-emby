@@ -43,7 +43,10 @@ function writeJson(key: string, v: unknown): boolean {
 }
 
 export const listSources = (): LiveSource[] => readJson<LiveSource[]>(SKEY, []);
-export const saveSources = (l: LiveSource[]): void => void writeJson(SKEY, l);
+export const saveSources = (l: LiveSource[]): void => {
+  writeJson(SKEY, l);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('wemby-live-changed'));
+};
 
 export const loadFavs = (): string[] => readJson<string[]>(FKEY, []);
 export function toggleFav(name: string): string[] {
