@@ -1,5 +1,5 @@
 // 媒体库：分页网格 + 排序 / 类型 / 筛选
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import BackButton from '../components/BackButton';
 import MediaCard from '../components/MediaCard';
@@ -32,17 +32,24 @@ function typesFor(collectionType?: string): string {
   return 'Movie,Series,BoxSet,Video';
 }
 
+/** 媒体库页缓存：离开再回来，停在上次的排序 / 筛选 / 已加载的列表 / 滚动位置，不重新加载 */
+interface LibMem { sort: string; filter: string; genre: string; items: EmbyItem[]; total: number; scroll: number }
+const libMem = new Map<string, LibMem>();
+
 export default function LibraryPage() {
   const { id = '' } = useParams();
+  const hit0 = libMem.get(id);
+  const hit = useRef(!!hit0 && hit0.items.length > 0);
+  const box = useRef<HTMLDivElement>(null);
   const view = useAsync(async () => (await emby.views()).find((v) => v.Id === id) || null, [id]);
   const genres = useAsync(() => emby.genres(id).catch(() => [] as string[]), [id]);
-  const [sort, setSort] = useState('added');
-  const [filter, setFilter] = useState('all');
-  const [genre, setGenre] = useState('');
+  const [sort, setSort] = useState(hit0?.sort || 'added');
+  const [filter, setFilter] = useState(hit0?.filter || 'all');
+  const [genre, setGenre] = useState(hit0?.genre || '');
   const [size, setSize] = useState(loadPlayPrefs().posterSize);
-  const [items, setItems] = useState<EmbyItem[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<EmbyItem[]>(hit0?.items || []);
+  const [total, setTotal] = useState(hit0?.total || 0);
+  const [loading, setLoading] = useState(!hit0?.items.length);
   const [err, setErr] = useState('');
   const seq = useRef(0);
 
@@ -74,10 +81,22 @@ export default function LibraryPage() {
   // 切库 / 改排序筛选 → 回到第一页
   useEffect(() => {
     if (view.loading) return;
+    if (hit.current) { // 回到之前的页面：用缓存，不重新请求
+      hit.current = false;
+      return;
+    }
     setItems([]);
     fetchPage(0, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, sort, filter, genre, view.loading]);
+
+  useEffect(() => {
+    if (items.length) libMem.set(id, { sort, filter, genre, items, total, scroll: libMem.get(id)?.scroll || 0 });
+  }, [id, sort, filter, genre, items, total]);
+  useLayoutEffect(() => {
+    if (hit0 && box.current) box.current.scrollTop = hit0.scroll;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const title = view.data?.Name || '媒体库';
   const more = items.length < total;
@@ -102,7 +121,7 @@ export default function LibraryPage() {
           {(genres.data || []).filter((g) => g.length <= 12).map((g) => <option key={g} value={g}>{g}</option>)}
         </select>
       </div>
-      <div className="content">
+      <div className="content" ref={box} onScroll={(e) => { const c = libMem.get(id); if (c) c.scroll = e.currentTarget.scrollTop; }}>
         <div className="quick-picks" role="group" aria-label="筛选" style={{ marginBottom: 12 }}>
           {FILTERS.map((f) => (
             <button key={f.id} className={`tag ${filter === f.id ? 'active' : ''}`} aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
