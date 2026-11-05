@@ -249,3 +249,16 @@ html.android body { font-size: 15px; }
 :root.android[data-shell] #nfd-opts-slot:empty { display: none; }
 :root.android[data-shell] .nfd-circles { margin-top: 2px; }
 :root.android[data-shell] .nfd-body { overflow: hidden; }
+
+/* ── 详情：音轨 / 字幕选择器（独立结构，不再借用设置页的行样式）── */
+.m-pk { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; width: 100%; box-sizing: border-box; }
+.m-pk-item { display: flex; flex-direction: column; gap: 5px; min-width: 0; margin: 0; }
+.m-pk-wide { grid-column: 1 / -1; }
+.m-pk-item > span { font-size: 12px; color: #9a9a9a; line-height: 1; }
+.m-pk-item > select {
+  -webkit-appearance: none; appearance: none; box-sizing: border-box; width: 100%; min-width: 0; height: 42px; margin: 0;
+  padding: 0 30px 0 12px; border: none; border-radius: 4px; background-color: #262626; color: #fff; font-size: 14px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center;
+}

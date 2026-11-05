@@ -119,6 +119,37 @@ export default function PlayOptions({ itemId, onChange }: { itemId: string; onCh
     </>
   );
 
+  const mobilePickers = (
+    <div className="m-pk">
+      {sources.length > 1 && (
+        <label className="m-pk-item m-pk-wide">
+          <span>版本</span>
+          <select value={src.Id} onChange={(e) => setSrcId(e.target.value)}>
+            {sources.map((s) => {
+              const v = s.MediaStreams?.find((x) => x.Type === 'Video');
+              return <option key={s.Id} value={s.Id}>{[s.Name || (v?.Height ? `${v.Height}p` : s.Id), rangeLabel(v), fmtSize(s.Size)].filter(Boolean).join(' · ')}</option>;
+            })}
+          </select>
+        </label>
+      )}
+      <label className="m-pk-item">
+        <span>音轨</span>
+        <select value={aud} onChange={(e) => setAud(e.target.value)}>
+          <option value="">跟随默认</option>
+          {audios.map((a) => <option key={a.Index} value={a.Index}>{audioText(a)}</option>)}
+        </select>
+      </label>
+      <label className="m-pk-item">
+        <span>字幕</span>
+        <select value={sub} onChange={(e) => setSub(e.target.value)}>
+          <option value="">跟随默认</option>
+          <option value="-1">不显示字幕</option>
+          {subs.map((x) => <option key={x.Index} value={x.Index}>{subText(x)}</option>)}
+        </select>
+      </label>
+    </div>
+  );
+
   const fileInfo = (
     <>
       <div className="we-fileinfo">
@@ -135,7 +166,7 @@ export default function PlayOptions({ itemId, onChange }: { itemId: string; onCh
   if (isAndroid) {
     return (
       <>
-        {slot && createPortal(<div className="m-pickers">{pickers}</div>, slot)}
+        {slot && createPortal(mobilePickers, slot)}
         <details className="m-fileinfo">
           <summary>媒体文件信息</summary>
           {fileInfo}

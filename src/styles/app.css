@@ -426,3 +426,16 @@ html.android .we-seekrow .we-seek { height: 36px; }
 html.android .we-seek::before, html.android .we-seek-buf, html.android .we-seek-cur { height: 4px; }
 .we-livedot { margin-left: 8px; font-size: 12px; color: var(--accent); font-weight: 600; }
 html.android .we-chlist { left: 12px; top: 64px; bottom: 90px; width: min(300px, 52vw); }
+
+/* 播放器按钮：彻底去掉皮肤给按钮加的底色和边框，只留图标和文字（网飞风格） */
+.we-player .we-btn, .we-player .we-cbtn, .we-player .we-btn:hover, .we-player .we-cbtn:hover, .we-player .we-btn:active {
+  background: transparent !important; border: none !important; box-shadow: none !important; outline: none;
+}
+.we-player .we-btn:hover, .we-player .we-cbtn:hover { background: rgba(255, 255, 255, .14) !important; }
+html.android .we-player .we-btn:hover, html.android .we-player .we-cbtn:hover { background: transparent !important; }
+html.android .we-player .we-btn:active, html.android .we-player .we-cbtn:active { background: rgba(255, 255, 255, .16) !important; }
+html.android .we-volgrp { display: none !important; }
+/* 右侧信息抽屉盖在中间大按钮上面，不让按钮透出来 */
+.we-drawer { z-index: 9; }
+.we-player:has(.we-drawer) .we-center { opacity: 0; pointer-events: none; }
+.we-player:has(.we-drawer) .we-center .we-cbtn { pointer-events: none; }

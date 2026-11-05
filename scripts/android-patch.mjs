@@ -49,3 +49,18 @@ for (const f of ['MpvBridge.kt', 'MainActivity.kt', 'NetBridge.kt']) {
   fs.writeFileSync(path.join(dir, f), s);
 }
 console.log('补丁完成：包名', pkgLine, '，MPVLib =', mpvClass, pkg ? '' : '');
+
+// 4. 桌面图标：把 CI 里生成的图标（src-tauri/icons/android）强制覆盖进安卓工程，
+//    并删掉模板自带的旧图标（避免 png / webp 同名冲突），确保桌面上显示的是织影图标
+{
+  const src = path.resolve('src-tauri/icons/android');
+  const res = path.join(root, 'src/main/res');
+  if (!fs.existsSync(src)) throw new Error('没有生成安卓图标：' + src);
+  for (const d of fs.readdirSync(res)) {
+    if (!d.startsWith('mipmap')) continue;
+    for (const f of fs.readdirSync(path.join(res, d))) if (/^ic_launcher/.test(f)) fs.rmSync(path.join(res, d, f));
+  }
+  fs.cpSync(src, res, { recursive: true, force: true });
+  const n = fs.readdirSync(res).filter((d) => d.startsWith('mipmap')).map((d) => `${d}(${fs.readdirSync(path.join(res, d)).length})`).join(' ');
+  console.log('已写入安卓图标：', n);
+}
