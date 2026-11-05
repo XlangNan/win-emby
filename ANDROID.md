@@ -2,7 +2,7 @@
 
 1. 把整个项目上传到 GitHub（和 Windows 版同一个仓库）。
 2. 打开仓库 → **Actions** → 左侧选 **build-android** → **Run workflow**。
-3. 跑完后（约 20–40 分钟，第一次更久），在这次运行页面最下面的 **Artifacts** 下载 `Win-Emby-android`，解压得到 `Win-Emby.apk`，发到手机安装。
+3. 跑完后（约 20–40 分钟，第一次更久），在这次运行页面最下面的 **Artifacts** 下载 `织影-android`，解压得到 `织影.apk`，发到手机安装。
 
 构建出错时，把失败步骤的日志发过来。尤其是 **Inspect libmpv AAR** 这一步会打印 libmpv 的接口，排错用。
 

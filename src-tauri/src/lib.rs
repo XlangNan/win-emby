@@ -1,4 +1,4 @@
-// Win-Emby 的 Rust 侧只做几件事：
+// Weave 的 Rust 侧只做几件事：
 //   1. 创建窗口（桌面端无边框，配置见 tauri.conf.json）
 //   2. 挂载 http 插件 —— 前端用它直连局域网 Emby，不受浏览器 CORS 限制
 //   3. 桌面端挂载 libmpv 插件（HDR / 杜比视界）；安卓端 mpv 由 Kotlin 桥（MpvBridge）提供
@@ -20,5 +20,5 @@ pub fn run() {
 
     builder
         .run(tauri::generate_context!())
-        .expect("启动 Win-Emby 失败");
+        .expect("启动 Weave 失败");
 }

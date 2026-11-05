@@ -15,7 +15,7 @@ import { winClose, winIsFullscreen, winMinimize, winOnClose, winSetFullscreen, w
 
 /** 告诉 Emby「什么都能直接播」，只是为了拿到 PlaySessionId，真正的文件由 mpv 解码 */
 const DIRECT_ALL_PROFILE = {
-  Name: 'Win-Emby MPV',
+  Name: 'Weave MPV',
   MaxStreamingBitrate: 1_000_000_000,
   MaxStaticBitrate: 1_000_000_000,
   DirectPlayProfiles: [{ Type: 'Video' }, { Type: 'Audio' }],

@@ -1,4 +1,4 @@
-package com.winemby.app
+package com.weave.player
 
 import android.app.Activity
 import android.content.Context

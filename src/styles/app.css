@@ -1,4 +1,4 @@
-/* Win-Emby 新增样式：全部使用皮肤令牌（var(--*)），四套皮肤下自动适配 */
+/* Weave 新增样式：全部使用皮肤令牌（var(--*)），四套皮肤下自动适配 */
 
 /* ---- 卡片：进度条 / 已看角标 ---- */
 .we-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(0, 0, 0, .45); }

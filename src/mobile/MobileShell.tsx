@@ -52,7 +52,7 @@ export default function MobileShell({ views, routes }: { views: EmbyItem[]; rout
         {home && (
           <header className="m-head">
             <div className="m-head-top">
-              <span className="m-brand" onClick={() => nav('/')}>WIN-EMBY</span>
+              <span className="m-brand" onClick={() => nav('/')}>WEAVE</span>
               <span style={{ flex: 1 }} />
               <button className="m-iconbtn" aria-label="搜索" onClick={() => nav('/search')}><Ico k="search" /></button>
             </div>

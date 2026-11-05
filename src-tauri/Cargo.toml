@@ -1,12 +1,12 @@
 [package]
-name = "win-emby"
+name = "weave"
 version = "0.1.0"
-description = "Win-Emby — LAN Emby desktop player"
+description = "Weave — media library player"
 edition = "2021"
 license = "MIT"
 
 [lib]
-name = "win_emby_lib"
+name = "weave_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

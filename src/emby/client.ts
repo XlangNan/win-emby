@@ -3,7 +3,7 @@ import { httpFetch } from './http';
 import { deviceId, getSession, normalizeServer } from './session';
 import type { EmbyItem, ItemsResult, PlaybackInfo, Session } from './types';
 
-const CLIENT = 'Win-Emby';
+const CLIENT = 'Weave';
 const VERSION = '0.1.0';
 
 function authHeader(token?: string): Record<string, string> {

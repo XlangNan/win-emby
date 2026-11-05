@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { isAndroid } from '../lib/platform';
 import { winClose, winIsMaximized, winMinimize, winToggleMax } from '../lib/win';
 
-export default function TitleBar({ title = 'Win-Emby', variant = 'win' }: { title?: string; variant?: 'win' | 'mac' }) {
+export default function TitleBar({ title = '织影', variant = 'win' }: { title?: string; variant?: 'win' | 'mac' }) {
   const [max, setMax] = useState(false);
   useEffect(() => {
     void winIsMaximized().then(setMax).catch(() => undefined);

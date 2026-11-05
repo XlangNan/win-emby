@@ -134,7 +134,7 @@ function AppShell() {
     if (p.startsWith('/lib/')) return views.find((v) => p.endsWith(v.Id))?.Name || '媒体库';
     if (p.startsWith('/detail')) return '影片详情';
     if (p.startsWith('/search')) return '搜索';
-    return allNav.find((n) => p.startsWith(n.to))?.label || 'Win-Emby';
+    return allNav.find((n) => p.startsWith(n.to))?.label || '织影';
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loc.pathname, views]);
 
@@ -218,7 +218,7 @@ function AppShell() {
           <aside className="ap-sidebar">
             <div className="ap-brand" title="回到首页" role="button" tabIndex={0} style={{ cursor: 'pointer' }} onClick={() => nav('/')} onKeyDown={(e) => e.key === 'Enter' && nav('/')}>
               <img className="ap-brand-ico" src="/icon.png" alt="" draggable={false} />
-              <span className="ap-brand-name">Win-Emby</span>
+              <span className="ap-brand-name">织影</span>
             </div>
             {groups.map((g) => (
               <div key={g.label} className="ap-group">
@@ -249,7 +249,7 @@ function AppShell() {
           <div className="bb-top">
             <span className="bb-brand" title="回到首页" role="button" tabIndex={0} style={{ cursor: 'pointer' }} onClick={() => nav('/')} onKeyDown={(e) => e.key === 'Enter' && nav('/')}>
               <span className="bb-brand-mark" aria-hidden="true">b</span>
-              WIN-EMBY
+              WEAVE
             </span>
             <SearchPanel bar />
             <span className="bb-spacer" />
@@ -278,7 +278,7 @@ function AppShell() {
           <div className="db-topbar">
             <span className="db-brand" title="回到首页" role="button" tabIndex={0} style={{ cursor: 'pointer' }} onClick={() => nav('/')} onKeyDown={(e) => e.key === 'Enter' && nav('/')}>
               <img className="db-brand-ico" src="/icon.png" alt="" draggable={false} />
-              WIN-EMBY
+              WEAVE
             </span>
             <span className="db-title">{pageTitle}</span>
             <SearchPanel bar />
@@ -305,7 +305,7 @@ function AppShell() {
       <AppAmbient />
       <main className="main">
         <nav className="nf-nav">
-          <span className="nf-logo" title="回到首页" role="button" tabIndex={0} style={{ cursor: 'pointer' }} onClick={() => nav('/')} onKeyDown={(e) => e.key === 'Enter' && nav('/')}>WIN-EMBY</span>
+          <span className="nf-logo" title="回到首页" role="button" tabIndex={0} style={{ cursor: 'pointer' }} onClick={() => nav('/')} onKeyDown={(e) => e.key === 'Enter' && nav('/')}>WEAVE</span>
           <div className="we-navlinks" onWheel={(e) => { e.currentTarget.scrollLeft += e.deltaY; }}>
             {allNav.map((n) => (
               <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => 'nf-link' + (isActive ? ' active' : '')}>

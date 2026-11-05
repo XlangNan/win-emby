@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Win-Emby",
+  "productName": "织影",
   "version": "0.1.0",
-  "identifier": "com.winemby.app",
+  "identifier": "com.weave.player",
   "build": {
     "beforeDevCommand": "pnpm run web",
     "devUrl": "http://localhost:1420",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Win-Emby",
+        "title": "织影",
         "width": 1280,
         "height": 800,
         "minWidth": 900,
