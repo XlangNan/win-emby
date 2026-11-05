@@ -15,6 +15,8 @@ class MainActivity : TauriActivity() {
         window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.BLACK))
         // 手机音量键始终调「媒体音量」
         volumeControlStream = AudioManager.STREAM_MUSIC
+        // 和主流流媒体 App 一样：平时锁竖屏，只有播放时才横屏
+        requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
         // 深色界面：状态栏 / 导航栏用浅色图标；内容区按系统栏和刘海留白（播放全屏时不留）
         val ic = WindowCompat.getInsetsController(window, window.decorView)

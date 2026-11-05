@@ -199,7 +199,7 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
                 act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
             } else {
                 c.show(WindowInsetsCompat.Type.systemBars())
-                act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
             }
             ViewCompat.requestApplyInsets(act.findViewById(android.R.id.content))
         }

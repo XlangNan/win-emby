@@ -417,3 +417,12 @@ html.android .we-seek-dot { width: 16px; height: 16px; margin-left: -8px; }
 
 /* 窗口标题栏左上角：和手机一致的品牌字样 */
 .tb-brand, .we-wordmark { font-weight: 800; letter-spacing: .06em; color: var(--accent); }
+
+/* 进度条：可按住拖动，拖动时显示时间气泡 */
+.we-seek { touch-action: none; cursor: pointer; }
+.we-seek-buf, .we-seek-cur { transition: none; }
+.we-scrubtip { position: absolute; bottom: 24px; transform: translateX(-50%); padding: 3px 9px; border-radius: 6px; background: rgba(0, 0, 0, .78); color: #fff; font-size: 13px; font-variant-numeric: tabular-nums; pointer-events: none; white-space: nowrap; }
+html.android .we-seekrow .we-seek { height: 36px; }
+html.android .we-seek::before, html.android .we-seek-buf, html.android .we-seek-cur { height: 4px; }
+.we-livedot { margin-left: 8px; font-size: 12px; color: var(--accent); font-weight: 600; }
+html.android .we-chlist { left: 12px; top: 64px; bottom: 90px; width: min(300px, 52vw); }

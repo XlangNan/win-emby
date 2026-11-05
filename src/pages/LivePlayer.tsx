@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { openMpv, type MpvSession } from '../lib/mpv';
 import { loadChannels, loadFavs, type LiveChannel } from '../lib/live';
 import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
+import { isAndroid } from '../lib/platform';
 import { winClose, winIsFullscreen, winMinimize, winSetFullscreen, winToggleMax } from '../lib/win';
 
 export default function LivePlayer() {
@@ -182,32 +183,52 @@ export default function LivePlayer() {
     return () => window.removeEventListener('keydown', onKey);
   }, [toggle, step, setVolume, vol, ch, toggleFull, exit, poke]);
 
+  useEffect(() => {
+    if (!isAndroid) return;
+    void winSetFullscreen(true);
+    setFull(true);
+    return () => {
+      void winSetFullscreen(false);
+    };
+  }, []);
+
   const showUi = uiShown || paused;
 
   return (
     <div className={`we-player mpv${showUi ? '' : ' hide-ui'}`} onMouseMove={poke}>
-      <div className="we-surface" onClick={toggle} onDoubleClick={() => void toggleFull()} />
+      <div className="we-surface" onClick={() => { if (isAndroid) { if (showUi && !paused) setUiShown(false); else poke(); } else toggle(); }} onDoubleClick={() => { if (!isAndroid) void toggleFull(); }} />
       {busy && !err && <div className="we-loading"><span className="spinner" aria-hidden="true" />正在连接…</div>}
       {err && <div className="we-error">{err}</div>}
 
       <div className="we-top">
-        <button className="we-btn we-back" title="返回（Esc）" onClick={() => void exit()}>
-          <svg width="18" height="18" viewBox="0 0 24 24"><path d="M15.5 5l-7 7 7 7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          <span>返回</span>
+        <button className="we-btn we-back" title="返回（Esc）" aria-label="返回" onClick={() => void exit()}>
+          <svg width="26" height="26" viewBox="0 0 24 24"><path d="M15.5 5l-7 7 7 7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </button>
-        <div className="we-title">● 直播 · {ch?.name || '未找到频道'}</div>
-        {dim.w > 0 && <span className="we-badge">{dim.w}×{dim.h}</span>}
-        {fps > 0 && <span className="we-badge we-badge-hi">{Number(fps.toFixed(3))} fps</span>}
-        {vbr > 0 && <span className="we-badge">{(vbr / 1e6).toFixed(1)} Mbps</span>}
-        {ch && ch.lines.length > 1 && <span className="we-badge">线路 {line + 1}/{ch.lines.length}</span>}
-        <span className="we-badge">MPV{hw && hw !== 'no' ? ` · ${hw}` : ''}</span>
-        {!full && (
+        <div className="we-titlebox">
+          <div className="we-title">{ch?.name || '未找到频道'} <span className="we-livedot">● 直播</span></div>
+          <div className="we-subline">
+            {[dim.w > 0 ? `${dim.w}×${dim.h}` : '', fps > 0 ? `${Number(fps.toFixed(3))} fps` : '', vbr > 0 ? `${(vbr / 1e6).toFixed(1)} Mbps` : '', ch && ch.lines.length > 1 ? `线路 ${line + 1}/${ch.lines.length}` : '', `MPV${hw && hw !== 'no' ? ` · ${hw}` : ''}`].filter(Boolean).join('  ·  ')}
+          </div>
+        </div>
+        {!full && !isAndroid && (
           <div className="we-winbtns">
             <button className="we-btn" title="最小化" onClick={() => void winMinimize()}><svg width="12" height="12" viewBox="0 0 16 16"><line x1="3.5" y1="8" x2="12.5" y2="8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></button>
             <button className="we-btn" title="最大化" onClick={() => void winToggleMax()}><svg width="12" height="12" viewBox="0 0 16 16"><rect x="3.5" y="3.5" width="9" height="9" rx="1.2" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg></button>
             <button className="we-btn" title="关闭" onClick={() => void winClose()}><svg width="12" height="12" viewBox="0 0 16 16"><line x1="4" y1="4" x2="12" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /><line x1="12" y1="4" x2="4" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></button>
           </div>
         )}
+      </div>
+
+      <div className="we-center" onClick={(e) => e.stopPropagation()}>
+        <button className="we-cbtn" title="上一个频道（↑）" aria-label="上一台" onClick={() => { step(-1); poke(); }}>
+          <svg width="44" height="44" viewBox="0 0 24 24"><path d="M18 5v14l-9-7 9-7ZM6 5h2.5v14H6z" fill="currentColor" /></svg>
+        </button>
+        <button className="we-cbtn we-cplay" title="播放/暂停（空格）" aria-label={paused ? '播放' : '暂停'} onClick={toggle}>
+          {paused ? <svg width="64" height="64" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" /></svg> : <svg width="64" height="64" viewBox="0 0 24 24"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z" fill="currentColor" /></svg>}
+        </button>
+        <button className="we-cbtn" title="下一个频道（↓）" aria-label="下一台" onClick={() => { step(1); poke(); }}>
+          <svg width="44" height="44" viewBox="0 0 24 24"><path d="M6 5v14l9-7-9-7Zm9.5 0H18v14h-2.5z" fill="currentColor" /></svg>
+        </button>
       </div>
 
       {list && (
@@ -223,22 +244,25 @@ export default function LivePlayer() {
 
       <div className="we-bottom" onClick={(e) => e.stopPropagation()}>
         <div className="we-ctrls">
-          <button className="we-btn" title="播放/暂停（空格）" onClick={toggle}>
-            {paused ? <svg width="20" height="20" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" /></svg> : <svg width="20" height="20" viewBox="0 0 24 24"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z" fill="currentColor" /></svg>}
-          </button>
-          <button className="we-btn we-txt" title="上一个频道（↑）" onClick={() => step(-1)}>上一台</button>
-          <button className="we-btn we-txt" title="下一个频道（↓）" onClick={() => step(1)}>下一台</button>
-          <span style={{ flex: 1 }} />
           <div className="we-volgrp" title="鼠标滚轮调节音量" onWheel={(e) => { setVolume(vol + (e.deltaY < 0 ? 5 : -5)); poke(); }}>
             <button className="we-btn we-txt" title="静音（M）" onClick={() => void sessRef.current?.cmd('cycle', ['mute'])}>{muted || vol === 0 ? '静音' : '音量'}</button>
             <input className="we-vol" type="range" min={0} max={100} value={muted ? 0 : vol} aria-label="音量" onChange={(e) => setVolume(Number(e.target.value))} />
             <span className="we-volnum">{muted ? '静音' : Math.round(vol)}</span>
           </div>
-          {ch && ch.lines.length > 1 && <button className="we-btn we-txt" title="换线路（Tab）" onClick={() => setLine((l) => (l + 1) % ch.lines.length)}>换线路</button>}
-          <button className="we-btn we-txt" title="频道列表（L）" onClick={() => setList((v) => !v)}>频道</button>
-          <button className="we-btn" title="全屏（F）" onClick={() => void toggleFull()}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{full ? <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /> : <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />}</svg>
+          <span style={{ flex: 1 }} />
+          {ch && ch.lines.length > 1 && (
+            <button className="we-btn we-lbl" title="换线路（Tab）" onClick={() => setLine((l) => (l + 1) % ch.lines.length)}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h12l-3-3M20 17H8l3 3" /></svg><span>换线路</span>
+            </button>
+          )}
+          <button className="we-btn we-lbl" title="频道列表（L）" onClick={() => setList((v) => !v)}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h10" /></svg><span>频道</span>
           </button>
+          {!isAndroid && (
+            <button className="we-btn" title="全屏（F）" onClick={() => void toggleFull()}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{full ? <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /> : <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />}</svg>
+            </button>
+          )}
         </div>
       </div>
     </div>

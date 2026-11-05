@@ -179,7 +179,7 @@ html.android body { font-size: 15px; }
 /* ── 直播页（手机）：直播源管理改成竖排，输入框撑满 ── */
 :root.android[data-shell] .topbar input { width: auto !important; flex: 1; min-width: 0; margin-left: 10px !important; }
 :root.android[data-shell] .we-set > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
-:root.android[data-shell] .we-set input, :root.android[data-shell] .we-set select, :root.android[data-shell] .we-set .we-filebtn { box-sizing: border-box; width: 100%; height: 42px; }
+:root.android[data-shell] .we-set input:not([type='checkbox']):not([type='radio']), :root.android[data-shell] .we-set select, :root.android[data-shell] .we-set .we-filebtn { box-sizing: border-box; width: 100% !important; max-width: 100%; height: 42px; }
 :root.android[data-shell] .we-set button { min-height: 42px; }
 :root.android[data-shell] .we-filebtn { justify-content: center; }
 :root.android[data-shell] .we-set-row { align-items: flex-start; gap: 8px; }
@@ -221,3 +221,31 @@ html.android body { font-size: 15px; }
 .mh-info { padding: 0 14px 12px; }
 .mh-title { font-size: 24px; }
 .mh-dots { margin-top: 10px; }
+
+/* ══ 设置页（手机）：行布局统一 ══ */
+:root.android[data-shell] .we-set { padding: 14px 14px; }
+:root.android[data-shell] .we-set h3 { font-size: 17px; }
+:root.android[data-shell] .we-set .row { flex-wrap: wrap; gap: 8px; }
+:root.android[data-shell] .we-set .row > button { flex: 0 1 auto; white-space: normal; max-width: 100%; }
+:root.android[data-shell] .we-set .muted { overflow-wrap: anywhere; word-break: break-word; }
+:root.android[data-shell] .we-set .err { overflow-wrap: anywhere; font-size: 12.5px; }
+:root.android[data-shell] .we-set-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 14px; padding: 12px 0; }
+:root.android[data-shell] .we-set-row > span:first-child, :root.android[data-shell] .we-set-row > label { min-width: 0; flex: 1 1 auto; }
+/* 带下拉框 / 输入框的行：文字在上，控件在下，撑满 */
+:root.android[data-shell] .we-set-row:has(> select), :root.android[data-shell] .we-set-row:has(> input:not([type='checkbox'])) { flex-direction: column; align-items: stretch; gap: 8px; }
+/* 开关行：文字在左，开关在右，不被拉伸 */
+:root.android[data-shell] .we-set-row > input[type='checkbox'] { flex: none; width: auto !important; height: auto; margin: 0; }
+:root.android[data-shell] .we-set-row label > input[type='checkbox'] { flex: none; width: auto !important; height: auto; margin: 0; }
+:root.android[data-shell] .we-set-row > .row { flex: none; flex-wrap: nowrap; }
+:root.android[data-shell] .we-set-row > .row button { min-width: 44px; }
+:root.android[data-shell] .content > .we-set:last-child { margin-bottom: 20px; }
+:root.android[data-shell] .card { border: none; background: #141414; box-shadow: none; }
+
+/* ══ 详情页：播放按钮下的选择器（加强优先级）══ */
+:root.android[data-shell] .m-pickers { display: grid !important; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; width: 100%; margin: 0; }
+:root.android[data-shell] .m-pickers .we-set-row { display: flex !important; flex-direction: column !important; align-items: stretch !important; gap: 4px; padding: 0 !important; border: none !important; min-width: 0; }
+:root.android[data-shell] .m-pickers .we-set-row > span { flex: none; font-size: 12px; color: #9a9a9a; }
+:root.android[data-shell] .m-pickers select { width: 100% !important; min-width: 0; height: 42px; border-radius: 4px; border: none; background: #262626; color: #fff; font-size: 13px; padding: 0 8px; }
+:root.android[data-shell] #nfd-opts-slot:empty { display: none; }
+:root.android[data-shell] .nfd-circles { margin-top: 2px; }
+:root.android[data-shell] .nfd-body { overflow: hidden; }

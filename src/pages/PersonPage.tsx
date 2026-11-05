@@ -17,6 +17,7 @@ export default function PersonPage() {
     [id],
   );
   const p = who.data;
+  const img = p ? personUrl({ Id: p.Id, PrimaryImageTag: p.ImageTags?.Primary }, 300) : '';
   const born = day(p?.PremiereDate);
   const place = p?.ProductionLocations?.[0];
   const ov = (p?.Overview || '').trim();
@@ -35,7 +36,7 @@ export default function PersonPage() {
         ) : (
           <>
             <div className="we-person">
-              {personUrl(p, 300) ? <img className="we-person-img" src={personUrl(p, 300)} alt="" /> : <div className="we-person-img we-cast-ph">{p.Name.slice(0, 1)}</div>}
+              {img ? <img className="we-person-img" src={img} alt="" /> : <div className="we-person-img we-cast-ph">{p.Name.slice(0, 1)}</div>}
               <div className="we-person-info">
                 <h2>{p.Name}</h2>
                 <div className="muted we-person-meta">{[born && `出生 ${born}`, place].filter(Boolean).join(' · ') || '暂无资料'}</div>

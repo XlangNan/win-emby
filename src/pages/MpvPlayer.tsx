@@ -84,6 +84,8 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const [full, setFull] = useState(false);
   const [uiShown, setUiShown] = useState(true);
   const [menu, setMenu] = useState<'' | 'audio' | 'sub' | 'speed' | 'eps' | 'substyle'>('');
+  const seekRef = useRef<HTMLDivElement | null>(null);
+  const [scrub, setScrub] = useState<number | null>(null);
   const [subStyle, setSubStyleState] = useState<SubStyle>(loadSubStyle);
   const [fps, setFps] = useState(0);
   const [vbr, setVbr] = useState(0);
@@ -454,7 +456,6 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     if (dbl) {
       if (x < w / 3) { seekBy(-10); showHud('« 10 秒'); }
       else if (x > (w * 2) / 3) { seekBy(10); showHud('10 秒 »'); }
-      else toggle();
       poke();
       return;
     }
@@ -529,9 +530,15 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       : item.Name
     : '';
   const total = dur || ticksToSec(item?.RunTimeTicks);
-  const pct = total > 0 ? (cur / total) * 100 : 0;
+  const shownCur = scrub ?? cur;
+  const pct = total > 0 ? Math.max(0, Math.min(100, (shownCur / total) * 100)) : 0;
+  const scrubAt = (clientX: number): number => {
+    const r = seekRef.current?.getBoundingClientRect();
+    if (!r || r.width <= 0 || total <= 0) return 0;
+    return Math.max(0, Math.min(1, (clientX - r.left) / r.width)) * total;
+  };
   const bufPct = total > 0 ? (buffered / total) * 100 : 0;
-  const showUi = uiShown || paused || drawer || !!menu;
+  const showUi = uiShown || paused || drawer || !!menu || scrub !== null;
 
   return (
     <div className={`we-player mpv${showUi ? '' : ' hide-ui'}`} onMouseMove={poke} onClick={() => menu && setMenu('')}>
@@ -611,17 +618,30 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       <div className="we-bottom" onClick={(e) => e.stopPropagation()} onMouseEnter={() => { hoverUi.current = true; }} onMouseLeave={() => { hoverUi.current = false; poke(); }}>
         <div className="we-seekrow">
           <div
+            ref={seekRef}
             className="we-seek"
-            onClick={(e) => {
-              const r = e.currentTarget.getBoundingClientRect();
-              if (total > 0) seekTo(((e.clientX - r.left) / r.width) * total);
+            onPointerDown={(e) => {
+              if (total <= 0) return;
+              e.currentTarget.setPointerCapture(e.pointerId);
+              hoverUi.current = true;
+              setScrub(scrubAt(e.clientX));
             }}
+            onPointerMove={(e) => { if (scrub !== null) setScrub(scrubAt(e.clientX)); }}
+            onPointerUp={(e) => {
+              if (scrub === null) return;
+              seekTo(scrubAt(e.clientX));
+              setScrub(null);
+              hoverUi.current = false;
+              poke();
+            }}
+            onPointerCancel={() => { setScrub(null); hoverUi.current = false; }}
           >
+            {scrub !== null && <div className="we-scrubtip" style={{ left: `${pct}%` }}>{fmtDuration(scrub)}</div>}
             <div className="we-seek-buf" style={{ width: `${bufPct}%` }} />
             <div className="we-seek-cur" style={{ width: `${pct}%` }} />
             <div className="we-seek-dot" style={{ left: `${pct}%` }} />
           </div>
-          <span className="we-time" title={`${fmtDuration(cur)} / ${fmtDuration(total)}`}>{total > 0 ? fmtDuration(Math.max(0, total - cur)) : fmtDuration(cur)}</span>
+          <span className="we-time" title={`${fmtDuration(shownCur)} / ${fmtDuration(total)}`}>{total > 0 ? fmtDuration(Math.max(0, total - shownCur)) : fmtDuration(shownCur)}</span>
         </div>
         <div className="we-ctrls">
           <div className="we-volgrp" title="鼠标滚轮调节音量" onWheel={(e) => { setVolume(vol + (e.deltaY < 0 ? 5 : -5)); void sessRef.current?.set('mute', 'no'); poke(); }}>
