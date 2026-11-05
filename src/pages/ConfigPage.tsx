@@ -9,6 +9,7 @@ import { applyFont, FONT_PRESETS, loadFont } from '../lib/font';
 import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
 import { kg, loadKg, saveKg } from '../lib/kg';
 import { loadMp, mp, saveMp } from '../lib/mp';
+import { BUILD_ID } from '../lib/version';
 import { HOSTS_TEMPLATE, loadHostsText, saveHostsText } from '../lib/net';
 import { loadTmdb, saveTmdb, tmdbSearch } from '../lib/tmdb';
 import { ALL_THEMES, THEME_LABELS } from '../lib/themeTokens';
@@ -384,6 +385,7 @@ export default function ConfigPage() {
             <input type="checkbox" checked={prefs.autoNext} onChange={(e) => set({ autoNext: e.target.checked })} />
           </label>
         </div>
+        <div className="muted" style={{ textAlign: 'center', fontSize: 12, padding: '14px 0 6px' }}>织影 · 版本编号 {BUILD_ID}</div>
       </div>
     </>
   );
