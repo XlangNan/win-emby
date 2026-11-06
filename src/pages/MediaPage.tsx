@@ -1,0 +1,45 @@
+// 手机「媒体」页：Emby 各媒体库，封面取自 Emby 媒体库自己的图片
+import { useNavigate } from 'react-router-dom';
+import { emby, posterUrl, thumbUrl } from '../emby/client';
+import type { EmbyItem } from '../emby/types';
+import { loadPlayPrefs } from '../lib/prefs';
+import { useCachedAsync } from '../lib/useAsync';
+
+const SKIP = new Set(['playlists', 'livetv', 'music', 'books', 'photos', 'musicvideos', 'trailers', 'folders']);
+
+async function load(): Promise<{ v: EmbyItem; n: number }[]> {
+  const prefs = loadPlayPrefs();
+  const views = (await emby.views())
+    .filter((v) => !SKIP.has(v.CollectionType || '') && !prefs.hiddenLibs.includes(v.Id))
+    .sort((a, b) => {
+      const ia = prefs.libOrder.indexOf(a.Id), ib = prefs.libOrder.indexOf(b.Id);
+      return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
+    });
+  return Promise.all(views.map(async (v) => {
+    const r = await emby.items({ parentId: v.Id, types: 'Movie,Series', start: 0, limit: 1 }).catch(() => null);
+    return { v, n: r?.TotalRecordCount ?? 0 };
+  }));
+}
+
+export default function MediaPage() {
+  const nav = useNavigate();
+  const { data, loading, error, reload } = useCachedAsync('media-libs', load);
+  return (
+    <div className="content m-media">
+      <div className="m-media-title">媒体</div>
+      {loading && !data && <div className="empty"><span className="spinner" aria-hidden="true" />加载中…</div>}
+      {error && <div className="err">{error}<button style={{ marginLeft: 10 }} onClick={reload}>重试</button></div>}
+      {data?.map(({ v, n }) => {
+        const img = v.ImageTags?.Primary ? posterUrl(v, 900) : thumbUrl(v, 900);
+        return (
+          <div key={v.Id} className="m-lib" role="button" onClick={() => nav(`/lib/${v.Id}`)}>
+            {img && <img src={img} alt="" draggable={false} />}
+            <i />
+            <b>{v.Name}</b>
+            <span>{n ? `${n} 部` : ''}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}

@@ -1,8 +1,8 @@
 {
-  "name": "win-emby",
+  "name": "weave",
   "version": "0.1.0",
   "private": true,
-  "description": "Win-Emby — 局域网 Emby 桌面播放器（Tauri + React）",
+  "description": "Weave — 多媒体库播放器（Tauri + React）",
   "type": "module",
   "scripts": {
     "dev": "tauri dev",

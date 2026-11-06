@@ -1,4 +1,4 @@
-# Win-Emby
+# Weave
 
 局域网 Emby 桌面播放器（Windows）。由 [Win-box](https://github.com/yagami-hue/Win-box) 重构而来：去掉了 TVBox 站源 / 蜘蛛 / 网盘 / 磁力 / 弹幕 / 插件等全部旧功能，只保留「连接 Emby 播放」，**界面沿用原来的四套皮肤**（网飝 / 哔哔 / 大果 / 大豆）。
 
@@ -45,7 +45,7 @@ Invoke-WebRequest https://rsproxy.cn/rustup-init.exe -OutFile rustup-init.exe
 ### 2. 开发调试
 
 ```powershell
-cd win-emby
+cd weave
 pnpm install
 pnpm exec tauri-plugin-libmpv-api setup-lib
 pnpm tauri dev
@@ -61,13 +61,13 @@ pnpm tauri dev
 pnpm tauri build
 ```
 
-安装包在 `src-tauri\target\release\bundle\nsis\Win-Emby_0.1.0_x64-setup.exe`。第一次打包 Tauri 会从 GitHub 下载 NSIS，卡住的话给终端开代理再试。
+安装包在 `src-tauri\target\release\bundle\nsis\织影_0.1.0_x64-setup.exe`。第一次打包 Tauri 会从 GitHub 下载 NSIS，卡住的话给终端开代理再试。
 
 ## 用 GitHub Actions 打包
 
 推送到 `main` 分支会自动编译；也可以在 Actions 页手动运行 `build-windows`。
 
-- 普通推送：安装包在这次运行页面底部的 Artifacts（`Win-Emby-setup`）里下载。
+- 普通推送：安装包在这次运行页面底部的 Artifacts（`Weave-setup`）里下载。
 - 发布版本：打一个 `v` 开头的标签，安装包会自动挂到 Releases。
 
 ```bash

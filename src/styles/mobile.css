@@ -1,0 +1,299 @@
+/* 手机端（安卓）样式：流媒体手机 App 的版式。选择器统一带 :root.android[data-shell] 前缀，优先级高于各皮肤 */
+:root.android[data-shell] { --card-w: 108px !important; --nav-h: 0px !important; }
+html.android, html.android body, html.android #root { background: #000; }
+html.android body { font-size: 15px; }
+
+/* ── 外壳 ── */
+.m-app { display: flex; flex-direction: column; height: 100dvh; background: #000; color: #fff; }
+.m-main { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.m-main .page-anim { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.m-tabs { flex: none; display: flex; background: #121212; border-top: 1px solid #262626; padding-bottom: env(safe-area-inset-bottom); }
+.m-tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0 6px; font-size: 10.5px; color: #8c8c8c; text-decoration: none; }
+.m-tab.active { color: #fff; }
+.m-head { position: absolute; left: 0; right: 0; top: 0; z-index: 40; padding: 6px 14px 12px; background: linear-gradient(180deg, #000 78%, rgba(0, 0, 0, 0)); }
+.m-head-top { display: flex; align-items: center; height: 44px; }
+.m-brand { font-size: 22px; font-weight: 800; letter-spacing: .04em; color: var(--accent); }
+.m-iconbtn { width: 40px; height: 40px; padding: 0; border: none; background: transparent; color: #fff; display: inline-flex; align-items: center; justify-content: center; box-shadow: none; }
+.m-chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px 0; }
+.m-chips::-webkit-scrollbar { display: none; }
+.m-chip { flex: none; padding: 5px 14px; border: 1px solid rgba(255, 255, 255, .45); border-radius: 999px; font-size: 13px; color: #fff; background: rgba(0, 0, 0, .28); }
+.m-chip.active { background: #fff; color: #000; border-color: #fff; font-weight: 600; }
+
+/* ── 通用 ── */
+:root.android[data-shell] .content { padding: 0 0 14px; scrollbar-gutter: auto; }
+:root.android[data-shell] .topbar { padding: 6px 10px; min-height: 48px; }
+:root.android[data-shell] .back-btn span { display: none; }
+:root.android[data-shell] .back-btn { width: 36px; height: 36px; padding: 0; border-radius: 50%; justify-content: center; }
+:root.android[data-shell] .we-set-row { flex-wrap: wrap; }
+:root.android[data-shell] .we-set input, :root.android[data-shell] .we-set select { max-width: 100%; }
+:root.android[data-shell] .content > .card, :root.android[data-shell] .content > .we-set { margin-left: 12px; margin-right: 12px; }
+:root.android[data-shell] .grid { grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)) !important; gap: 10px 8px; padding: 0 10px; }
+:root.android[data-shell] .topbar label[title="海报大小"] { display: none; }
+:root.android[data-shell] .quick-picks { padding: 0 10px; }
+
+/* ── 首页：圆角主推卡 + 横向行 ── */
+.m-home-top { height: 100px; flex: none; }
+.mh { margin: 0 0 18px; }
+.mh-card { position: relative; margin: 0 12px; border-radius: 10px; overflow: hidden; background: #1a1a1a; touch-action: pan-y; aspect-ratio: 2 / 2.85; max-height: 66vh; }
+.mh-track { display: flex; height: 100%; will-change: transform; }
+.mh-slide { position: relative; flex: 0 0 100%; height: 100%; }
+.mh-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.mh-shade { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(0deg, rgba(0, 0, 0, .92) 0%, rgba(0, 0, 0, .55) 24%, rgba(0, 0, 0, 0) 52%); }
+.mh-info { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 14px 14px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.mh-logo { max-width: 66%; max-height: 72px; object-fit: contain; margin-bottom: 8px; filter: drop-shadow(0 2px 8px rgba(0, 0, 0, .7)); }
+.mh-title { font-size: 26px; font-weight: 800; line-height: 1.15; margin-bottom: 8px; text-shadow: 0 2px 10px rgba(0, 0, 0, .7); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.mh-tags { font-size: 12.5px; color: #e5e5e5; margin-bottom: 12px; min-height: 16px; }
+.mh-btns { display: flex; gap: 10px; width: 100%; }
+.mh-btns button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 42px; padding: 0; border: none; border-radius: 5px; font-size: 15px; font-weight: 700; box-shadow: none; }
+.mh-play { background: #fff !important; color: #000 !important; }
+.mh-list { background: rgba(109, 109, 110, .75) !important; color: #fff !important; }
+.mh-dots { display: flex; justify-content: center; gap: 6px; margin-top: 10px; }
+.mh-dots span { width: 6px; height: 6px; border-radius: 50%; background: #555; }
+.mh-dots span.on { background: #fff; }
+:root.android[data-shell] .nf-row { margin-bottom: 18px; }
+:root.android[data-shell] .nf-row-title { padding: 0 12px; font-size: 17px; margin-bottom: 8px; }
+:root.android[data-shell] .nf-row-scroll { padding: 0 12px; gap: 8px; }
+:root.android[data-shell] .nf-row-scroll > div { flex: 0 0 108px !important; }
+:root.android[data-shell] .nf-row-scroll > div[style*="280px"] { flex: 0 0 210px !important; }
+
+/* ── 详情页（媒体库条目）── */
+:root.android[data-shell] .nfd-back { top: 8px; left: 8px; }
+:root.android[data-shell] .nfd-back .back-btn { background: rgba(0, 0, 0, .55); }
+:root.android[data-shell] .nfd-hero { display: block; min-height: 0; }
+:root.android[data-shell] .nfd-bg { position: relative; display: block; width: 100%; height: 56.25vw; max-height: 340px; }
+:root.android[data-shell] .nfd-shade { inset: 0 0 auto 0; height: 56.25vw; max-height: 340px; background: linear-gradient(0deg, #141414 0%, rgba(20, 20, 20, 0) 45%), linear-gradient(180deg, rgba(0, 0, 0, .5), rgba(0, 0, 0, 0) 28%); }
+:root.android[data-shell] .nfd-body { max-width: none; padding: 0 16px 6px; margin-top: -34px; }
+:root.android[data-shell] .nfd-title { font-size: 26px; margin-bottom: 8px; }
+:root.android[data-shell] .nfd-logo { max-width: 72%; max-height: 84px; margin-bottom: 10px; }
+:root.android[data-shell] .nfd-meta { font-size: 13px; gap: 10px; margin-bottom: 10px; }
+:root.android[data-shell] .nfd-tagline { font-size: 13px; }
+:root.android[data-shell] .nfd-ov { font-size: 14px; -webkit-line-clamp: 4; text-shadow: none; margin-bottom: 14px; }
+:root.android[data-shell] .nfd-actions { flex-wrap: wrap; gap: 10px; }
+:root.android[data-shell] .nfd-play { flex: 1 0 100%; justify-content: center; padding: 11px 0; font-size: 16px; }
+:root.android[data-shell] .nfd-circle { width: 42px; height: 42px; }
+:root.android[data-shell] .nfd-side { position: static; width: auto; padding: 8px 16px 6px; font-size: 13px; text-shadow: none; color: #bbb; }
+:root.android[data-shell] .nfd-sections { padding: 4px 12px 24px; }
+:root.android[data-shell] .nfd-sec-head h2 { font-size: 18px; }
+:root.android[data-shell] .nfd-ep { gap: 10px; padding: 12px 2px; }
+:root.android[data-shell] .nfd-ep-n { display: none; }
+:root.android[data-shell] .nfd-ep-thumb { width: 126px; }
+:root.android[data-shell] .nfd-ep-top { font-size: 14px; }
+:root.android[data-shell] .nfd-ep-ov { font-size: 12px; -webkit-line-clamp: 2; }
+:root.android[data-shell] .nfd-sim { grid-template-columns: repeat(3, 1fr); gap: 10px 8px; }
+
+/* ── 片库（TMDB）── */
+:root.android[data-shell] .mp-grid { grid-template-columns: repeat(3, 1fr); gap: 12px 8px; padding: 0 10px; }
+:root.android[data-shell] .mp-hero-body { flex-direction: column; align-items: flex-start; padding: 14px; gap: 12px; }
+:root.android[data-shell] .mp-hero-poster { width: 120px; }
+:root.android[data-shell] .mp-hero-title { font-size: 22px; }
+
+/* ── 我的 / 搜索 ── */
+.m-me { padding: 14px 12px; }
+.m-me-head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.m-me-avatar { width: 48px; height: 48px; border-radius: 8px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; flex: none; }
+.m-me-name { font-size: 17px; font-weight: 700; }
+.m-me-srv { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-me-list { border-radius: 10px; background: #1a1a1a; overflow: hidden; }
+.m-me-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #262626; }
+.m-me-row:last-child { border-bottom: none; }
+.m-me-row:active { background: #262626; }
+.m-me-l { font-size: 16px; }
+.m-me-s { font-size: 12px; margin-top: 2px; }
+.m-me-arrow { font-size: 22px; color: #777; }
+.m-search-bar { position: relative; flex: none; padding: 10px 12px; }
+.m-search-bar input { width: 100%; box-sizing: border-box; height: 42px; padding: 0 40px 0 14px; border-radius: 8px; border: none; background: #262626; color: #fff; font-size: 16px; }
+.m-search-x { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; padding: 0; border: none; background: transparent; color: #aaa; box-shadow: none; }
+
+/* ── 卡片统一：海报圆角、固定 2:3，横向行不显示文字（与流媒体 App 一致）── */
+:root.android[data-shell] .card-media .card { background: none; border: none; box-shadow: none; border-radius: 6px; overflow: hidden; transform: none !important; }
+:root.android[data-shell] .card-media img, :root.android[data-shell] .card-media .no-cover { width: 100%; aspect-ratio: 2 / 3; height: auto; object-fit: cover; border-radius: 6px; display: flex; }
+:root.android[data-shell] .card-media .no-cover { align-items: center; justify-content: center; font-size: 11px; }
+:root.android[data-shell] .card-media.we-land img, :root.android[data-shell] .card-media.we-land .no-cover { aspect-ratio: 16 / 9; }
+:root.android[data-shell] .nf-row-scroll .card-media .meta { display: none; }
+:root.android[data-shell] .nfd-sim .card-media .meta { display: none; }
+:root.android[data-shell] .card-media .meta { padding: 5px 2px 0; }
+:root.android[data-shell] .card-media .name { font-size: 12px; }
+:root.android[data-shell] .card-media .remarks { font-size: 11px; }
+
+/* ── 详情：操作区 / 相似 / 演员 ── */
+:root.android[data-shell] .nfd-actions { display: flex; flex-direction: column; align-items: stretch; gap: 14px; }
+:root.android[data-shell] .nfd-play { flex: none; width: 100%; }
+:root.android[data-shell] .nfd-circles { display: flex; justify-content: flex-start; gap: 34px; padding: 2px 6px; }
+:root.android[data-shell] .nfd-act { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+:root.android[data-shell] .nfd-act-l { display: block; font-size: 11px; color: #bbb; }
+:root.android[data-shell] .nfd-circle { width: 40px; height: 40px; border: none; background: transparent; font-size: 24px; }
+:root.android[data-shell] .nfd-sim { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 8px; }
+:root.android[data-shell] .nfd-sim > * { min-width: 0; }
+:root.android[data-shell] .nfd-cast { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 14px; padding-bottom: 6px; scrollbar-width: none; }
+:root.android[data-shell] .nfd-cast::-webkit-scrollbar { display: none; }
+:root.android[data-shell] .nfd-cast .we-cast { flex: 0 0 76px; }
+:root.android[data-shell] .nfd-cast .we-cast img, :root.android[data-shell] .nfd-cast .we-cast-ph { width: 64px; height: 64px; margin: 0 auto 6px; }
+:root.android[data-shell] .nfd-cast .we-cast-name { font-size: 12px; }
+:root.android[data-shell] .nfd-cast .we-cast-role { font-size: 11px; }
+
+/* ══ 第三版打磨：对齐流媒体手机 App 的质感 ══ */
+.m-iconbtn { background: none !important; border: none !important; box-shadow: none !important; width: 40px; height: 40px; padding: 0 !important; color: #fff !important; }
+.m-head { padding: 4px 14px 10px; }
+.m-head-top { height: 42px; }
+.m-brand { font-size: 21px; letter-spacing: .06em; }
+.m-chips { gap: 8px; padding: 4px 0 2px; }
+.m-chip { padding: 5px 13px; font-size: 13px; background: transparent; border-color: rgba(255, 255, 255, .5); }
+.m-home-top { height: 96px; }
+.m-tabs { background: #000; border-top: 1px solid #1f1f1f; padding-bottom: 0; }
+.m-tab { padding: 7px 0 5px; font-size: 10px; gap: 3px; }
+.m-tab svg { width: 23px; height: 23px; }
+
+:root.android[data-shell] .nf-row-title::before { display: none !important; }
+:root.android[data-shell] .nf-row-title { display: block; font-size: 17px; font-weight: 700; letter-spacing: 0; margin: 0 0 8px; padding: 0 12px; color: #fff; }
+:root.android[data-shell] .nf-row-scroll { padding: 0 12px 4px; gap: 6px; }
+:root.android[data-shell] .nf-row-scroll > div { flex: 0 0 106px !important; }
+:root.android[data-shell] .nf-row-scroll > div[style*="280px"] { flex: 0 0 168px !important; }
+:root.android[data-shell] .nf-row { margin-bottom: 20px; }
+:root.android[data-shell] .card-media img, :root.android[data-shell] .card-media .no-cover { border-radius: 4px; }
+:root.android[data-shell] .card-media .card { border-radius: 4px; }
+:root.android[data-shell] .we-played { top: 4px; left: 4px; width: 18px; height: 18px; font-size: 11px; }
+:root.android[data-shell] .nf-row-scroll .we-land .meta { display: block; padding: 4px 0 0; }
+:root.android[data-shell] .nf-row-scroll .we-land .name { font-size: 12px; }
+
+.mh-card { border-radius: 8px; margin: 0 12px; }
+.mh-btns button { height: 40px; font-size: 14.5px; border-radius: 4px; }
+.mh-dots { margin-top: 8px; }
+
+/* 详情：信息区 */
+:root.android[data-shell] .nfd-side { font-size: 12.5px; line-height: 1.55; padding: 4px 16px 4px; }
+:root.android[data-shell] .nfd-side > div { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+:root.android[data-shell] .nfd-meta { font-size: 13px; }
+:root.android[data-shell] .nfd-sec { margin-bottom: 24px; }
+:root.android[data-shell] .nfd-sec-head { margin-bottom: 10px; }
+:root.android[data-shell] .nfd-sec-head h2 { font-size: 17px; }
+:root.android[data-shell] .nfd-select { font-size: 13px; padding: 5px 10px; }
+
+/* 页面顶栏、设置：更贴近手机 */
+:root.android[data-shell] .topbar { background: #000; border-bottom: none; }
+:root.android[data-shell] .topbar h3 { font-size: 18px; }
+:root.android[data-shell] .card { border-radius: 10px; }
+:root.android[data-shell] button, :root.android[data-shell] select, :root.android[data-shell] input { -webkit-tap-highlight-color: transparent; }
+:root.android[data-shell] .tag { padding: 6px 14px; }
+:root.android[data-shell] .empty { padding: 40px 0; }
+
+/* ── 直播页（手机）：直播源管理改成竖排，输入框撑满 ── */
+:root.android[data-shell] .topbar input { width: auto !important; flex: 1; min-width: 0; margin-left: 10px !important; }
+:root.android[data-shell] .we-set > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+:root.android[data-shell] .we-set input:not([type='checkbox']):not([type='radio']), :root.android[data-shell] .we-set select, :root.android[data-shell] .we-set .we-filebtn { box-sizing: border-box; width: 100% !important; max-width: 100%; height: 42px; }
+:root.android[data-shell] .we-set button { min-height: 42px; }
+:root.android[data-shell] .we-filebtn { justify-content: center; }
+:root.android[data-shell] .we-set-row { align-items: flex-start; gap: 8px; }
+:root.android[data-shell] .we-set-row > span { min-width: 0; flex: 1 1 100%; word-break: break-all; }
+:root.android[data-shell] .we-set-row > span .muted { display: block; margin: 2px 0 0 !important; }
+:root.android[data-shell] .we-set-row > button { width: auto; flex: none; }
+:root.android[data-shell] .we-live-grid { grid-template-columns: 1fr; gap: 2px; padding: 0; }
+:root.android[data-shell] .we-live { padding: 0 12px; }
+:root.android[data-shell] .we-live-groups { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -12px 12px; padding: 0 12px; }
+:root.android[data-shell] .we-live-groups::-webkit-scrollbar { display: none; }
+:root.android[data-shell] .we-live-groups .tag { flex: none; }
+:root.android[data-shell] .we-live-ch { border-radius: 6px; padding: 8px 12px; min-height: 56px; }
+
+/* ── 演员页（手机）── */
+:root.android[data-shell] .we-person { flex-direction: column; align-items: center; text-align: center; padding: 6px 16px 16px; gap: 12px; }
+:root.android[data-shell] .we-person-img { width: 104px; height: 104px; }
+:root.android[data-shell] .we-person-info h2 { font-size: 22px; margin-top: 0; }
+:root.android[data-shell] .we-person-ov { text-align: left; font-size: 13.5px; }
+:root.android[data-shell] .we-person-h { padding: 0 12px; }
+
+/* ── 详情：播放按钮下的音轨 / 字幕选择；媒体文件信息折叠 ── */
+.m-pickers { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.m-pickers .we-set-row { display: flex; flex-direction: column; align-items: stretch; gap: 4px; padding: 0; border: none; }
+.m-pickers .we-set-row > span { font-size: 11.5px; color: #9a9a9a; }
+.m-pickers select { width: 100%; max-width: 100%; height: 40px; border-radius: 4px; border: none; background: #262626; color: #fff; font-size: 13px; padding: 0 8px; }
+.m-pickers .we-set-row:first-child:nth-last-child(3) { grid-column: 1 / -1; }
+.m-fileinfo { margin: 8px 0 0; border-radius: 8px; background: #141414; padding: 0 14px; }
+.m-fileinfo summary { padding: 14px 0; font-size: 15px; font-weight: 600; list-style: none; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+.m-fileinfo summary::-webkit-details-marker { display: none; }
+.m-fileinfo summary::after { content: '›'; font-size: 22px; color: #777; transform: rotate(90deg); transition: transform .2s; }
+.m-fileinfo[open] summary::after { transform: rotate(-90deg); }
+.m-fileinfo .we-fileinfo { padding-bottom: 6px; }
+.m-fileinfo .we-fi-line:last-child { padding-bottom: 14px; }
+
+/* ── 首页主推：沉浸式（通栏、无圆角、更矮，顶部栏浮在图片上）── */
+.m-home-top { height: 0; }
+.m-head { background: linear-gradient(180deg, rgba(0, 0, 0, .78) 0%, rgba(0, 0, 0, .35) 60%, rgba(0, 0, 0, 0) 100%); }
+.mh-card { margin: 0; border-radius: 0; aspect-ratio: 1 / 1.22; max-height: 62vh; }
+.mh-info { padding: 0 14px 12px; }
+.mh-title { font-size: 24px; }
+.mh-dots { margin-top: 10px; }
+
+/* ══ 设置页（手机）：行布局统一 ══ */
+:root.android[data-shell] .we-set { padding: 14px 14px; }
+:root.android[data-shell] .we-set h3 { font-size: 17px; }
+:root.android[data-shell] .we-set .row { flex-wrap: wrap; gap: 8px; }
+:root.android[data-shell] .we-set .row > button { flex: 0 1 auto; white-space: normal; max-width: 100%; }
+:root.android[data-shell] .we-set .muted { overflow-wrap: anywhere; word-break: break-word; }
+:root.android[data-shell] .we-set .err { overflow-wrap: anywhere; font-size: 12.5px; }
+:root.android[data-shell] .we-set-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 14px; padding: 12px 0; }
+:root.android[data-shell] .we-set-row > span:first-child, :root.android[data-shell] .we-set-row > label { min-width: 0; flex: 1 1 auto; }
+/* 带下拉框 / 输入框的行：文字在上，控件在下，撑满 */
+:root.android[data-shell] .we-set-row:has(> select), :root.android[data-shell] .we-set-row:has(> input:not([type='checkbox'])) { flex-direction: column; align-items: stretch; gap: 8px; }
+/* 开关行：文字在左，开关在右，不被拉伸 */
+:root.android[data-shell] .we-set-row > input[type='checkbox'] { flex: none; width: auto !important; height: auto; margin: 0; }
+:root.android[data-shell] .we-set-row label > input[type='checkbox'] { flex: none; width: auto !important; height: auto; margin: 0; }
+:root.android[data-shell] .we-set-row > .row { flex: none; flex-wrap: nowrap; }
+:root.android[data-shell] .we-set-row > .row button { min-width: 44px; }
+:root.android[data-shell] .content > .we-set:last-child { margin-bottom: 20px; }
+:root.android[data-shell] .card { border: none; background: #141414; box-shadow: none; }
+
+/* ══ 详情页：播放按钮下的选择器（加强优先级）══ */
+:root.android[data-shell] .m-pickers { display: grid !important; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; width: 100%; margin: 0; }
+:root.android[data-shell] .m-pickers .we-set-row { display: flex !important; flex-direction: column !important; align-items: stretch !important; gap: 4px; padding: 0 !important; border: none !important; min-width: 0; }
+:root.android[data-shell] .m-pickers .we-set-row > span { flex: none; font-size: 12px; color: #9a9a9a; }
+:root.android[data-shell] .m-pickers select { width: 100% !important; min-width: 0; height: 42px; border-radius: 4px; border: none; background: #262626; color: #fff; font-size: 13px; padding: 0 8px; }
+:root.android[data-shell] #nfd-opts-slot:empty { display: none; }
+:root.android[data-shell] .nfd-circles { margin-top: 2px; }
+:root.android[data-shell] .nfd-body { overflow: hidden; }
+
+/* ── 详情：音轨 / 字幕选择器（独立结构，不再借用设置页的行样式）── */
+.m-pk { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; width: 100%; box-sizing: border-box; }
+.m-pk-item { display: flex; flex-direction: column; gap: 5px; min-width: 0; margin: 0; }
+.m-pk-wide { grid-column: 1 / -1; }
+.m-pk-item > span { font-size: 12px; color: #9a9a9a; line-height: 1; }
+.m-pk-item > select {
+  -webkit-appearance: none; appearance: none; box-sizing: border-box; width: 100%; min-width: 0; height: 42px; margin: 0;
+  padding: 0 30px 0 12px; border: none; border-radius: 4px; background-color: #262626; color: #fff; font-size: 14px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center;
+}
+
+/* 底部导航选中状态 */
+:root.android[data-shell] .m-tab { position: relative; color: #8c8c8c !important; }
+:root.android[data-shell] .m-tab.active { color: #fff !important; font-weight: 700; }
+:root.android[data-shell] .m-tab.active svg { fill: currentColor; fill-opacity: .22; transform: scale(1.08); }
+:root.android[data-shell] .m-tab.active::before { content: ''; position: absolute; top: 0; left: 30%; right: 30%; height: 2px; border-radius: 2px; background: #f0414b; }
+
+/* 首页轮播：横版剧照 */
+:root.android[data-shell] .m-home-top { height: 58px; }
+:root.android[data-shell] .m-head { background: #000; }
+:root.android[data-shell] .mh { margin: 0 0 6px; }
+:root.android[data-shell] .mh-card { margin: 0 10px; border-radius: 8px; aspect-ratio: 16 / 9; max-height: none; }
+:root.android[data-shell] .mh-shade { background: linear-gradient(0deg, rgba(0, 0, 0, .88) 0%, rgba(0, 0, 0, .35) 45%, rgba(0, 0, 0, 0) 70%); }
+:root.android[data-shell] .mh-info { align-items: flex-start; text-align: left; padding: 0 14px 12px; }
+:root.android[data-shell] .mh-title { font-size: 20px; margin-bottom: 4px; }
+:root.android[data-shell] .mh-logo { max-height: 44px; max-width: 55%; margin-bottom: 4px; }
+:root.android[data-shell] .mh-tags { font-size: 12px; margin-bottom: 8px; min-height: 0; }
+:root.android[data-shell] .mh-btns { width: auto; gap: 8px; }
+:root.android[data-shell] .mh-btns button { flex: none; width: 92px; height: 32px; font-size: 13px; }
+:root.android[data-shell] .mh-dots { margin-top: 8px; }
+
+/* 媒体页 */
+.m-media { padding: 0 0 20px; }
+.m-media-title { font-size: 22px; font-weight: 800; padding: 14px 16px 12px; }
+.m-lib { position: relative; height: 150px; margin: 0 14px 12px; border-radius: 8px; overflow: hidden; background: linear-gradient(135deg, #2c4a7a, #101a2e); }
+.m-lib img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.m-lib i { position: absolute; inset: 0; background: linear-gradient(0deg, rgba(0, 0, 0, .8), transparent 65%); }
+.m-lib b { position: absolute; left: 14px; bottom: 28px; font-size: 20px; text-shadow: 0 2px 8px rgba(0, 0, 0, .7); }
+.m-lib span { position: absolute; left: 14px; bottom: 10px; font-size: 12px; color: #ccc; }
+
+/* 详情：圆按钮与下方文字贴紧 */
+:root.android[data-shell] .nfd-circles { align-items: flex-start !important; }
+:root.android[data-shell] .nfd-act { gap: 2px !important; justify-content: flex-start; height: auto; }
+:root.android[data-shell] .nfd-circle { margin: 0 !important; min-height: 0 !important; height: 40px !important; line-height: 1 !important; flex: none; }
+:root.android[data-shell] .nfd-act-l { margin: 0 !important; line-height: 1.2 !important; padding: 0 !important; }

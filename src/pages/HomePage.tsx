@@ -10,6 +10,8 @@ import type { EmbyItem } from '../emby/types';
 import { useAsync } from '../lib/useAsync';
 import { useSkinLayout } from '../lib/theme';
 import { loadPlayPrefs } from '../lib/prefs';
+import { isAndroid } from '../lib/platform';
+import MobileHero from '../mobile/MobileHero';
 
 interface Section {
   id: string;
@@ -38,9 +40,20 @@ async function loadSections(): Promise<{ sections: Section[]; spot: EmbyItem[] }
   views.forEach((v, i) => {
     if (latest[i]?.length) sections.push({ id: `latest-${v.Id}`, title: `最近添加 · ${v.Name}`, items: latest[i] });
   });
-  // 聚光卡：优先取各库最近添加（电影/剧集），没有再退回继续观看
-  const spot = latest.flat().filter((it) => it.Type === 'Movie' || it.Type === 'Series').slice(0, 12);
-  return { sections, spot: spot.length ? spot : resume.slice(0, 6) };
+  // 轮播：按设置的来源媒体库 / 内容 / 数量取
+  const heroViews = views.filter((v) => !prefs.heroLibs.length || prefs.heroLibs.includes(v.Id));
+  const n = prefs.heroCount || 10;
+  let spot: EmbyItem[] = [];
+  if (prefs.heroMode === 'resume') spot = resume.filter((it) => it.Type === 'Movie' || it.Type === 'Episode').slice(0, n);
+  else if (prefs.heroMode === 'random') {
+    const rs = await Promise.all(heroViews.map((v) => emby.items({ parentId: v.Id, types: 'Movie,Series', sortBy: 'Random', start: 0, limit: n }).then((r) => r.Items).catch(() => [] as EmbyItem[])));
+    spot = rs.flat().sort(() => Math.random() - 0.5).slice(0, n);
+  } else {
+    const idx = new Set(heroViews.map((v) => v.Id));
+    spot = latest.filter((_, i) => idx.has(views[i].Id)).flat().filter((it) => it.Type === 'Movie' || it.Type === 'Series').slice(0, n);
+  }
+  if (!prefs.heroOn) spot = [];
+  return { sections, spot };
 }
 
 export default function HomePage() {
@@ -105,7 +118,9 @@ export default function HomePage() {
 
   return (
     <div className="content">
-      {data && data.spot.length > 0 && <HomeSpotlight items={data.spot} landscape={nf} onOpen={open} onPlay={play} />}
+      {isAndroid && <div className="m-home-top" />}
+      {isAndroid && data && data.spot.length > 0 && <MobileHero items={data.spot} onOpen={open} onPlay={play} />}
+      {!isAndroid && data && data.spot.length > 0 && <HomeSpotlight items={data.spot} landscape={nf && !isAndroid} onOpen={open} onPlay={play} />}
       {loading && !data ? (
         <div className="empty"><span className="spinner" aria-hidden="true" />加载中…</div>
       ) : error ? (

@@ -5,7 +5,7 @@ export function buildDeviceProfile(p: PlayPrefs): Record<string, unknown> {
   const videoCodecs = ['h264', 'vp8', 'vp9', 'av1', ...(p.hevc ? ['hevc'] : [])].join(',');
   const maxBps = p.maxMbps > 0 ? p.maxMbps * 1_000_000 : 200_000_000;
   return {
-    Name: 'Win-Emby',
+    Name: 'Weave',
     MaxStreamingBitrate: maxBps,
     MaxStaticBitrate: maxBps,
     MusicStreamingTranscodingBitrate: 192000,

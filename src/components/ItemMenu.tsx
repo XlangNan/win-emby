@@ -58,7 +58,7 @@ export default function ItemMenu({
   };
 
   const row = (label: string, fn: () => Promise<void> | void, danger?: boolean): React.ReactNode => (
-    <div className={`we-ctx-item${danger ? ' danger' : ''}`} role="menuitem" onMouseDown={(e) => e.stopPropagation()} onClick={() => run(fn)}>
+    <div className={`we-ctx-item${danger ? ' danger' : ''}`} role="menuitem" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); e.preventDefault(); run(fn); }}>
       {label}
     </div>
   );
@@ -70,14 +70,16 @@ export default function ItemMenu({
       role="menu"
       style={{ left: pos.x, top: pos.y }}
       onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
       onContextMenu={(e) => e.preventDefault()}
     >
       {row('▶ 播放', () => onPlay(it))}
-      {it.Type !== 'Series' && it.Type !== 'Season' && !played && row('✓ 标记为已观看', () => emby.setPlayed(it.Id, true))}
-      {(played || (it.UserData?.PlaybackPositionTicks || 0) > 0 || it.Type === 'Series') && row('○ 标记为未观看', () => emby.setPlayed(it.Id, false))}
+      {it.Type !== 'Series' && it.Type !== 'Season' && !played && row(it.Type === 'Episode' ? '✓ 标记本集为已观看' : '✓ 标记为已观看', () => emby.setPlayed(it.Id, true))}
+      {(played || (it.UserData?.PlaybackPositionTicks || 0) > 0 || it.Type === 'Series') && row(it.Type === 'Episode' ? '○ 标记本集为未观看' : '○ 标记为未观看', async () => { await emby.setPlayed(it.Id, false); if ((it.UserData?.PlaybackPositionTicks || 0) > 0) await emby.clearResume(it.Id); })}
       {it.Type === 'Series' && row('✓ 标记整部为已观看', () => emby.setPlayed(it.Id, true))}
       {row(fav ? '★ 取消收藏' : '☆ 加入收藏', () => emby.setFavorite(it.Id, !fav))}
-      {row('ⓘ 查看详情', () => onOpen(it))}
+      {row(it.Type === 'Episode' ? '▤ 查看剧集（标记已看 / 未看）' : 'ⓘ 查看详情', () => onOpen(it))}
       {inResume && row('✕ 从继续观看中移除', () => emby.clearResume(it.Id), true)}
     </div>,
     document.body,
