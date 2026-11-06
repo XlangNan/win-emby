@@ -479,3 +479,17 @@ html.android .we-epg { width: min(240px, 48vw); }
 .we-epg-row b { color: #f0414b; margin-right: 8px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .we-epg-row.now { background: rgba(240, 65, 75, .18); }
 .we-live-now { display: block; font-size: 11px; color: #9a9a9a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 弹幕菜单：按钮文字不换行 */
+.we-dm { min-width: 280px !important; }
+.we-dm-row { flex-wrap: wrap; white-space: nowrap; }
+.we-dm-row input[type='range'] { flex: 1 1 120px; }
+.we-dm-chip { flex: none; white-space: nowrap; writing-mode: horizontal-tb; }
+
+/* 电脑版首页轮播：横版大图卡片（16:9），不再撑满整个窗口高度 */
+:root[data-shell='topbar'] .spot {
+  height: auto; min-height: 0; aspect-ratio: 16 / 9; max-height: 66vh;
+  margin: 0 0 28px; padding: 0 40px 40px; border-radius: 14px; overflow: hidden;
+}
+:root[data-shell='topbar'] .spot-art { inset: 0; }
+:root[data-shell='topbar'] .spot-art-layer { background-size: cover; background-position: center 22%; }

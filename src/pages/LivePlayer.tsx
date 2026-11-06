@@ -267,11 +267,11 @@ export default function LivePlayer() {
         )}
       </div>
 
-      <div className="we-center" onClick={(e) => e.stopPropagation()}>
+      {isAndroid && (<div className="we-center" onClick={(e) => e.stopPropagation()}>
         <button className="we-cbtn we-cplay" title="播放/暂停（空格）" aria-label={paused ? '播放' : '暂停'} onClick={toggle}>
           {paused ? <svg width="64" height="64" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" /></svg> : <svg width="64" height="64" viewBox="0 0 24 24"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z" fill="currentColor" /></svg>}
         </button>
-      </div>
+      </div>)}
 
       {list && (
         <div className="we-chlist">
@@ -299,6 +299,11 @@ export default function LivePlayer() {
 
       <div className="we-bottom" onClick={(e) => e.stopPropagation()}>
         <div className="we-ctrls">
+          {!isAndroid && (
+            <button className="we-btn" title="播放/暂停（空格）" aria-label={paused ? '播放' : '暂停'} onClick={() => { toggle(); poke(); }}>
+              {paused ? <svg width="26" height="26" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" /></svg> : <svg width="26" height="26" viewBox="0 0 24 24"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z" fill="currentColor" /></svg>}
+            </button>
+          )}
           <div className="we-volgrp" title="鼠标滚轮调节音量" onWheel={(e) => { setVolume(vol + (e.deltaY < 0 ? 5 : -5)); poke(); }}>
             <button className="we-btn we-txt" title="静音（M）" onClick={() => void sessRef.current?.cmd('cycle', ['mute'])}>{muted || vol === 0 ? '静音' : '音量'}</button>
             <input className="we-vol" type="range" min={0} max={100} value={muted ? 0 : vol} aria-label="音量" onChange={(e) => setVolume(Number(e.target.value))} />

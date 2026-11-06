@@ -644,7 +644,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       </div>
 
       {/* 中间大按钮：后退 10 秒 / 播放暂停 / 快进 10 秒 */}
-      <div className="we-center" onClick={(e) => e.stopPropagation()}>
+      {isAndroid && (<div className="we-center" onClick={(e) => e.stopPropagation()}>
         {isAndroid && (<button className="we-cbtn" title="后退 10 秒（←）" aria-label="后退 10 秒" onClick={() => { seekBy(-10); poke(); }}>
           <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4" /><text x="8.4" y="15.2" fontSize="6.6" fill="currentColor" stroke="none" fontWeight="700">10</text></svg>
         </button>)}
@@ -658,7 +658,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         {isAndroid && (<button className="we-cbtn" title="快进 10 秒（→）" aria-label="快进 10 秒" onClick={() => { seekBy(10); poke(); }}>
           <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12a8 8 0 1 1-3-6.2M20 4v4h-4" /><text x="8.4" y="15.2" fontSize="6.6" fill="currentColor" stroke="none" fontWeight="700">10</text></svg>
         </button>)}
-      </div>
+      </div>)}
 
       {drawer && (
         <PlayerDrawer
@@ -705,6 +705,11 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           <span className="we-time" title={`${fmtDuration(shownCur)} / ${fmtDuration(total)}`}>{total > 0 ? fmtDuration(Math.max(0, total - shownCur)) : fmtDuration(shownCur)}</span>
         </div>
         <div className="we-ctrls">
+          {!isAndroid && (
+            <button className="we-btn" title="播放/暂停（空格）" aria-label={paused ? '播放' : '暂停'} onClick={() => { toggle(); poke(); }}>
+              {paused ? <svg width="26" height="26" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" /></svg> : <svg width="26" height="26" viewBox="0 0 24 24"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z" fill="currentColor" /></svg>}
+            </button>
+          )}
           <div className="we-volgrp" title="鼠标滚轮调节音量" onWheel={(e) => { setVolume(vol + (e.deltaY < 0 ? 5 : -5)); void sessRef.current?.set('mute', 'no'); poke(); }}>
           <button className="we-btn" title="静音（M）" onClick={() => void sessRef.current?.cmd('cycle', ['mute'])}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
