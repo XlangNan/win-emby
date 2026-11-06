@@ -147,7 +147,7 @@ export default function LibraryPage() {
           <div className="empty">没有符合条件的内容</div>
         ) : (
           <>
-            <div className="grid" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${size}px, 1fr))` }}>
+            <div className="grid" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${size}px, 1fr))`, ['--cols' as string]: Math.max(2, Math.min(5, Math.round(window.innerWidth / (size + 20)))) }}>
               {items.map((it) => <MediaCard key={it.Id} it={it} />)}
             </div>
             {more && (

@@ -27,7 +27,7 @@ html.android body { font-size: 15px; }
 :root.android[data-shell] .we-set-row { flex-wrap: wrap; }
 :root.android[data-shell] .we-set input, :root.android[data-shell] .we-set select { max-width: 100%; }
 :root.android[data-shell] .content > .card, :root.android[data-shell] .content > .we-set { margin-left: 12px; margin-right: 12px; }
-:root.android[data-shell] .grid { grid-template-columns: repeat(3, 1fr) !important; gap: 10px 8px; padding: 0 10px; }
+:root.android[data-shell] .grid { grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)) !important; gap: 10px 8px; padding: 0 10px; }
 :root.android[data-shell] .topbar label[title="海报大小"] { display: none; }
 :root.android[data-shell] .quick-picks { padding: 0 10px; }
 
