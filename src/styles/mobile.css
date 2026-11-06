@@ -297,3 +297,9 @@ html.android body { font-size: 15px; }
 :root.android[data-shell] .nfd-act { gap: 2px !important; justify-content: flex-start; height: auto; }
 :root.android[data-shell] .nfd-circle { margin: 0 !important; min-height: 0 !important; height: 40px !important; line-height: 1 !important; flex: none; }
 :root.android[data-shell] .nfd-act-l { margin: 0 !important; line-height: 1.2 !important; padding: 0 !important; }
+
+/* 手机：弹幕设置做成底部面板 */
+:root.android[data-shell] .we-menu.we-dm,
+html.android .we-menu.we-dm { position: fixed !important; left: 12px !important; right: 12px !important; bottom: 76px !important; top: auto !important; width: auto !important; min-width: 0 !important; max-height: 55vh; overflow-y: auto; transform: none !important; padding: 8px 4px !important; }
+html.android .we-dm .we-dm-row { padding: 10px 12px; font-size: 14px; }
+html.android .we-dm .we-dm-row input[type='range'] { height: 28px; }

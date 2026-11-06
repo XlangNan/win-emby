@@ -1,4 +1,5 @@
 // Emby REST 客户端：登录 / 媒体库 / 列表 / 详情 / 播放信息 / 进度回报 / 收藏
+import { isAndroid } from '../lib/platform';
 import { httpFetch } from './http';
 import { deviceId, getSession, normalizeServer } from './session';
 import type { EmbyItem, ItemsResult, PlaybackInfo, Session } from './types';
@@ -7,7 +8,7 @@ const CLIENT = 'Weave';
 const VERSION = '0.1.0';
 
 function authHeader(token?: string): Record<string, string> {
-  const v = `MediaBrowser Client="${CLIENT}", Device="Windows", DeviceId="${deviceId()}", Version="${VERSION}"`;
+  const v = `MediaBrowser Client="${CLIENT}", Device="${isAndroid ? 'Android' : 'Windows'}", DeviceId="${deviceId()}", Version="${VERSION}"`;
   const h: Record<string, string> = { 'X-Emby-Authorization': v, Accept: 'application/json' };
   if (token) h['X-Emby-Token'] = token;
   return h;
@@ -74,7 +75,7 @@ function api<T>(
 }
 
 /** 列表默认请求的字段（卡片 + 详情都够用） */
-const LIST_FIELDS = 'PrimaryImageAspectRatio,ProductionYear,Overview,CommunityRating,RunTimeTicks,UserData,ProviderIds';
+const LIST_FIELDS = 'PrimaryImageAspectRatio,ProductionYear,Overview,CommunityRating,RunTimeTicks,UserData,ProviderIds,BackdropImageTags,ParentBackdropItemId,ParentBackdropImageTags';
 
 export interface ListOpts {
   parentId?: string;

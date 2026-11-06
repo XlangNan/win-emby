@@ -469,3 +469,13 @@ html:not(.android) .m-media-title { padding: 6px 4px 12px; }
 html:not(.android) .m-lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
 html:not(.android) .m-lib { margin: 0; height: 180px; cursor: pointer; }
 html:not(.android) .m-lib:hover { outline: 2px solid var(--accent); }
+.we-introdb { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border-radius: 10px; background: rgba(255, 255, 255, .06); font-size: 14px; }
+.we-introdb-act { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.we-epg-now { font-size: 12px; color: #ddd; margin-top: 2px; }
+.we-epg { position: absolute; right: 12px; top: 56px; bottom: 76px; width: 260px; z-index: 4; display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; background: rgba(14, 14, 14, .88); }
+html.android .we-epg { width: min(240px, 48vw); }
+.we-player.hide-ui .we-epg { opacity: 0; pointer-events: none; }
+.we-epg-row { padding: 8px 12px; font-size: 13px; border-bottom: 1px solid rgba(255, 255, 255, .06); }
+.we-epg-row b { color: #f0414b; margin-right: 8px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.we-epg-row.now { background: rgba(240, 65, 75, .18); }
+.we-live-now { display: block; font-size: 11px; color: #9a9a9a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

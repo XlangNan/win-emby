@@ -5,6 +5,7 @@ import { getSession, listAccounts, removeAccount, sameAccount, saveSession } fro
 import type { EmbyItem, Session } from '../emby/types';
 import { isAndroid } from '../lib/platform';
 import { applyFont, FONT_PRESETS, loadFont } from '../lib/font';
+import { introDbOn, setIntroDbOn } from '../lib/introdb';
 import { loadDanmaku, saveDanmaku, testDanmaku } from '../lib/danmaku';
 import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
 import { kg, loadKg, saveKg } from '../lib/kg';
@@ -360,6 +361,7 @@ function FontSettings() {
 
 export default function ConfigPage() {
   const [prefs, setPrefs] = useState(loadPlayPrefs);
+  const [introOn, setIntroOn] = useState(introDbOn);
   const set = (p: Partial<typeof prefs>): void => setPrefs(savePlayPrefs(p));
 
   return (
@@ -430,9 +432,16 @@ export default function ConfigPage() {
           <label className="we-set-row" style={{ cursor: 'pointer' }}>
             <span>
               自动跳过片头
-              <span className="muted" style={{ display: 'block', fontSize: 12 }}>需要 Emby 里有「片头」章节标记（如装了片头检测插件）</span>
+              <span className="muted" style={{ display: 'block', fontSize: 12 }}>优先用 Emby 里的「片头」章节标记；没有时可用下面的 TheIntroDB</span>
             </span>
             <input type="checkbox" checked={prefs.autoSkipIntro} onChange={(e) => set({ autoSkipIntro: e.target.checked })} />
+          </label>
+          <label className="we-set-row" style={{ cursor: 'pointer' }}>
+            <span>
+              用 TheIntroDB 查片头时间
+              <span className="muted" style={{ display: 'block', fontSize: 12 }}>按 TMDB 编号查在线片头库；可在剧集详情页手动扫描、查看有没有数据</span>
+            </span>
+            <input type="checkbox" checked={introOn} onChange={(e) => { setIntroOn(e.target.checked); setIntroDbOn(e.target.checked); }} />
           </label>
           <label className="we-set-row" style={{ cursor: 'pointer' }}>
             <span>播完自动播放下一集</span>

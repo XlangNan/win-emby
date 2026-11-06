@@ -11,10 +11,11 @@ export interface DanmakuCfg {
   size: number; // 字号 px，16–40
   speed: number; // 滚动速度 px/s
   area: number; // 显示区域占屏幕高度比例 0.25 / 0.5 / 0.75 / 1
+  offset: number; // 距顶部的留白比例（避开剧名），0–0.4
 }
 
 const KEY = 'wemby-danmaku';
-const DEF: DanmakuCfg = { url: '', appId: '', appSecret: '', on: true, opacity: 0.85, size: 24, speed: 150, area: 0.5 };
+const DEF: DanmakuCfg = { url: '', appId: '', appSecret: '', on: true, opacity: 0.85, size: 24, speed: 150, area: 0.5, offset: 0.12 };
 
 export function loadDanmaku(): DanmakuCfg {
   try {

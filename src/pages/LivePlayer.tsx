@@ -5,6 +5,7 @@ import { openMpv, type MpvSession } from '../lib/mpv';
 import { loadChannels, loadFavs, type LiveChannel } from '../lib/live';
 import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
 import { androidBridge, isAndroid } from '../lib/platform';
+import { hhmm, nowNext, progsOf } from '../lib/epg';
 import { winClose, winIsFullscreen, winMinimize, winSetFullscreen, winToggleMax } from '../lib/win';
 
 export default function LivePlayer() {
@@ -41,6 +42,9 @@ export default function LivePlayer() {
   const [err, setErr] = useState('');
   const [uiShown, setUiShown] = useState(true);
   const [list, setList] = useState(true);
+  const [epgOpen, setEpgOpen] = useState(false);
+  const [, setClock] = useState(0);
+  useEffect(() => { const t = window.setInterval(() => setClock((n) => n + 1), 30000); return () => window.clearInterval(t); }, []);
   const [full, setFull] = useState(false);
 
   const nextLine = useCallback((reason: string) => {
@@ -249,6 +253,7 @@ export default function LivePlayer() {
         </button>
         <div className="we-titlebox">
           <div className="we-title">{ch?.name || '未找到频道'} <span className="we-livedot">● 直播</span></div>
+          {ch && nowNext(ch).now && <div className="we-epg-now">正在播放：{nowNext(ch).now?.t}　{hhmm(nowNext(ch).now?.s || 0)}–{hhmm(nowNext(ch).now?.e || 0)}</div>}
           <div className="we-subline">
             {[dim.w > 0 ? `${dim.w}×${dim.h}` : '', fps > 0 ? `${Number(fps.toFixed(3))} fps` : '', vbr > 0 ? `${(vbr / 1e6).toFixed(1)} Mbps` : '', ch && ch.lines.length > 1 ? `线路 ${line + 1}/${ch.lines.length}` : '', `MPV${hw && hw !== 'no' ? ` · ${hw}` : ''}`].filter(Boolean).join('  ·  ')}
           </div>
@@ -279,6 +284,19 @@ export default function LivePlayer() {
         </div>
       )}
 
+      {epgOpen && ch && (
+        <div className="we-epg">
+          <div className="we-chlist-head">{ch.name} 节目单</div>
+          <div className="we-chlist-body" style={{ padding: 0 }}>
+            {progsOf(ch).length === 0 && <div className="we-epg-row" style={{ color: '#aaa' }}>没有这个频道的节目单（在直播页设置 XMLTV 地址；频道名或 tvg-id 要对得上）</div>}
+            {progsOf(ch).map((p) => {
+              const now = p.s <= Date.now() && Date.now() < p.e;
+              return <div key={p.s} className={`we-epg-row${now ? ' now' : ''}`}><b>{hhmm(p.s)}</b>{p.t}</div>;
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="we-bottom" onClick={(e) => e.stopPropagation()}>
         <div className="we-ctrls">
           <div className="we-volgrp" title="鼠标滚轮调节音量" onWheel={(e) => { setVolume(vol + (e.deltaY < 0 ? 5 : -5)); poke(); }}>
@@ -293,6 +311,9 @@ export default function LivePlayer() {
         <button className="we-btn" title="下一个频道（↓）" aria-label="下一台" onClick={() => { step(1); poke(); }}>
           <svg width="24" height="24" viewBox="0 0 24 24"><path d="M6 5v14l9-7-9-7Zm9.5 0H18v14h-2.5z" fill="currentColor" /></svg>
         </button>
+          <button className="we-btn we-lbl" title="节目单" onClick={() => setEpgOpen((v) => !v)}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M4 10h16M9 3v4M15 3v4" /></svg><span>节目单</span>
+          </button>
           {ch && ch.lines.length > 1 && (
             <button className="we-btn we-lbl" title="换线路（Tab）" onClick={() => setLine((l) => (l + 1) % ch.lines.length)}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h12l-3-3M20 17H8l3 3" /></svg><span>换线路</span>

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   cacheSource, listSources, loadChannels, loadFavs, newId, refreshSource, removeCache, saveSources, toggleFav, type LiveSource,
 } from '../lib/live';
+import { epgAt, epgChannels, getEpgUrl, hhmm, nowNext, refreshEpg, setEpgUrl } from '../lib/epg';
 
 export default function LivePage() {
   const nav = useNavigate();
@@ -17,6 +18,17 @@ export default function LivePage() {
   const [url, setUrl] = useState('');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
+  const [epgUrl, setEpgUrlS] = useState(getEpgUrl);
+  const [epgMsg, setEpgMsg] = useState(() => (epgAt() ? `已加载 ${epgChannels()} 个频道的节目单（${new Date(epgAt()).toLocaleString()}）` : ''));
+  const [, setEpgTick] = useState(0);
+  const doEpg = async (): Promise<void> => {
+    setEpgUrl(epgUrl); setEpgMsg('下载解析中…');
+    try { setEpgMsg(`已加载 ${await refreshEpg(epgUrl)} 个频道的节目单`); setEpgTick((n) => n + 1); } catch (e) { setEpgMsg(e instanceof Error ? e.message : String(e)); }
+  };
+  // 有地址且超过 6 小时没更新 → 进页面自动刷新
+  useEffect(() => {
+    if (getEpgUrl() && Date.now() - epgAt() > 6 * 3600e3) refreshEpg().then(() => setEpgTick((n) => n + 1)).catch(() => undefined);
+  }, []);
 
   const reloadChs = (): void => setChs(loadChannels());
 
@@ -134,6 +146,12 @@ export default function LivePage() {
                 <button onClick={() => del(s)}>删除</button>
               </div>
             ))}
+            <h3 style={{ marginTop: 16 }}>节目单（XMLTV）</h3>
+            <div style={{ display: 'grid', gap: 8, gridTemplateColumns: '1fr auto' }}>
+              <input value={epgUrl} onChange={(e) => setEpgUrlS(e.target.value)} placeholder="XMLTV 节目单链接（.xml 或 .xml.gz），选填" spellCheck={false} />
+              <button disabled={!epgUrl.trim()} onClick={() => void doEpg()}>保存并更新</button>
+            </div>
+            {epgMsg && <div className="muted" style={{ marginTop: 8, fontSize: 12 }}>{epgMsg}</div>}
             {sources.length > 0 && <div style={{ marginTop: 10 }}><button disabled={busy} onClick={() => void refreshAll()}>刷新全部直播源</button></div>}
           </div>
         )}
@@ -160,7 +178,7 @@ export default function LivePage() {
                   onKeyDown={(e) => e.key === 'Enter' && nav(`/live/play?ch=${encodeURIComponent(c.name)}${group ? `&g=${encodeURIComponent(group)}` : ''}`)}
                 >
                   {c.logo ? <img src={c.logo} loading="lazy" alt="" referrerPolicy="no-referrer" /> : <span className="we-live-ph">{c.name.slice(0, 2)}</span>}
-                  <span className="we-live-name">{c.name}</span>
+                  <span className="we-live-name">{c.name}{(() => { const n = nowNext(c).now; return n ? <span className="we-live-now">{hhmm(n.s)} {n.t}</span> : null; })()}</span>
                   {c.lines.length > 1 && <span className="muted we-live-n">{c.lines.length} 线路</span>}
                   <button
                     className="we-live-star"

@@ -29,6 +29,7 @@ export interface NfDetailProps {
   onFromStart: () => void;
   onMarkTarget: (on: boolean) => void;
   resumeSec: number;
+  extra?: React.ReactNode;
   similar: EmbyItem[];
   onChoice: (c: PlayChoice) => void;
 }
@@ -157,6 +158,7 @@ export default function NfDetail(p: NfDetailProps) {
             )}
           </section>
         )}
+        {p.extra}
 
         {p.similar.length > 0 && (
           <section className="nfd-sec">

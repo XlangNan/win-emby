@@ -1,6 +1,6 @@
 // 首页首屏聚光卡：结构沿用原 DiscoverSpotlight（.spot*），数据换成 Emby 最近入库
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { backdropUrl, posterUrl } from '../emby/client';
+import { backdropUrl, posterUrl, thumbUrl } from '../emby/client';
 import { cardTitle, fmtRuntime } from '../emby/format';
 import type { EmbyItem } from '../emby/types';
 
@@ -24,7 +24,7 @@ export default function HomeSpotlight({
 
   // 横版模式只轮播「真有背景图」的片子；一张都没有时退回全部
   const list = useMemo(() => {
-    const withBg = landscape ? items.filter((it) => backdropUrl(it)) : items;
+    const withBg = landscape ? items.filter((it) => backdropUrl(it) || it.ImageTags?.Thumb) : items;
     return (withBg.length ? withBg : items).slice(0, 6);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, landscape]);
@@ -71,7 +71,7 @@ export default function HomeSpotlight({
   if (!list.length) return null;
   const pos = idx % list.length;
   const cur = list[pos];
-  const artOf = (it: EmbyItem): string => (landscape ? backdropUrl(it) || posterUrl(it, 600) : posterUrl(it, 600));
+  const artOf = (it: EmbyItem): string => (landscape ? backdropUrl(it, 1920) || (it.ImageTags?.Thumb ? thumbUrl(it, 1280) : '') || posterUrl(it, 600) : posterUrl(it, 600));
   const curArt = artOf(cur);
   const next = list[(pos + 1) % list.length];
   const nextArt = list.length > 1 ? artOf(next) : '';
@@ -83,7 +83,7 @@ export default function HomeSpotlight({
         {list.map((it, i) => {
           const src = artOf(it);
           if (!src) return null;
-          const sharp = landscape && !!backdropUrl(it);
+          const sharp = landscape && (!!backdropUrl(it) || !!it.ImageTags?.Thumb);
           return (
             <div
               key={it.Id}

@@ -3,11 +3,11 @@ import { useEffect, useRef } from 'react';
 import type { Dm } from '../lib/danmaku';
 
 export default function DanmakuLayer({
-  list, getTime, size, speed, opacity, area, visible,
-}: { list: Dm[]; getTime: () => number; size: number; speed: number; opacity: number; area: number; visible: boolean }) {
+  list, getTime, size, speed, opacity, area, offset, visible,
+}: { list: Dm[]; getTime: () => number; size: number; speed: number; opacity: number; area: number; offset: number; visible: boolean }) {
   const cv = useRef<HTMLCanvasElement>(null);
-  const live = useRef({ list, getTime, size, speed, opacity, area, visible });
-  live.current = { list, getTime, size, speed, opacity, area, visible };
+  const live = useRef({ list, getTime, size, speed, opacity, area, offset, visible });
+  live.current = { list, getTime, size, speed, opacity, area, offset, visible };
 
   useEffect(() => {
     const c = cv.current;
@@ -32,13 +32,13 @@ export default function DanmakuLayer({
     ro.observe(c);
 
     const layout = (): void => {
-      const { list: L, size: S, speed: V, area: A } = live.current;
-      const key = `${L.length}|${S}|${V}|${A}|${Math.round(W)}|${Math.round(H)}`;
+      const { list: L, size: S, speed: V, area: A, offset: O } = live.current;
+      const key = `${L.length}|${S}|${V}|${A}|${O}|${Math.round(W)}|${Math.round(H)}`;
       if (key === layoutKey) return;
       layoutKey = key;
       ctx.font = `700 ${S}px sans-serif`;
       const lineH = S * 1.35;
-      const n = Math.max(1, Math.floor((H * A) / lineH));
+      const n = Math.max(1, Math.floor(Math.min(H * A, H * (1 - O) - lineH) / lineH));
       const free = new Array<number>(n).fill(-1e9);
       const freeTop = new Array<number>(n).fill(-1e9);
       const freeBot = new Array<number>(n).fill(-1e9);
@@ -66,7 +66,7 @@ export default function DanmakuLayer({
 
     const draw = (): void => {
       raf = requestAnimationFrame(draw);
-      const { list: L, getTime: gt, size: S, speed: V, opacity: O, visible: vis } = live.current;
+      const { list: L, getTime: gt, size: S, speed: V, opacity: O, offset: OFF, visible: vis } = live.current;
       ctx.clearRect(0, 0, W, H);
       if (!vis || !L.length || !W) return;
       layout();
@@ -88,11 +88,11 @@ export default function DanmakuLayer({
         if (ln.kind === 0) {
           x = W - age * V;
           if (x + ln.w < 0) continue;
-          y = ln.lane * lineH + 4;
+          y = H * OFF + ln.lane * lineH + 4;
         } else {
           if (age > 4) continue;
           x = (W - ln.w) / 2;
-          y = ln.kind === 1 ? ln.lane * lineH + 4 : H - (ln.lane + 1) * lineH - 4;
+          y = ln.kind === 1 ? H * OFF + ln.lane * lineH + 4 : H - (ln.lane + 1) * lineH - 4;
         }
         ctx.strokeText(d.text, x, y);
         ctx.fillStyle = d.color;

@@ -18,6 +18,8 @@ export interface LiveChannel {
   name: string;
   group: string;
   logo: string;
+  /** M3U 里的 tvg-id，用来匹配节目单 */
+  tvgId?: string;
   lines: LiveLine[];
 }
 
@@ -56,13 +58,13 @@ export function toggleFav(name: string): string[] {
   return next;
 }
 
-interface RawCh { name: string; group: string; logo: string; url: string }
+interface RawCh { name: string; group: string; logo: string; url: string; tvgId?: string }
 
 /** 解析 M3U（#EXTINF 格式）；也兼容「频道名,URL」的 txt 格式 */
 export function parseM3U(text: string): RawCh[] {
   const out: RawCh[] = [];
   const lines = text.replace(/\r/g, '').split('\n');
-  let meta: { name: string; group: string; logo: string } | null = null;
+  let meta: { name: string; group: string; logo: string; tvgId?: string } | null = null;
   let txtGroup = '';
   for (const raw of lines) {
     const line = raw.trim();
@@ -70,7 +72,7 @@ export function parseM3U(text: string): RawCh[] {
     if (line.startsWith('#EXTINF')) {
       const attr = (k: string): string => new RegExp(`${k}="([^"]*)"`, 'i').exec(line)?.[1] || '';
       const name = line.includes(',') ? line.slice(line.lastIndexOf(',') + 1).trim() : '';
-      meta = { name: name || attr('tvg-name'), group: attr('group-title'), logo: attr('tvg-logo') };
+      meta = { name: name || attr('tvg-name'), group: attr('group-title'), logo: attr('tvg-logo'), tvgId: attr('tvg-id') || undefined };
     } else if (line.startsWith('#EXTGRP:')) {
       if (meta && !meta.group) meta.group = line.slice(8).trim();
     } else if (line.startsWith('#')) {
@@ -100,7 +102,7 @@ function merge(all: { src: string; ch: RawCh[] }[]): LiveChannel[] {
       if (!c.name) continue;
       let e = map.get(c.name);
       if (!e) {
-        e = { name: c.name, group: c.group || '未分组', logo: c.logo, lines: [] };
+        e = { name: c.name, group: c.group || '未分组', logo: c.logo, tvgId: c.tvgId, lines: [] };
         map.set(c.name, e);
       }
       if (!e.logo && c.logo) e.logo = c.logo;
@@ -120,6 +122,9 @@ export async function fetchSource(s: LiveSource): Promise<string> {
 export function cacheSource(id: string, text: string): number {
   const ch = parseM3U(text);
   writeJson(CKEY + id, ch);
+  // 订阅头里带了节目单地址（x-tvg-url）且还没设置过 → 自动填上
+  const g = /(?:x-tvg-url|url-tvg)="([^"]+)"/i.exec(text.slice(0, 2000))?.[1]?.split(',')[0];
+  try { if (g && !localStorage.getItem('wemby-epg-url')) localStorage.setItem('wemby-epg-url', g.trim()); } catch { /* ignore */ }
   return ch.length;
 }
 

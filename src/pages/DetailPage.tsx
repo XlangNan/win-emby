@@ -6,6 +6,7 @@ import BackButton from '../components/BackButton';
 import HeroBackdrop from '../components/HeroBackdrop';
 import HScrollRow from '../components/HScrollRow';
 import MediaCard from '../components/MediaCard';
+import IntroDbCard from '../components/IntroDbCard';
 import NfDetail from '../components/NfDetail';
 import PlayOptions, { type PlayChoice } from '../components/PlayOptions';
 import { backdropUrl, emby, personUrl, posterUrl, thumbUrl } from '../emby/client';
@@ -201,6 +202,7 @@ export default function DetailPage() {
         resumeSec={resumeSec}
         similar={similar.data || []}
         onChoice={setChoice}
+        extra={isSeries ? <IntroDbCard tmdbId={it.ProviderIds?.Tmdb || ''} eps={eps.data || []} /> : undefined}
       />
       {tip && <div className="we-toast" role="status">{tip}</div>}
       </div>

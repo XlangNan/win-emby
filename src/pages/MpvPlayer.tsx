@@ -10,7 +10,7 @@ import { openMpv, type MpvSession } from '../lib/mpv';
 import { androidBridge, isAndroid } from '../lib/platform';
 import DanmakuLayer from '../components/DanmakuLayer';
 import { fetchDanmaku, loadDanmaku, saveDanmaku, type Dm } from '../lib/danmaku';
-import { fetchIntroDb, type IntroInfo } from '../lib/introdb';
+import { fetchIntroDb, introDbOn, type IntroInfo } from '../lib/introdb';
 import { loadPlayPrefs, savePlayPrefs, setTrackMemory } from '../lib/prefs';
 import { applySubStyle, loadSubStyle, saveSubStyle, SUB_DEFAULT, type SubStyle } from '../lib/substyle';
 import { pickInitialTracks } from '../lib/tracks';
@@ -142,7 +142,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     void (async () => {
       try {
         const tid = ep ? (item.SeriesId ? (await emby.item(item.SeriesId)).ProviderIds?.Tmdb : '') : item.ProviderIds?.Tmdb;
-        if (tid && !dead) { const r = await fetchIntroDb(tid, ep ? item.ParentIndexNumber ?? 1 : undefined, ep ? item.IndexNumber : undefined); if (!dead) setIdb(r); }
+        if (tid && !dead && introDbOn()) { const r = await fetchIntroDb(tid, ep ? item.ParentIndexNumber ?? 1 : undefined, ep ? item.IndexNumber : undefined); if (!dead) setIdb(r); }
       } catch { /* 查不到就算了 */ }
     })();
     const c = loadDanmaku();
@@ -611,7 +611,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       )}
       {hud && <div className="we-hud">{hud}</div>}
 
-      <DanmakuLayer list={dmList} getTime={() => (pausedRef.current ? posRef.current : posRef.current + ((performance.now() - posAt.current) / 1000) * rateRef.current)} size={dmCfg.size} speed={dmCfg.speed} opacity={dmCfg.opacity} area={dmCfg.area} visible={dmCfg.on && scrub === null} />
+      <DanmakuLayer list={dmList} getTime={() => (pausedRef.current ? posRef.current : posRef.current + ((performance.now() - posAt.current) / 1000) * rateRef.current)} size={dmCfg.size} speed={dmCfg.speed} opacity={dmCfg.opacity} area={dmCfg.area} offset={dmCfg.offset} visible={dmCfg.on && scrub === null} />
       {(busy || caching) && !err && <div className="we-loading"><span className="spinner" aria-hidden="true" />{busy ? '正在加载…' : '缓冲中…'}</div>}
       {err && <div className="we-error">{err}</div>}
 
@@ -776,6 +776,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
                 <label className="we-dm-row">透明度<input type="range" min={20} max={100} value={Math.round(dmCfg.opacity * 100)} onChange={(e) => updDm({ opacity: Number(e.target.value) / 100 })} /></label>
                 <label className="we-dm-row">字号<input type="range" min={16} max={40} value={dmCfg.size} onChange={(e) => updDm({ size: Number(e.target.value) })} /></label>
                 <label className="we-dm-row">速度<input type="range" min={80} max={300} step={10} value={dmCfg.speed} onChange={(e) => updDm({ speed: Number(e.target.value) })} /></label>
+                <label className="we-dm-row">上下位置<input type="range" min={0} max={40} value={Math.round(dmCfg.offset * 100)} onChange={(e) => updDm({ offset: Number(e.target.value) / 100 })} /></label>
                 <div className="we-dm-row">区域{[0.25, 0.5, 0.75, 1].map((a) => <button key={a} type="button" className={`we-dm-chip${dmCfg.area === a ? ' on' : ''}`} onClick={() => updDm({ area: a })}>{a === 1 ? '全屏' : `${a * 100}%`}</button>)}</div>
               </div>
             )}
