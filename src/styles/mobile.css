@@ -291,3 +291,9 @@ html.android body { font-size: 15px; }
 .m-lib i { position: absolute; inset: 0; background: linear-gradient(0deg, rgba(0, 0, 0, .8), transparent 65%); }
 .m-lib b { position: absolute; left: 14px; bottom: 28px; font-size: 20px; text-shadow: 0 2px 8px rgba(0, 0, 0, .7); }
 .m-lib span { position: absolute; left: 14px; bottom: 10px; font-size: 12px; color: #ccc; }
+
+/* 详情：圆按钮与下方文字贴紧 */
+:root.android[data-shell] .nfd-circles { align-items: flex-start !important; }
+:root.android[data-shell] .nfd-act { gap: 2px !important; justify-content: flex-start; height: auto; }
+:root.android[data-shell] .nfd-circle { margin: 0 !important; min-height: 0 !important; height: 40px !important; line-height: 1 !important; flex: none; }
+:root.android[data-shell] .nfd-act-l { margin: 0 !important; line-height: 1.2 !important; padding: 0 !important; }

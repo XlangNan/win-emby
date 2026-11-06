@@ -11,6 +11,7 @@ export default function MobileHero({ items, onOpen, onPlay }: { items: EmbyItem[
   const [dragging, setDragging] = useState(false);
   const [favs, setFavs] = useState<Record<string, boolean>>({});
   const box = useRef<HTMLDivElement>(null);
+  const moved = useRef(false);
   const t0 = useRef<{ x: number; y: number; lock: '' | 'h' | 'v' } | null>(null);
 
   useEffect(() => setIdx(0), [key]);
@@ -24,6 +25,7 @@ export default function MobileHero({ items, onOpen, onPlay }: { items: EmbyItem[
   if (!list.length) return null;
 
   const onTs = (e: React.TouchEvent): void => {
+    moved.current = false;
     t0.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, lock: '' };
   };
   const onTm = (e: React.TouchEvent): void => {
@@ -36,6 +38,7 @@ export default function MobileHero({ items, onOpen, onPlay }: { items: EmbyItem[
     }
     if (s.lock === 'h') {
       setDragging(true);
+      moved.current = true;
       // 两端加一点阻尼
       const edge = (idx === 0 && dx > 0) || (idx === list.length - 1 && dx < 0);
       setDrag(edge ? dx * 0.3 : dx);
@@ -71,18 +74,18 @@ export default function MobileHero({ items, onOpen, onPlay }: { items: EmbyItem[
             const logo = logoUrl(it);
             const tags = [...(it.Genres || []).slice(0, 3), it.Type === 'Series' ? '' : ''].filter(Boolean);
             return (
-              <div key={it.Id} className="mh-slide">
-                {Math.abs(i - idx) <= 1 && <img className="mh-img" src={backdropUrl(it, 1000) || thumbUrl(it, 1000) || posterUrl(it, 800)} alt="" draggable={false} onClick={() => onOpen(it)} />}
+              <div key={it.Id} className="mh-slide" onClick={() => { if (!moved.current) onOpen(it); }}>
+                {Math.abs(i - idx) <= 1 && <img className="mh-img" src={backdropUrl(it, 1000) || thumbUrl(it, 1000) || posterUrl(it, 800)} alt="" draggable={false} />}
                 <div className="mh-shade" />
                 <div className="mh-info">
                   {logo ? <img className="mh-logo" src={logo} alt={it.Name} /> : <div className="mh-title">{it.Name}</div>}
                   <div className="mh-tags">{tags.length ? tags.join(' · ') : it.ProductionYear || ''}</div>
                   <div className="mh-btns">
-                    <button className="mh-play" onClick={() => onPlay(it)}>
+                    <button className="mh-play" onClick={(e) => { e.stopPropagation(); onPlay(it); }}>
                       <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" /></svg>
                       播放
                     </button>
-                    <button className="mh-list" onClick={() => toggleFav(it)}>
+                    <button className="mh-list" onClick={(e) => { e.stopPropagation(); toggleFav(it); }}>
                       <span aria-hidden="true">{isFav(it) ? '✓' : '＋'}</span>
                       {isFav(it) ? '已收藏' : '收藏'}
                     </button>
