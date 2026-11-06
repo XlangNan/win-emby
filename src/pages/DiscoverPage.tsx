@@ -1,6 +1,6 @@
 // 片库（MoviePilot 风格）：顶部分类标签 + 横向海报行，数据直接取自 TMDB。
 // 海报悬停显示评分 / 简介和「订阅」按钮，点击进详情。订阅交给追更服务（kuakego-plus）。
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import HScrollRow from '../components/HScrollRow';
 import TmdbImg from '../components/TmdbImg';
@@ -8,9 +8,12 @@ import { emby } from '../emby/client';
 import { kgReady, kgTasks, type KgTask } from '../lib/kg';
 import { mpMediaKey, mpReady, mpSubs, type MpSub } from '../lib/mp';
 import { TABS, embyTmdbIndex, tmdbReady, tmdbSearch, type Page, type RowDef, type TmdbItem } from '../lib/tmdb';
-import { useAsync } from '../lib/useAsync';
+import { useAsync, useCachedAsync } from '../lib/useAsync';
 
 const TAB_KEY = 'wemby-disc-tab';
+
+/** 片库页状态缓存在内存里：离开再回来，停在上次的分类 / 搜索 / 滚动位置，不重新加载 */
+const mem: { scroll: Record<string, number>; kw: string; q: string; page: Page | null; pageNo: number } = { scroll: {}, kw: '', q: '', page: null, pageNo: 1 };
 
 /** 已入库 / 已订阅状态（整页共用，只查一次） */
 export function useStatus(): { have: Set<string>; subs: Map<string, KgTask[]>; mps: Map<string, MpSub[]>; anySub: (k: string) => boolean; reload: () => void } {
@@ -60,7 +63,7 @@ export function PosterCard({ it, have, subbed }: { it: TmdbItem; have: boolean; 
 
 function Row({ def, status }: { def: RowDef; status: ReturnType<typeof useStatus> }) {
   const nav = useNavigate();
-  const d = useAsync(() => def.load(1), [def.id]);
+  const d = useCachedAsync(`disc-row:${def.id}`, () => def.load(1));
   return (
     <section className="mp-sec">
       <div className="mp-sec-head">
@@ -88,10 +91,12 @@ function Row({ def, status }: { def: RowDef; status: ReturnType<typeof useStatus
 export default function DiscoverPage() {
   const nav = useNavigate();
   const [tab, setTab] = useState(() => localStorage.getItem(TAB_KEY) || 'rec');
-  const [q, setQ] = useState('');
-  const [kw, setKw] = useState('');
-  const [page, setPage] = useState<Page | null>(null);
-  const [pageNo, setPageNo] = useState(1);
+  const [q, setQ] = useState(mem.q);
+  const [kw, setKw] = useState(mem.kw);
+  const [page, setPage] = useState<Page | null>(mem.page);
+  const [pageNo, setPageNo] = useState(mem.pageNo);
+  const box = useRef<HTMLDivElement>(null);
+  const first = useRef(true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const ready = tmdbReady();
@@ -112,10 +117,25 @@ export default function DiscoverPage() {
     }
   };
   useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      if (kw && mem.page) return; // 回来时直接用缓存的搜索结果
+    }
     if (kw) void run(kw, 1);
     else setPage(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kw]);
+  useEffect(() => {
+    mem.kw = kw;
+    mem.q = q;
+    mem.page = page;
+    mem.pageNo = pageNo;
+  }, [kw, q, page, pageNo]);
+  const skey = kw ? `kw:${kw}` : tab;
+  useLayoutEffect(() => {
+    if (box.current) box.current.scrollTop = mem.scroll[skey] || 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [skey, ready]);
 
   const pick = (id: string): void => {
     setTab(id);
@@ -143,7 +163,7 @@ export default function DiscoverPage() {
           <button type="submit">搜索</button>
         </form>
       </div>
-      <div className="content">
+      <div className="content" ref={box} onScroll={(e) => { mem.scroll[skey] = e.currentTarget.scrollTop; }}>
         {!ready ? (
           <div className="empty">
             还没有填 TMDB API Key，片库的数据直接来自 TMDB。

@@ -1,5 +1,5 @@
 // 媒体库：分页网格 + 排序 / 类型 / 筛选
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import BackButton from '../components/BackButton';
 import MediaCard from '../components/MediaCard';
@@ -7,6 +7,7 @@ import { emby } from '../emby/client';
 import type { EmbyItem } from '../emby/types';
 import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
 import { useAsync } from '../lib/useAsync';
+import { categoryOf, classifyMissing, UNKNOWN } from '../lib/category';
 
 const PAGE = 60;
 
@@ -32,19 +33,30 @@ function typesFor(collectionType?: string): string {
   return 'Movie,Series,BoxSet,Video';
 }
 
+/** 媒体库页缓存：离开再回来，停在上次的排序 / 筛选 / 已加载的列表 / 滚动位置，不重新加载 */
+interface LibMem { sort: string; filter: string; genre: string; items: EmbyItem[]; total: number; scroll: number }
+const libMem = new Map<string, LibMem>();
+
 export default function LibraryPage() {
   const { id = '' } = useParams();
+  const hit0 = libMem.get(id);
+  const hit = useRef(!!hit0 && hit0.items.length > 0);
+  const box = useRef<HTMLDivElement>(null);
   const view = useAsync(async () => (await emby.views()).find((v) => v.Id === id) || null, [id]);
   const genres = useAsync(() => emby.genres(id).catch(() => [] as string[]), [id]);
-  const [sort, setSort] = useState('added');
-  const [filter, setFilter] = useState('all');
-  const [genre, setGenre] = useState('');
+  const [sort, setSort] = useState(hit0?.sort || 'added');
+  const [filter, setFilter] = useState(hit0?.filter || 'all');
+  const [genre, setGenre] = useState(hit0?.genre || '');
   const [size, setSize] = useState(loadPlayPrefs().posterSize);
-  const [items, setItems] = useState<EmbyItem[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [sizeOpen, setSizeOpen] = useState(false);
+  const [items, setItems] = useState<EmbyItem[]>(hit0?.items || []);
+  const [total, setTotal] = useState(hit0?.total || 0);
+  const [loading, setLoading] = useState(!hit0?.items.length);
   const [err, setErr] = useState('');
   const seq = useRef(0);
+  const [cat, setCat] = useState('');
+  const [catTick, setCatTick] = useState(0);
+  const [allItems, setAllItems] = useState<EmbyItem[] | null>(null);
 
   const fetchPage = (start: number, reset: boolean): void => {
     const my = ++seq.current;
@@ -74,13 +86,46 @@ export default function LibraryPage() {
   // 切库 / 改排序筛选 → 回到第一页
   useEffect(() => {
     if (view.loading) return;
+    if (hit.current) { // 回到之前的页面：用缓存，不重新请求
+      hit.current = false;
+      return;
+    }
     setItems([]);
     fetchPage(0, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, sort, filter, genre, view.loading]);
 
+  useEffect(() => {
+    if (items.length) libMem.set(id, { sort, filter, genre, items, total, scroll: libMem.get(id)?.scroll || 0 });
+  }, [id, sort, filter, genre, items, total]);
+  useLayoutEffect(() => {
+    if (hit0 && box.current) box.current.scrollTop = hit0.scroll;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 分类：片库里全部电影 / 剧集（轻量取一遍），后台按 TMDB 补全分类，结果缓存在本机
+  const isMedia = ['movies', 'tvshows', undefined, '', 'mixed'].includes(view.data?.CollectionType);
+  useEffect(() => {
+    if (view.loading || !isMedia) return;
+    let dead = false;
+    emby.items({ parentId: id, types: typesFor(view.data?.CollectionType), sortBy: 'DateCreated', sortOrder: 'Descending', start: 0, limit: 10000, extraFields: 'ProviderIds' })
+      .then((r) => { if (dead) return; setAllItems(r.Items); void classifyMissing(r.Items, () => !dead && setCatTick((n) => n + 1)); })
+      .catch(() => undefined);
+    return () => { dead = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, view.loading]);
+  const catCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    (allItems || []).forEach((it) => { const c = categoryOf(it); m.set(c, (m.get(c) || 0) + 1); });
+    return m;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allItems, catTick]);
+  const catList = [...catCounts.keys()].filter((c) => c !== UNKNOWN).sort((a, b) => (catCounts.get(b) || 0) - (catCounts.get(a) || 0));
+  if (catCounts.has(UNKNOWN)) catList.push(UNKNOWN);
+  const shown = cat && allItems ? allItems.filter((it) => categoryOf(it) === cat) : null;
+
   const title = view.data?.Name || '媒体库';
-  const more = items.length < total;
+  const more = !shown && items.length < total;
 
   return (
     <>
@@ -89,11 +134,20 @@ export default function LibraryPage() {
         <h3 style={{ margin: 0, whiteSpace: 'nowrap', flexShrink: 0 }}>{title}</h3>
         <span className="muted" style={{ fontSize: 12, whiteSpace: 'nowrap', flexShrink: 0 }}>{total ? `${total} 项` : ''}</span>
         <span style={{ flex: 1 }} />
-        <label className="muted" style={{ fontSize: 12, whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }} title="海报大小">
-          海报
-          <input type="range" min={90} max={260} step={10} value={size} aria-label="海报大小"
-            onChange={(e) => { const v = Number(e.target.value); setSize(v); savePlayPrefs({ posterSize: v }); }} style={{ width: 90 }} />
-        </label>
+        <span style={{ position: 'relative', flexShrink: 0 }}>
+          <button type="button" aria-label="调整海报大小" aria-expanded={sizeOpen} title="海报大小" onClick={() => setSizeOpen((v) => !v)}
+            style={{ padding: '6px 10px', fontSize: 13 }}>▦</button>
+          {sizeOpen && (
+            <>
+              <div style={{ position: 'fixed', inset: 0, zIndex: 30 }} onClick={() => setSizeOpen(false)} />
+              <div style={{ position: 'absolute', right: 0, top: '110%', zIndex: 31, background: '#1f1f1f', border: '1px solid rgba(255,255,255,.12)', borderRadius: 10, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 8px 24px rgba(0,0,0,.5)' }}>
+                <span className="muted" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>海报</span>
+                <input type="range" min={90} max={260} step={10} value={size} aria-label="海报大小"
+                  onChange={(e) => { const v = Number(e.target.value); setSize(v); savePlayPrefs({ posterSize: v }); }} style={{ width: 130 }} />
+              </div>
+            </>
+          )}
+        </span>
         <select style={{ maxWidth: 130, minWidth: 0 }} value={sort} onChange={(e) => setSort(e.target.value)} aria-label="排序">
           {SORTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
         </select>
@@ -102,7 +156,7 @@ export default function LibraryPage() {
           {(genres.data || []).filter((g) => g.length <= 12).map((g) => <option key={g} value={g}>{g}</option>)}
         </select>
       </div>
-      <div className="content">
+      <div className="content" ref={box} onScroll={(e) => { const c = libMem.get(id); if (c) c.scroll = e.currentTarget.scrollTop; }}>
         <div className="quick-picks" role="group" aria-label="筛选" style={{ marginBottom: 12 }}>
           {FILTERS.map((f) => (
             <button key={f.id} className={`tag ${filter === f.id ? 'active' : ''}`} aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
@@ -110,6 +164,14 @@ export default function LibraryPage() {
             </button>
           ))}
         </div>
+        {catList.length > 0 && (
+          <div className="we-cats" role="group" aria-label="分类">
+            <button type="button" className={`tag${cat === '' ? ' active' : ''}`} onClick={() => setCat('')}>全部</button>
+            {catList.map((c) => (
+              <button key={c} type="button" className={`tag${cat === c ? ' active' : ''}`} onClick={() => setCat(c)}>{c} {catCounts.get(c)}</button>
+            ))}
+          </div>
+        )}
         {err ? (
           <div className="err">{err}<button style={{ marginLeft: 10 }} onClick={() => fetchPage(0, true)}>重试</button></div>
         ) : items.length === 0 && loading ? (
@@ -118,8 +180,8 @@ export default function LibraryPage() {
           <div className="empty">没有符合条件的内容</div>
         ) : (
           <>
-            <div className="grid" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${size}px, 1fr))` }}>
-              {items.map((it) => <MediaCard key={it.Id} it={it} />)}
+            <div className="grid" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${size}px, 1fr))`, ['--cols' as string]: Math.max(2, Math.min(5, Math.round(window.innerWidth / (size + 20)))) }}>
+              {(shown || items).map((it) => <MediaCard key={it.Id} it={it} />)}
             </div>
             {more && (
               <div className="row" style={{ justifyContent: 'center', marginTop: 16 }}>

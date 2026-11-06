@@ -9,6 +9,8 @@ export interface AndroidBridge {
   setFullscreen(on: boolean): void;
   setBrightness(v: number): void;
   getBrightness(): number;
+  getSysVolume(): number;
+  setSysVolume(v: number): void;
   exit(): void;
 }
 

@@ -1,4 +1,4 @@
-/* Win-Emby 新增样式：全部使用皮肤令牌（var(--*)），四套皮肤下自动适配 */
+/* Weave 新增样式：全部使用皮肤令牌（var(--*)），四套皮肤下自动适配 */
 
 /* ---- 卡片：进度条 / 已看角标 ---- */
 .we-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(0, 0, 0, .45); }
@@ -227,7 +227,7 @@ html.mpv-on, html.mpv-on body, html.mpv-on #root { background: transparent !impo
 .we-live-n { position: absolute; right: 34px; bottom: 4px; font-size: 10px; }
 .we-live-star { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); background: none; border: none; box-shadow: none; padding: 4px 6px; color: var(--accent); }
 .we-filebtn { display: inline-flex; align-items: center; padding: 0 14px; border-radius: var(--radius-sm); cursor: pointer; background: var(--surface-3); border: 1px solid var(--border-soft); white-space: nowrap; }
-.we-chlist { position: absolute; left: 12px; top: 64px; bottom: 80px; width: 250px; z-index: 4; display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; background: rgba(14, 14, 18, .93); border: 1px solid rgba(255, 255, 255, .16); }
+.we-chlist { position: absolute; left: 12px; top: 56px; bottom: 76px; width: 190px; z-index: 4; display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; background: rgba(14, 14, 18, .93); border: 1px solid rgba(255, 255, 255, .16); }
 .we-chlist-head { padding: 10px 12px; font-size: 12px; color: rgba(255, 255, 255, .75); border-bottom: 1px solid rgba(255, 255, 255, .1); }
 .we-chlist-body { flex: 1; overflow: auto; padding: 4px; }
 .we-player.hide-ui .we-chlist { opacity: 0; pointer-events: none; }
@@ -353,3 +353,119 @@ html.android .we-btn { min-width: 44px; height: 44px; }
 html.android .we-seek { height: 14px; }
 html.android .we-top { padding-top: max(12px, env(safe-area-inset-top)); }
 html.android .we-volgrp { display: none; } /* 手机用手势调音量 */
+.nfd-circles { display: flex; align-items: center; gap: 12px; }
+.nfd-act { display: contents; }
+.nfd-act-l { display: none; }
+
+/* 演员页 */
+.we-cast-link { cursor: pointer; }
+.we-cast-link:hover .we-cast-name { color: var(--accent); }
+.we-person { display: flex; gap: 20px; align-items: flex-start; padding: 8px 0 18px; }
+.we-person-img { width: 140px; height: 140px; border-radius: 50%; object-fit: cover; flex: none; background: var(--surface-3); }
+.we-person-info { min-width: 0; flex: 1; }
+.we-person-info h2 { margin: 6px 0 4px; font-size: 24px; }
+.we-person-meta { font-size: 13px; margin-bottom: 10px; }
+.we-person-ov { font-size: 14px; line-height: 1.6; color: var(--text-dim); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+.we-person-ov.open { -webkit-line-clamp: unset; display: block; }
+.we-person-more { margin-top: 6px; padding: 0; border: none; background: none; box-shadow: none; color: var(--accent); font-size: 13px; }
+.we-person-h { margin: 6px 0 12px; font-size: 17px; }
+
+/* ================= 播放器：网飞风格（电脑 + 手机共用）================= */
+.we-player { --accent: #f0414b; }
+.we-player .we-top { flex-wrap: nowrap; align-items: center; padding: 14px 20px 44px; background: linear-gradient(180deg, rgba(0, 0, 0, .8), rgba(0, 0, 0, 0)); }
+.we-player .we-bottom { padding: 56px 24px 16px; background: linear-gradient(0deg, rgba(0, 0, 0, .85), rgba(0, 0, 0, 0)); }
+.we-back { min-width: 40px; width: 40px; height: 40px; padding: 0; border-radius: 50%; }
+.we-titlebox { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.we-player .we-title { font-size: 17px; font-weight: 600; flex: none; }
+.we-subline { font-size: 11.5px; color: rgba(255, 255, 255, .6); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.we-center { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); display: flex; justify-content: center; align-items: center; gap: 64px; pointer-events: none; transition: opacity .3s ease; z-index: 6; }
+.we-player.hide-ui .we-center { opacity: 0; }
+.we-player.hide-ui .we-center .we-cbtn { pointer-events: none; }
+.we-cbtn { pointer-events: auto; width: 76px; height: 76px; padding: 0; border: none; border-radius: 50%; background: transparent; color: #fff; display: inline-flex; align-items: center; justify-content: center; box-shadow: none; text-shadow: none; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, .6)); }
+.we-cbtn:hover { background: rgba(255, 255, 255, .14); box-shadow: none; }
+.we-cplay { width: 96px; height: 96px; }
+.we-seekrow { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+.we-seekrow .we-seek { flex: 1; height: 22px; margin: 0; }
+.we-seek::before, .we-seek-buf, .we-seek-cur { height: 3px; border-radius: 0; }
+.we-seek:hover::before { height: 5px; }
+.we-seek:hover .we-seek-buf, .we-seek:hover .we-seek-cur { height: 5px; }
+.we-seek-dot { width: 14px; height: 14px; margin-left: -7px; box-shadow: 0 0 0 4px rgba(240, 65, 75, .25); }
+.we-seekrow .we-time { margin: 0; font-size: 14px; min-width: 52px; text-align: right; }
+.we-lbl { gap: 8px; padding: 0 12px; font-size: 14px; }
+.we-lbl > span { white-space: nowrap; }
+.we-menu-sep { height: 1px; margin: 4px 6px; background: rgba(255, 255, 255, .14); }
+.we-substyle { min-width: 250px; padding: 8px 12px 10px; cursor: default; }
+.we-ss { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; margin: 8px 0; }
+.we-ss input[type=range] { width: 100%; accent-color: var(--accent); background: none; border: none; padding: 0; }
+.we-ss-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
+.we-player .we-badge-hi { background: var(--accent); }
+
+/* 手机：中间按钮略小，底部按钮图标在上、文字在下，居中排布，和网飞手机端一致 */
+html.android .we-center { gap: 44px; }
+html.android .we-cbtn { width: 64px; height: 64px; }
+html.android .we-cbtn svg { width: 40px; height: 40px; }
+html.android .we-cplay { width: 80px; height: 80px; }
+html.android .we-cplay svg { width: 56px; height: 56px; }
+html.android .we-player .we-top { padding: max(14px, env(safe-area-inset-top)) 16px 40px; }
+html.android .we-player .we-bottom { padding: 48px 20px max(12px, env(safe-area-inset-bottom)); }
+html.android .we-ctrls { justify-content: center; gap: 6px; }
+html.android .we-ctrls > span[style] { display: none; }
+html.android .we-lbl { flex-direction: column; gap: 2px; height: auto; min-width: 64px; padding: 4px 8px; font-size: 11.5px; }
+html.android .we-menu { bottom: 62px; right: auto; left: 50%; transform: translateX(-50%); max-height: 56vh; }
+html.android .we-menu-wrap { position: static; }
+html.android .we-seek-dot { width: 16px; height: 16px; margin-left: -8px; }
+
+/* 窗口标题栏左上角：和手机一致的品牌字样 */
+.tb-brand, .we-wordmark { font-weight: 800; letter-spacing: .06em; color: var(--accent); }
+
+/* 进度条：可按住拖动，拖动时显示时间气泡 */
+.we-seek { touch-action: none; cursor: pointer; }
+.we-seek-buf, .we-seek-cur { transition: none; }
+.we-scrubtip { position: absolute; bottom: 24px; transform: translateX(-50%); padding: 3px 9px; border-radius: 6px; background: rgba(0, 0, 0, .78); color: #fff; font-size: 13px; font-variant-numeric: tabular-nums; pointer-events: none; white-space: nowrap; }
+html.android .we-seekrow .we-seek { height: 36px; }
+html.android .we-seek::before, html.android .we-seek-buf, html.android .we-seek-cur { height: 4px; }
+.we-livedot { margin-left: 8px; font-size: 12px; color: var(--accent); font-weight: 600; }
+html.android .we-chlist { left: 12px; top: 56px; bottom: 76px; width: min(190px, 34vw); }
+
+/* 播放器按钮：彻底去掉皮肤给按钮加的底色和边框，只留图标和文字（网飞风格） */
+.we-player .we-btn, .we-player .we-cbtn, .we-player .we-btn:hover, .we-player .we-cbtn:hover, .we-player .we-btn:active {
+  background: transparent !important; border: none !important; box-shadow: none !important; outline: none;
+}
+.we-player .we-btn:hover, .we-player .we-cbtn:hover { background: rgba(255, 255, 255, .14) !important; }
+html.android .we-player .we-btn:hover, html.android .we-player .we-cbtn:hover { background: transparent !important; }
+html.android .we-player .we-btn:active, html.android .we-player .we-cbtn:active { background: rgba(255, 255, 255, .16) !important; }
+html.android .we-volgrp { display: none !important; }
+/* 右侧信息抽屉盖在中间大按钮上面，不让按钮透出来 */
+.we-drawer { z-index: 9; }
+.we-player:has(.we-drawer) .we-center { opacity: 0; pointer-events: none; }
+.we-player:has(.we-drawer) .we-center .we-cbtn { pointer-events: none; }
+
+/* 详情页：已观看按钮的选中效果、更多菜单、提示条 */
+.nfd-circle.done { background: var(--accent); border-color: var(--accent); color: #fff; }
+.nfd-more-wrap { position: relative; }
+.nfd-more-mask { position: fixed; inset: 0; z-index: 40; }
+.nfd-more { position: absolute; z-index: 41; left: 0; bottom: 74px; min-width: 190px; padding: 6px; border-radius: 10px; background: #1f1f1f; border: 1px solid rgba(255, 255, 255, .12); box-shadow: 0 10px 30px rgba(0, 0, 0, .6); display: flex; flex-direction: column; }
+.nfd-more button { text-align: left; padding: 11px 12px; border: none; border-radius: 6px; background: transparent; box-shadow: none; color: #fff; font-size: 14px; white-space: nowrap; }
+.nfd-more button:hover:not(:disabled) { background: rgba(255, 255, 255, .1); }
+.nfd-more button:disabled { opacity: .4; }
+.we-toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 80; max-width: 86vw; padding: 10px 16px; border-radius: 8px; background: rgba(30, 30, 30, .95); color: #fff; font-size: 14px; box-shadow: 0 6px 20px rgba(0, 0, 0, .5); pointer-events: none; }
+html.android .nfd-more { left: auto; right: 0; }
+
+/* 弹幕层 */
+.we-danmaku { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+
+/* 片库分类标签 */
+.we-cats { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 12px; scrollbar-width: none; }
+.we-cats::-webkit-scrollbar { display: none; }
+.we-cats .tag { flex: none; white-space: nowrap; }
+.we-dm-row { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 13px; color: #ddd; }
+.we-dm-row input[type='range'] { flex: 1; min-width: 0; }
+.we-dm-chip { padding: 3px 8px !important; font-size: 12px; border-radius: 999px !important; background: transparent !important; border: 1px solid rgba(255, 255, 255, .4) !important; color: #fff !important; }
+.we-dm-chip.on { background: #fff !important; color: #000 !important; }
+
+/* 电脑版媒体页：封面卡片网格 */
+html:not(.android) .m-media { padding: 12px 24px 30px; }
+html:not(.android) .m-media-title { padding: 6px 4px 12px; }
+html:not(.android) .m-lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+html:not(.android) .m-lib { margin: 0; height: 180px; cursor: pointer; }
+html:not(.android) .m-lib:hover { outline: 2px solid var(--accent); }

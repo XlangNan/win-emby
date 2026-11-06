@@ -12,6 +12,7 @@ export default function MobileHero({ items, onOpen, onPlay }: { items: EmbyItem[
   const [favs, setFavs] = useState<Record<string, boolean>>({});
   const box = useRef<HTMLDivElement>(null);
   const moved = useRef(false);
+  const lastOpen = useRef(0);
   const t0 = useRef<{ x: number; y: number; lock: '' | 'h' | 'v' } | null>(null);
 
   useEffect(() => setIdx(0), [key]);
@@ -44,9 +45,21 @@ export default function MobileHero({ items, onOpen, onPlay }: { items: EmbyItem[
       setDrag(edge ? dx * 0.3 : dx);
     }
   };
-  const onTe = (): void => {
+  const openOnce = (it: EmbyItem): void => {
+    if (Date.now() - lastOpen.current < 600) return;
+    lastOpen.current = Date.now();
+    onOpen(it);
+  };
+  const onTe = (e: React.TouchEvent): void => {
     const s = t0.current;
     t0.current = null;
+    // 轻点：自己处理，不依赖浏览器合成的 click（安卓 WebView 有时第一下被吃掉）
+    if (s && !s.lock && !(e.target as HTMLElement).closest('button')) {
+      if (e.cancelable) e.preventDefault();
+      setDrag(0); setDragging(false);
+      openOnce(list[idx]);
+      return;
+    }
     if (s?.lock === 'h') {
       const w = box.current?.clientWidth || 360;
       if (drag < -w * 0.18 && idx < list.length - 1) setIdx(idx + 1);
@@ -65,7 +78,7 @@ export default function MobileHero({ items, onOpen, onPlay }: { items: EmbyItem[
 
   return (
     <section className="mh">
-      <div className="mh-card" ref={box} onTouchStart={onTs} onTouchMove={onTm} onTouchEnd={onTe} onTouchCancel={onTe}>
+      <div className="mh-card" ref={box} onTouchStart={onTs} onTouchMove={onTm} onTouchEnd={onTe} onTouchCancel={() => { t0.current = null; setDrag(0); setDragging(false); }}>
         <div
           className="mh-track"
           style={{ transform: `translateX(calc(${-idx * 100}% + ${drag}px))`, transition: dragging ? 'none' : 'transform 380ms cubic-bezier(.22,.8,.24,1)' }}
@@ -74,7 +87,7 @@ export default function MobileHero({ items, onOpen, onPlay }: { items: EmbyItem[
             const logo = logoUrl(it);
             const tags = [...(it.Genres || []).slice(0, 3), it.Type === 'Series' ? '' : ''].filter(Boolean);
             return (
-              <div key={it.Id} className="mh-slide" onClick={() => { if (!moved.current) onOpen(it); }}>
+              <div key={it.Id} className="mh-slide" onClick={() => { if (!moved.current) openOnce(it); }}>
                 {Math.abs(i - idx) <= 1 && <img className="mh-img" src={backdropUrl(it, 1000) || thumbUrl(it, 1000) || posterUrl(it, 800)} alt="" draggable={false} />}
                 <div className="mh-shade" />
                 <div className="mh-info">

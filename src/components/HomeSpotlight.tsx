@@ -55,6 +55,18 @@ export default function HomeSpotlight({
     return () => clearTimeout(t);
   }, [list.length, key, idx, go]);
   const stepBy = (d: 1 | -1): void => go((idx + d + list.length) % list.length, d);
+  // 手指左右滑动切换
+  const t0 = useRef<{ x: number; y: number } | null>(null);
+  const onTs = (e: React.TouchEvent): void => {
+    t0.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  };
+  const onTe = (e: React.TouchEvent): void => {
+    const s = t0.current;
+    t0.current = null;
+    if (!s || list.length < 2) return;
+    const dx = e.changedTouches[0].clientX - s.x, dy = e.changedTouches[0].clientY - s.y;
+    if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) stepBy(dx < 0 ? 1 : -1);
+  };
 
   if (!list.length) return null;
   const pos = idx % list.length;
@@ -66,7 +78,7 @@ export default function HomeSpotlight({
   const kind = cur.Type === 'Series' ? '剧集' : cur.Type === 'Episode' ? '单集' : '电影';
 
   return (
-    <section className="spot" aria-label="最近添加">
+    <section className="spot" aria-label="最近添加" onTouchStart={onTs} onTouchEnd={onTe}>
       <div className="spot-art" aria-hidden="true">
         {list.map((it, i) => {
           const src = artOf(it);

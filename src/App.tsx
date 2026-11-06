@@ -311,8 +311,8 @@ function AppShell() {
         <nav className="nf-nav">
           <span className="nf-logo" title="回到首页" role="button" tabIndex={0} style={{ cursor: 'pointer' }} onClick={() => nav('/')} onKeyDown={(e) => e.key === 'Enter' && nav('/')}>WEAVE</span>
           <div className="we-navlinks" onWheel={(e) => { e.currentTarget.scrollLeft += e.deltaY; }}>
-            {allNav.map((n) => (
-              <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => 'nf-link' + (isActive ? ' active' : '')}>
+            {[{ to: '/', label: '首页', end: true }, { to: '/media', label: '媒体' }, { to: '/live', label: '直播' }, { to: '/config', label: '设置' }].map((n) => (
+              <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => 'nf-link' + (isActive || (n.to === '/media' && loc.pathname.startsWith('/lib/')) ? ' active' : '')}>
                 {n.label}
               </NavLink>
             ))}

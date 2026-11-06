@@ -46,7 +46,15 @@ jobs:
 
       # 用同一张图标生成安卓启动图标（会写入 src-tauri/icons/android）
       - name: Generate icons
-        run: pnpm tauri icon src-tauri/icons/icon.png
+        run: |
+          pnpm tauri icon src-tauri/icons/icon.png
+          # 手机图标用「通栏底 + 缩小图案」的版本，适配各种形状的桌面图标遮罩
+          SRC=src-tauri/icons/android-src.png
+          test -f "$SRC" || SRC=src-tauri/icons/icon.png
+          pnpm tauri icon "$SRC" -o /tmp/aicons
+          mkdir -p src-tauri/icons/android
+          cp -rf /tmp/aicons/android/. src-tauri/icons/android/
+          ls src-tauri/icons/android
 
       - name: Install NDK
         run: |
@@ -75,6 +83,9 @@ jobs:
       - name: Patch Android project
         run: node scripts/android-patch.mjs
 
+      - name: Show minSdk
+        run: grep -rn "minSdk" src-tauri/gen/android/app/build.gradle.kts || true
+
       - name: Build APK
         run: pnpm tauri android build --apk --target aarch64
 
@@ -85,16 +96,16 @@ jobs:
           BT="$ANDROID_HOME/build-tools/35.0.0"
           "$BT/zipalign" -f -p 4 "$APK" /tmp/aligned.apk
           mkdir -p out
-          "$BT/apksigner" sign --ks android/winemby.keystore --ks-pass pass:winemby2026 --key-pass pass:winemby2026 --ks-key-alias winemby --out out/Win-Emby.apk /tmp/aligned.apk
+          "$BT/apksigner" sign --ks android/winemby.keystore --ks-pass pass:winemby2026 --key-pass pass:winemby2026 --ks-key-alias winemby --out out/Weave.apk /tmp/aligned.apk
           ls -la out
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Win-Emby-android
-          path: out/Win-Emby.apk
+          name: Weave-android
+          path: out/Weave.apk
 
       - name: Publish release
         if: startsWith(github.ref, 'refs/tags/android-v')
         uses: softprops/action-gh-release@v2
         with:
-          files: out/Win-Emby.apk
+          files: out/Weave.apk

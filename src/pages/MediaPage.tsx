@@ -1,5 +1,6 @@
 // 手机「媒体」页：Emby 各媒体库，封面取自 Emby 媒体库自己的图片
 import { useNavigate } from 'react-router-dom';
+import { isAndroid } from '../lib/platform';
 import { emby, posterUrl, thumbUrl } from '../emby/client';
 import type { EmbyItem } from '../emby/types';
 import { loadPlayPrefs } from '../lib/prefs';
@@ -27,8 +28,16 @@ export default function MediaPage() {
   return (
     <div className="content m-media">
       <div className="m-media-title">媒体</div>
+      {!isAndroid && (
+        <div className="we-cats" style={{ padding: '0 16px 12px' }}>
+          <button type="button" className="tag" onClick={() => nav('/discover')}>🎞 片库（TMDB 发现）</button>
+          <button type="button" className="tag" onClick={() => nav('/favorites')}>⭐ 收藏</button>
+          <button type="button" className="tag" onClick={() => nav('/history')}>🕘 历史</button>
+        </div>
+      )}
       {loading && !data && <div className="empty"><span className="spinner" aria-hidden="true" />加载中…</div>}
       {error && <div className="err">{error}<button style={{ marginLeft: 10 }} onClick={reload}>重试</button></div>}
+      <div className="m-lib-grid">
       {data?.map(({ v, n }) => {
         const img = v.ImageTags?.Primary ? posterUrl(v, 900) : thumbUrl(v, 900);
         return (
@@ -40,6 +49,7 @@ export default function MediaPage() {
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

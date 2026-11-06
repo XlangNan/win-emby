@@ -104,20 +104,49 @@ export default function DetailPage() {
       setFav(!next);
     }
   };
+  const [tip, setTip] = useState('');
+  useEffect(() => {
+    if (!tip) return;
+    const t = window.setTimeout(() => setTip(''), 2200);
+    return () => window.clearTimeout(t);
+  }, [tip]);
+  const refreshAll = (): void => {
+    item.reload();
+    eps.reload();
+  };
+  /** 整部 / 整个影片：标记已看 / 未看（未看同时清掉续播进度） */
   const togglePlayed = async (): Promise<void> => {
     const next = !played;
     setPlayed(next);
     try {
       await emby.setPlayed(id, next);
-    } catch {
+      if (!next) await emby.clearResume(id).catch(() => undefined);
+      setTip(next ? (isSeries ? '已把整部剧集标记为已观看' : '已标记为已观看') : (isSeries ? '已把整部剧集标记为未观看' : '已标记为未观看'));
+      refreshAll();
+    } catch (e) {
       setPlayed(!next);
+      setTip(`操作失败：${e instanceof Error ? e.message : String(e)}`);
+    }
+  };
+  /** 剧集里选中 / 续播的那一集单独标记 */
+  const markEp = async (ep: EmbyItem, on: boolean): Promise<void> => {
+    try {
+      await emby.setPlayed(ep.Id, on);
+      if (!on) await emby.clearResume(ep.Id).catch(() => undefined);
+      setTip(on ? '本集已标记为已观看' : '本集已标记为未观看');
+      refreshAll();
+    } catch (e) {
+      setTip(`操作失败：${e instanceof Error ? e.message : String(e)}`);
     }
   };
 
   const [choice, setChoice] = useState<PlayChoice | null>(null);
-  const play = (target?: EmbyItem): void => {
+  const play = (target?: EmbyItem, fromStart = false): void => {
     const t = target || (isSeries ? selEp || resumeEp : it || undefined);
-    if (t) nav(`/player/${t.Id}${choice && choice.itemId === t.Id ? choice.query : ''}`);
+    if (!t) return;
+    let q = choice && choice.itemId === t.Id ? choice.query : '';
+    if (fromStart) q += `${q ? '&' : '?'}from=0`;
+    nav(`/player/${t.Id}${q}`);
   };
 
   const backdrops = it ? [backdropUrl(it)].filter(Boolean) : [];
@@ -167,9 +196,13 @@ export default function DetailPage() {
         onFav={() => void toggleFav()}
         played={played}
         onPlayed={() => void togglePlayed()}
+        onFromStart={() => play(undefined, true)}
+        onMarkTarget={(on) => { const t = selEp || resumeEp; if (t) void markEp(t, on); }}
+        resumeSec={resumeSec}
         similar={similar.data || []}
         onChoice={setChoice}
       />
+      {tip && <div className="we-toast" role="status">{tip}</div>}
       </div>
     );
   }
@@ -223,9 +256,15 @@ export default function DetailPage() {
                       {playLabel}
                     </button>
                     {favBtn}
-                    <button type="button" className="fav-btn" aria-pressed={played} onClick={() => void togglePlayed()}>
-                      {played ? '✓ 已看' : '标为已看'}
+                    {resumeSec > 30 && <button type="button" className="fav-btn" onClick={() => play(undefined, true)}>从头播放</button>}
+                    <button type="button" className={`fav-btn${played ? ' active' : ''}`} aria-pressed={played} onClick={() => void togglePlayed()}>
+                      {played ? '✓ 已观看（点击标为未观看）' : '标记为已观看'}
                     </button>
+                    {isSeries && (selEp || resumeEp) && (
+                      <button type="button" className="fav-btn" onClick={() => void markEp((selEp || resumeEp)!, !(selEp || resumeEp)!.UserData?.Played)}>
+                        {(selEp || resumeEp)!.UserData?.Played ? '本集标为未观看' : '本集标为已观看'}
+                      </button>
+                    )}
                   </div>
                 )}
                 {isBox && <div className="row" style={{ marginTop: 14 }}>{favBtn}</div>}
@@ -290,7 +329,7 @@ export default function DetailPage() {
                 <div className="muted" style={{ marginBottom: 8 }}>演职员</div>
                 <HScrollRow style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 6 }}>
                   {cast.map((p) => (
-                    <div key={`${p.Id}-${p.Role}`} className="we-cast" title={p.Role ? `${p.Name} 饰 ${p.Role}` : p.Name}>
+                    <div key={`${p.Id}-${p.Role}`} className="we-cast we-cast-link" role="button" tabIndex={0} title={p.Role ? `${p.Name} 饰 ${p.Role}` : p.Name} onClick={() => nav(`/person/${p.Id}`)} onKeyDown={(e) => e.key === 'Enter' && nav(`/person/${p.Id}`)}>
                       {personUrl(p) ? <img src={personUrl(p)} loading="lazy" alt="" /> : <div className="we-cast-ph">{p.Name.slice(0, 1)}</div>}
                       <div className="we-cast-name">{p.Name}</div>
                       {p.Role && <div className="muted we-cast-role">{p.Role}</div>}
@@ -315,6 +354,7 @@ export default function DetailPage() {
           </>
         )}
       </div>
+      {tip && <div className="we-toast" role="status">{tip}</div>}
     </>
   );
 }

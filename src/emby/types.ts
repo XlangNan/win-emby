@@ -92,6 +92,7 @@ export interface EmbyItem {
   ParentBackdropItemId?: string;
   ParentBackdropImageTags?: string[];
   SeriesId?: string;
+  ProviderIds?: Record<string, string>;
   SeriesName?: string;
   SeriesPrimaryImageTag?: string;
   SeasonId?: string;

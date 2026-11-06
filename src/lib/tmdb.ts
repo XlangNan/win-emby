@@ -240,3 +240,15 @@ export async function embyTmdbIndex(load: () => Promise<Set<string>>): Promise<S
   idxCache = { at: Date.now(), ids };
   return ids;
 }
+
+
+/** 分类用的精简信息（类型编号 / 出品国 / 原语言） */
+export interface TmdbBrief { genres: number[]; countries: string[]; lang: string }
+export async function tmdbBrief(media: 'movie' | 'tv', id: number): Promise<TmdbBrief> {
+  const d = await tmdb<{ genres?: { id: number }[]; origin_country?: string[]; production_countries?: { iso_3166_1: string }[]; original_language?: string }>(`/${media}/${id}`);
+  return {
+    genres: (d.genres || []).map((g) => g.id),
+    countries: d.origin_country?.length ? d.origin_country : (d.production_countries || []).map((c) => c.iso_3166_1),
+    lang: d.original_language || '',
+  };
+}

@@ -3,13 +3,15 @@ import { useEffect, useState } from 'react';
 import { emby } from '../emby/client';
 import { getSession, listAccounts, removeAccount, sameAccount, saveSession } from '../emby/session';
 import type { EmbyItem, Session } from '../emby/types';
-import { applyTheme, useTheme } from '../lib/theme';
+import { isAndroid } from '../lib/platform';
 import { applyFont, FONT_PRESETS, loadFont } from '../lib/font';
+import { loadDanmaku, saveDanmaku, testDanmaku } from '../lib/danmaku';
 import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
 import { kg, loadKg, saveKg } from '../lib/kg';
 import { loadMp, mp, saveMp } from '../lib/mp';
+import { BUILD_ID } from '../lib/version';
+import { HOSTS_TEMPLATE, loadHostsText, saveHostsText } from '../lib/net';
 import { loadTmdb, saveTmdb, tmdbSearch } from '../lib/tmdb';
-import { ALL_THEMES, THEME_LABELS } from '../lib/themeTokens';
 
 const LANGS: [string, string][] = [
   ['', '跟随文件默认'], ['chi', '中文 / 国语'], ['yue', '粤语'], ['eng', '英语'], ['jpn', '日语'], ['kor', '韩语'],
@@ -131,14 +133,54 @@ function HomeLibs({ prefs, set }: { prefs: ReturnType<typeof loadPlayPrefs>; set
   );
 }
 
+function HeroSettings({ prefs, set }: { prefs: ReturnType<typeof loadPlayPrefs>; set: (p: Partial<ReturnType<typeof loadPlayPrefs>>) => void }) {
+  const [views, setViews] = useState<EmbyItem[]>([]);
+  useEffect(() => { emby.views().then(setViews).catch(() => undefined); }, []);
+  const all = prefs.heroLibs.length === 0;
+  const toggle = (id: string): void => {
+    const cur = new Set(prefs.heroLibs);
+    if (cur.has(id)) cur.delete(id); else cur.add(id);
+    set({ heroLibs: [...cur] });
+  };
+  const chip = (on: boolean, label: string, fn: () => void): React.ReactNode => (
+    <button key={label} type="button" className={`tag ${on ? 'active' : ''}`} aria-pressed={on} onClick={fn}>{label}</button>
+  );
+  return (
+    <div className="card we-set" style={{ marginBottom: 14 }}>
+      <h3>首页轮播</h3>
+      <div className="we-set-row">
+        <span>显示轮播</span>
+        <input type="checkbox" checked={prefs.heroOn} onChange={(e) => set({ heroOn: e.target.checked })} />
+      </div>
+      <div className="muted" style={{ fontSize: 12, margin: '8px 0 6px' }}>来源媒体库（可多选）</div>
+      <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+        {chip(all, '全部', () => set({ heroLibs: [] }))}
+        {views.map((v) => chip(prefs.heroLibs.includes(v.Id), v.Name, () => toggle(v.Id)))}
+      </div>
+      <div className="muted" style={{ fontSize: 12, margin: '12px 0 6px' }}>内容</div>
+      <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+        {chip(prefs.heroMode === 'latest', '最近添加', () => set({ heroMode: 'latest' }))}
+        {chip(prefs.heroMode === 'random', '随机推荐', () => set({ heroMode: 'random' }))}
+        {chip(prefs.heroMode === 'resume', '继续观看', () => set({ heroMode: 'resume' }))}
+      </div>
+      <div className="muted" style={{ fontSize: 12, margin: '12px 0 6px' }}>数量</div>
+      <div className="row" style={{ gap: 8 }}>
+        {[6, 10, 12].map((n) => chip(prefs.heroCount === n, String(n), () => set({ heroCount: n })))}
+      </div>
+    </div>
+  );
+}
+
 /** TMDB 设置：片库数据直接来自 TMDB，国内访问需要代理 */
 function TmdbSettings() {
   const [c, setC] = useState(loadTmdb);
   const [adv, setAdv] = useState(false);
+  const [hosts, setHosts] = useState(loadHostsText);
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const test = async (): Promise<void> => {
     saveTmdb(c);
+    saveHostsText(hosts);
     setBusy(true);
     setMsg('');
     try {
@@ -158,7 +200,24 @@ function TmdbSettings() {
       </div>
       <div style={{ display: 'grid', gap: 8 }}>
         <input type="password" value={c.apiKey} onChange={(e) => setC({ ...c, apiKey: e.target.value })} placeholder="TMDB API Key / 读访问令牌" spellCheck={false} />
-        <input value={c.proxy} onChange={(e) => setC({ ...c, proxy: e.target.value })} placeholder="代理（HTTP），如 http://127.0.0.1:7890；留空 = 直连" spellCheck={false} />
+        <input value={c.proxy} onChange={(e) => setC({ ...c, proxy: e.target.value })} placeholder="代理，如 http://127.0.0.1:7890 或 socks5://127.0.0.1:7891；留空 = 直连" spellCheck={false} />
+        {isAndroid && (
+          <>
+            <div className="muted" style={{ fontSize: 12 }}>
+              手机上没有代理时，可以在这里写 hosts（域名 → IP，IPv4 / IPv6 都行）。填了代理就以代理为准，hosts 不再生效。
+            </div>
+            <textarea
+              value={hosts}
+              onChange={(e) => setHosts(e.target.value)}
+              rows={6}
+              spellCheck={false}
+              autoCapitalize="off"
+              placeholder={HOSTS_TEMPLATE}
+              style={{ width: '100%', boxSizing: 'border-box', fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: 12.5, padding: 8, borderRadius: 8, background: 'var(--surface-3)', color: 'inherit', border: '1px solid var(--border-soft)', resize: 'vertical' }}
+            />
+            <div><button type="button" onClick={() => setHosts((t) => (t.trim() ? t : HOSTS_TEMPLATE))}>插入示例</button></div>
+          </>
+        )}
         {adv && (
           <>
             <input value={c.apiBase} onChange={(e) => setC({ ...c, apiBase: e.target.value })} placeholder="API 地址（默认 https://api.themoviedb.org/3）" spellCheck={false} />
@@ -201,6 +260,33 @@ function KgSettings() {
         <input value={c.url} onChange={(e) => setC({ ...c, url: e.target.value })} placeholder="地址，如 192.168.1.10:8088" spellCheck={false} />
         <input value={c.username} onChange={(e) => setC({ ...c, username: e.target.value })} placeholder="用户名（默认 admin）" spellCheck={false} />
         <input type="password" value={c.password} onChange={(e) => setC({ ...c, password: e.target.value })} placeholder="密码（WEBUI_PASSWORD）" />
+        <div className="row" style={{ gap: 10, alignItems: 'center' }}>
+          <button className="primary" disabled={busy || !c.url.trim()} onClick={() => void test()}>{busy ? '连接中…' : '保存并测试连接'}</button>
+          {msg && <span className="muted" style={{ fontSize: 12 }}>{msg}</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DanmakuSettings() {
+  const [c, setC] = useState(loadDanmaku);
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  const test = async (): Promise<void> => {
+    saveDanmaku(c);
+    setBusy(true);
+    setMsg('');
+    try { setMsg(`${await testDanmaku(c)}，已保存`); } catch (e) { setMsg(e instanceof Error ? e.message : String(e)); } finally { setBusy(false); }
+  };
+  return (
+    <div className="card we-set" style={{ marginBottom: 14 }}>
+      <h3>弹幕</h3>
+      <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>播放时按片名自动匹配并加载 B 站、腾讯、爱奇艺、优酷等平台的弹幕。填弹幕聚合服务的地址（兼容弹弹play 接口，如自建的 danmu_api）；如果服务地址里带 token，一起填进去，如 http://192.168.1.10:9321/你的token。</div>
+      <div style={{ display: 'grid', gap: 8 }}>
+        <input value={c.url} onChange={(e) => setC({ ...c, url: e.target.value })} placeholder="服务地址，如 192.168.1.10:9321" spellCheck={false} />
+        <input value={c.appId} onChange={(e) => setC({ ...c, appId: e.target.value })} placeholder="AppId（用弹弹play 官方才需要，自建可留空）" spellCheck={false} />
+        <input type="password" value={c.appSecret} onChange={(e) => setC({ ...c, appSecret: e.target.value })} placeholder="AppSecret（同上）" />
         <div className="row" style={{ gap: 10, alignItems: 'center' }}>
           <button className="primary" disabled={busy || !c.url.trim()} onClick={() => void test()}>{busy ? '连接中…' : '保存并测试连接'}</button>
           {msg && <span className="muted" style={{ fontSize: 12 }}>{msg}</span>}
@@ -273,7 +359,6 @@ function FontSettings() {
 }
 
 export default function ConfigPage() {
-  const theme = useTheme();
   const [prefs, setPrefs] = useState(loadPlayPrefs);
   const set = (p: Partial<typeof prefs>): void => setPrefs(savePlayPrefs(p));
 
@@ -282,23 +367,14 @@ export default function ConfigPage() {
       <div className="topbar"><h3 style={{ margin: 0 }}>设置</h3></div>
       <div className="content">
         <Accounts />
+        <HeroSettings prefs={prefs} set={set} />
         <HomeLibs prefs={prefs} set={set} />
         <TmdbSettings />
         <KgSettings />
         <MpSettings />
+        <DanmakuSettings />
 
         <FontSettings />
-
-        <div className="card we-set" style={{ marginBottom: 14 }}>
-          <h3>界面皮肤</h3>
-          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-            {ALL_THEMES.map((t) => (
-              <button key={t} className={`tag ${theme === t ? 'active' : ''}`} aria-pressed={theme === t} onClick={() => applyTheme(t)}>
-                {THEME_LABELS[t]}
-              </button>
-            ))}
-          </div>
-        </div>
 
         <div className="card we-set">
           <h3>播放</h3>
@@ -363,6 +439,7 @@ export default function ConfigPage() {
             <input type="checkbox" checked={prefs.autoNext} onChange={(e) => set({ autoNext: e.target.checked })} />
           </label>
         </div>
+        <div className="muted" style={{ textAlign: 'center', fontSize: 12, padding: '14px 0 6px' }}>织影 · 版本编号 {BUILD_ID}</div>
       </div>
     </>
   );
