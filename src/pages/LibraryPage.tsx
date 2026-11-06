@@ -47,6 +47,7 @@ export default function LibraryPage() {
   const [filter, setFilter] = useState(hit0?.filter || 'all');
   const [genre, setGenre] = useState(hit0?.genre || '');
   const [size, setSize] = useState(loadPlayPrefs().posterSize);
+  const [sizeOpen, setSizeOpen] = useState(false);
   const [items, setItems] = useState<EmbyItem[]>(hit0?.items || []);
   const [total, setTotal] = useState(hit0?.total || 0);
   const [loading, setLoading] = useState(!hit0?.items.length);
@@ -108,11 +109,20 @@ export default function LibraryPage() {
         <h3 style={{ margin: 0, whiteSpace: 'nowrap', flexShrink: 0 }}>{title}</h3>
         <span className="muted" style={{ fontSize: 12, whiteSpace: 'nowrap', flexShrink: 0 }}>{total ? `${total} 项` : ''}</span>
         <span style={{ flex: 1 }} />
-        <label className="muted" style={{ fontSize: 12, whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }} title="海报大小">
-          海报
-          <input type="range" min={90} max={260} step={10} value={size} aria-label="海报大小"
-            onChange={(e) => { const v = Number(e.target.value); setSize(v); savePlayPrefs({ posterSize: v }); }} style={{ width: 90 }} />
-        </label>
+        <span style={{ position: 'relative', flexShrink: 0 }}>
+          <button type="button" aria-label="调整海报大小" aria-expanded={sizeOpen} title="海报大小" onClick={() => setSizeOpen((v) => !v)}
+            style={{ padding: '6px 10px', fontSize: 13 }}>▦</button>
+          {sizeOpen && (
+            <>
+              <div style={{ position: 'fixed', inset: 0, zIndex: 30 }} onClick={() => setSizeOpen(false)} />
+              <div style={{ position: 'absolute', right: 0, top: '110%', zIndex: 31, background: '#1f1f1f', border: '1px solid rgba(255,255,255,.12)', borderRadius: 10, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 8px 24px rgba(0,0,0,.5)' }}>
+                <span className="muted" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>海报</span>
+                <input type="range" min={90} max={260} step={10} value={size} aria-label="海报大小"
+                  onChange={(e) => { const v = Number(e.target.value); setSize(v); savePlayPrefs({ posterSize: v }); }} style={{ width: 130 }} />
+              </div>
+            </>
+          )}
+        </span>
         <select style={{ maxWidth: 130, minWidth: 0 }} value={sort} onChange={(e) => setSort(e.target.value)} aria-label="排序">
           {SORTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
         </select>

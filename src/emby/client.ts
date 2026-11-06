@@ -92,6 +92,8 @@ export interface ListOpts {
   providerId?: string;
   /** 某位演职员参与的作品 */
   personIds?: string;
+  /** 按 ID 列表取 */
+  ids?: string;
 }
 
 export const emby = {
@@ -139,6 +141,7 @@ export const emby = {
       AnyProviderIdEquals: o.providerId,
       Genres: o.genres,
       PersonIds: o.personIds,
+      Ids: o.ids,
       Fields: o.extraFields ? `${LIST_FIELDS},${o.extraFields}` : LIST_FIELDS,
       ImageTypeLimit: 1,
       EnableImageTypes: 'Primary,Backdrop,Thumb',

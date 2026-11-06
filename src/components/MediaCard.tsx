@@ -43,8 +43,9 @@ export default function MediaCard({
       role="button"
       tabIndex={0}
       title={cardTitle(it)}
-      onClick={open}
+      onClick={(e) => { if (!e.currentTarget.contains(e.target as Node)) return; open(); }}
       onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           open();

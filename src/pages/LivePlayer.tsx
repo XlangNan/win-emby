@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { openMpv, type MpvSession } from '../lib/mpv';
 import { loadChannels, loadFavs, type LiveChannel } from '../lib/live';
 import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
-import { isAndroid } from '../lib/platform';
+import { androidBridge, isAndroid } from '../lib/platform';
 import { winClose, winIsFullscreen, winMinimize, winSetFullscreen, winToggleMax } from '../lib/win';
 
 export default function LivePlayer() {
@@ -194,9 +194,52 @@ export default function LivePlayer() {
 
   const showUi = uiShown || paused;
 
+  // 安卓触屏：单击显隐控制条 / 左侧竖滑亮度 / 右侧竖滑系统音量
+  const [hud, setHud] = useState('');
+  const hudTimer = useRef<number | null>(null);
+  const showHud = (t: string): void => {
+    setHud(t);
+    if (hudTimer.current) window.clearTimeout(hudTimer.current);
+    hudTimer.current = window.setTimeout(() => setHud(''), 900);
+  };
+  const tg = useRef<{ x: number; y: number; w: number; h: number; mode: '' | 'vol' | 'bri'; base: number; val: number } | null>(null);
+  const onTouchStart = (e: React.TouchEvent): void => {
+    const t = e.touches[0];
+    const r = e.currentTarget.getBoundingClientRect();
+    tg.current = { x: t.clientX - r.left, y: t.clientY, w: r.width, h: r.height, mode: '', base: 0, val: 0 };
+  };
+  const onTouchMove = (e: React.TouchEvent): void => {
+    const g = tg.current;
+    if (!g) return;
+    const t = e.touches[0];
+    const dy = t.clientY - g.y;
+    if (!g.mode) {
+      if (Math.abs(dy) <= 12) return;
+      if (g.x < g.w / 2) { g.mode = 'bri'; g.base = androidBridge()?.getBrightness() ?? 0.5; }
+      else { g.mode = 'vol'; g.base = (androidBridge()?.getSysVolume() ?? 0.5) * 100; }
+    }
+    if (g.mode === 'vol') {
+      g.val = Math.max(0, Math.min(100, g.base - (dy / g.h) * 130));
+      androidBridge()?.setSysVolume(g.val / 100);
+      showHud(`音量 ${Math.round(g.val)}%`);
+    } else {
+      g.val = Math.max(0.02, Math.min(1, g.base - (dy / g.h) * 1.3));
+      androidBridge()?.setBrightness(g.val);
+      showHud(`亮度 ${Math.round(g.val * 100)}%`);
+    }
+  };
+  const onTouchEnd = (e: React.TouchEvent): void => {
+    e.preventDefault();
+    const g = tg.current;
+    tg.current = null;
+    if (!g || g.mode) return;
+    if (showUi && !paused) setUiShown(false); else poke();
+  };
+
   return (
     <div className={`we-player mpv${showUi ? '' : ' hide-ui'}`} onMouseMove={poke}>
-      <div className="we-surface" onClick={() => { if (isAndroid) { if (showUi && !paused) setUiShown(false); else poke(); } else toggle(); }} onDoubleClick={() => { if (!isAndroid) void toggleFull(); }} />
+      <div className="we-surface" onClick={() => { if (!isAndroid) toggle(); }} onDoubleClick={() => { if (!isAndroid) void toggleFull(); }} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} />
+      {hud && <div className="we-hud">{hud}</div>}
       {busy && !err && <div className="we-loading"><span className="spinner" aria-hidden="true" />正在连接…</div>}
       {err && <div className="we-error">{err}</div>}
 
@@ -220,14 +263,8 @@ export default function LivePlayer() {
       </div>
 
       <div className="we-center" onClick={(e) => e.stopPropagation()}>
-        <button className="we-cbtn" title="上一个频道（↑）" aria-label="上一台" onClick={() => { step(-1); poke(); }}>
-          <svg width="44" height="44" viewBox="0 0 24 24"><path d="M18 5v14l-9-7 9-7ZM6 5h2.5v14H6z" fill="currentColor" /></svg>
-        </button>
         <button className="we-cbtn we-cplay" title="播放/暂停（空格）" aria-label={paused ? '播放' : '暂停'} onClick={toggle}>
           {paused ? <svg width="64" height="64" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" /></svg> : <svg width="64" height="64" viewBox="0 0 24 24"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z" fill="currentColor" /></svg>}
-        </button>
-        <button className="we-cbtn" title="下一个频道（↓）" aria-label="下一台" onClick={() => { step(1); poke(); }}>
-          <svg width="44" height="44" viewBox="0 0 24 24"><path d="M6 5v14l9-7-9-7Zm9.5 0H18v14h-2.5z" fill="currentColor" /></svg>
         </button>
       </div>
 
@@ -250,6 +287,12 @@ export default function LivePlayer() {
             <span className="we-volnum">{muted ? '静音' : Math.round(vol)}</span>
           </div>
           <span style={{ flex: 1 }} />
+        <button className="we-btn" title="上一个频道（↑）" aria-label="上一台" onClick={() => { step(-1); poke(); }}>
+          <svg width="24" height="24" viewBox="0 0 24 24"><path d="M18 5v14l-9-7 9-7ZM6 5h2.5v14H6z" fill="currentColor" /></svg>
+        </button>
+        <button className="we-btn" title="下一个频道（↓）" aria-label="下一台" onClick={() => { step(1); poke(); }}>
+          <svg width="24" height="24" viewBox="0 0 24 24"><path d="M6 5v14l9-7-9-7Zm9.5 0H18v14h-2.5z" fill="currentColor" /></svg>
+        </button>
           {ch && ch.lines.length > 1 && (
             <button className="we-btn we-lbl" title="换线路（Tab）" onClick={() => setLine((l) => (l + 1) % ch.lines.length)}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h12l-3-3M20 17H8l3 3" /></svg><span>换线路</span>

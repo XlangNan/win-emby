@@ -13,16 +13,11 @@ export interface ThemeLayout {
   cardWidth?: number;
 }
 
-export type Theme = 'netflix' | 'bilibili' | 'apple' | 'douban';
+export type Theme = 'netflix';
 
 export const DEFAULT_THEME: Theme = 'netflix';
 
-export const THEME_LABELS: Record<Theme, string> = {
-  netflix: '🎬 网飝',
-  bilibili: '📺 哔哔',
-  apple: '🍎 大果',
-  douban: '🫘 大豆',
-};
+export const THEME_LABELS: Record<Theme, string> = { netflix: '🎬 网飝' };
 
 interface SkinEntry {
   id: Theme;
@@ -32,9 +27,6 @@ interface SkinEntry {
 
 const SKINS: SkinEntry[] = [
   { id: 'netflix', base: 'dark', layout: { shell: 'topbar', detailStyle: 'cinema', discoverStyle: 'shelf', navHeight: 58, cardWidth: 176 } },
-  { id: 'bilibili', base: 'dark', layout: { shell: 'dualbar' } },
-  { id: 'apple', base: 'light', layout: { shell: 'sidebar', detailStyle: 'glass', discoverStyle: 'shelfWide', navHeight: 52, sideWidth: 212 } },
-  { id: 'douban', base: 'light', layout: { shell: 'pillbar', detailStyle: 'poster', discoverStyle: 'wall', filterStyle: 'card' } },
 ];
 
 export const ALL_THEMES: Theme[] = SKINS.map((s) => s.id);

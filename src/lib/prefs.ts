@@ -25,11 +25,17 @@ export interface PlayPrefs {
   autoSkipIntro: boolean;
   /** 媒体库海报宽度（px，最小列宽） */
   posterSize: number;
+  /** 首页轮播：开关 / 来源媒体库（空=全部）/ 内容 / 数量 */
+  heroOn: boolean;
+  heroLibs: string[];
+  heroMode: 'latest' | 'random' | 'resume';
+  heroCount: number;
 }
 
 const KEY = 'wemby-play-prefs';
 const DEFAULTS: PlayPrefs = { maxMbps: 0, hevc: false, autoNext: true, volume: 1, engine: 'mpv', hdr: true,
   hiddenLibs: [], libOrder: [], audioLang: '', subLang: '', rememberTracks: true, autoSkipIntro: false, posterSize: 138,
+  heroOn: true, heroLibs: [], heroMode: 'latest', heroCount: 10,
 };
 
 export function loadPlayPrefs(): PlayPrefs {

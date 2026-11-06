@@ -8,6 +8,7 @@ import TitleBar from './components/TitleBar';
 import { emby } from './emby/client';
 import { SESSION_EVENT, clearSession, getSession } from './emby/session';
 import ConfigPage from './pages/ConfigPage';
+import MediaPage from './pages/MediaPage';
 import PersonPage from './pages/PersonPage';
 import DetailPage from './pages/DetailPage';
 import DiscoverDetail from './pages/DiscoverDetail';
@@ -164,6 +165,7 @@ function AppShell() {
     <Routes>
       <Route element={<PageShell />}>
         <Route path="/" element={<HomePage />} />
+        <Route path="/media" element={<MediaPage />} />
         <Route path="/lib/:id" element={<LibraryPage />} />
         <Route path="/detail/:id" element={<DetailPage />} />
         <Route path="/person/:id" element={<PersonPage />} />

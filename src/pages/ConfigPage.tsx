@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { emby } from '../emby/client';
 import { getSession, listAccounts, removeAccount, sameAccount, saveSession } from '../emby/session';
 import type { EmbyItem, Session } from '../emby/types';
-import { applyTheme, useTheme } from '../lib/theme';
 import { isAndroid } from '../lib/platform';
 import { applyFont, FONT_PRESETS, loadFont } from '../lib/font';
 import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
@@ -12,7 +11,6 @@ import { loadMp, mp, saveMp } from '../lib/mp';
 import { BUILD_ID } from '../lib/version';
 import { HOSTS_TEMPLATE, loadHostsText, saveHostsText } from '../lib/net';
 import { loadTmdb, saveTmdb, tmdbSearch } from '../lib/tmdb';
-import { ALL_THEMES, THEME_LABELS } from '../lib/themeTokens';
 
 const LANGS: [string, string][] = [
   ['', '跟随文件默认'], ['chi', '中文 / 国语'], ['yue', '粤语'], ['eng', '英语'], ['jpn', '日语'], ['kor', '韩语'],
@@ -130,6 +128,44 @@ function HomeLibs({ prefs, set }: { prefs: ReturnType<typeof loadPlayPrefs>; set
         </div>
       ))}
       {!sorted.length && <div className="muted">加载中…</div>}
+    </div>
+  );
+}
+
+function HeroSettings({ prefs, set }: { prefs: ReturnType<typeof loadPlayPrefs>; set: (p: Partial<ReturnType<typeof loadPlayPrefs>>) => void }) {
+  const [views, setViews] = useState<EmbyItem[]>([]);
+  useEffect(() => { emby.views().then(setViews).catch(() => undefined); }, []);
+  const all = prefs.heroLibs.length === 0;
+  const toggle = (id: string): void => {
+    const cur = new Set(prefs.heroLibs);
+    if (cur.has(id)) cur.delete(id); else cur.add(id);
+    set({ heroLibs: [...cur] });
+  };
+  const chip = (on: boolean, label: string, fn: () => void): React.ReactNode => (
+    <button key={label} type="button" className={`tag ${on ? 'active' : ''}`} aria-pressed={on} onClick={fn}>{label}</button>
+  );
+  return (
+    <div className="card we-set" style={{ marginBottom: 14 }}>
+      <h3>首页轮播</h3>
+      <div className="we-set-row">
+        <span>显示轮播</span>
+        <input type="checkbox" checked={prefs.heroOn} onChange={(e) => set({ heroOn: e.target.checked })} />
+      </div>
+      <div className="muted" style={{ fontSize: 12, margin: '8px 0 6px' }}>来源媒体库（可多选）</div>
+      <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+        {chip(all, '全部', () => set({ heroLibs: [] }))}
+        {views.map((v) => chip(prefs.heroLibs.includes(v.Id), v.Name, () => toggle(v.Id)))}
+      </div>
+      <div className="muted" style={{ fontSize: 12, margin: '12px 0 6px' }}>内容</div>
+      <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+        {chip(prefs.heroMode === 'latest', '最近添加', () => set({ heroMode: 'latest' }))}
+        {chip(prefs.heroMode === 'random', '随机推荐', () => set({ heroMode: 'random' }))}
+        {chip(prefs.heroMode === 'resume', '继续观看', () => set({ heroMode: 'resume' }))}
+      </div>
+      <div className="muted" style={{ fontSize: 12, margin: '12px 0 6px' }}>数量</div>
+      <div className="row" style={{ gap: 8 }}>
+        {[6, 10, 12].map((n) => chip(prefs.heroCount === n, String(n), () => set({ heroCount: n })))}
+      </div>
     </div>
   );
 }
@@ -295,7 +331,6 @@ function FontSettings() {
 }
 
 export default function ConfigPage() {
-  const theme = useTheme();
   const [prefs, setPrefs] = useState(loadPlayPrefs);
   const set = (p: Partial<typeof prefs>): void => setPrefs(savePlayPrefs(p));
 
@@ -304,23 +339,13 @@ export default function ConfigPage() {
       <div className="topbar"><h3 style={{ margin: 0 }}>设置</h3></div>
       <div className="content">
         <Accounts />
+        <HeroSettings prefs={prefs} set={set} />
         <HomeLibs prefs={prefs} set={set} />
         <TmdbSettings />
         <KgSettings />
         <MpSettings />
 
         <FontSettings />
-
-        {!isAndroid && <div className="card we-set" style={{ marginBottom: 14 }}>
-          <h3>界面皮肤</h3>
-          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-            {ALL_THEMES.map((t) => (
-              <button key={t} className={`tag ${theme === t ? 'active' : ''}`} aria-pressed={theme === t} onClick={() => applyTheme(t)}>
-                {THEME_LABELS[t]}
-              </button>
-            ))}
-          </div>
-        </div>}
 
         <div className="card we-set">
           <h3>播放</h3>

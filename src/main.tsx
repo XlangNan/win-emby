@@ -9,9 +9,6 @@ import { initFont } from './lib/font';
 import './lib/platform';
 import './styles/global.css';
 import './styles/netflix.css';
-import './styles/bilibili.css';
-import './styles/apple.css';
-import './styles/douban.css';
 import './styles/app.css';
 import './styles/mobile.css';
 

@@ -6,6 +6,12 @@ import { listSources } from '../lib/live';
 
 const ICON = {
   home: <path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z" />,
+  media: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="m10 9 5 3-5 3V9Z" />
+    </>
+  ),
   disc: (
     <>
       <circle cx="12" cy="12" r="9" />
@@ -42,9 +48,9 @@ function Ico({ k }: { k: keyof typeof ICON }) {
 
 const TABS: { to: string; label: string; ico: keyof typeof ICON; end?: boolean; also?: string[] }[] = [
   { to: '/', label: '首页', ico: 'home', end: true },
+  { to: '/media', label: '媒体', ico: 'media', also: ['/lib'] },
   { to: '/discover', label: '片库', ico: 'disc' },
   { to: '/live', label: '直播', ico: 'live' },
-  { to: '/search', label: '搜索', ico: 'search' },
   { to: '/me', label: '我的', ico: 'me', also: ['/favorites', '/history', '/config'] },
 ];
 
@@ -70,12 +76,6 @@ export default function MobileShell({ views, routes }: { views: EmbyItem[]; rout
               <span className="m-brand" onClick={() => nav('/')}>WEAVE</span>
               <span style={{ flex: 1 }} />
               <button className="m-iconbtn" aria-label="搜索" onClick={() => nav('/search')}><Ico k="search" /></button>
-            </div>
-            <div className="m-chips">
-              <span className="m-chip active">全部</span>
-              {views.map((v) => (
-                <span key={v.Id} className="m-chip" role="button" onClick={() => nav(`/lib/${v.Id}`)}>{v.Name}</span>
-              ))}
             </div>
           </header>
         )}

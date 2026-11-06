@@ -66,6 +66,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const hideTimer = useRef<number | null>(null);
   const extSid = useRef<Map<number, number>>(new Map());
   const nextRef = useRef<EmbyItem | null>(null);
+  const exitRef = useRef<() => Promise<void>>(async () => {});
   nextRef.current = nextEp;
 
   const [busy, setBusy] = useState(true);
@@ -83,11 +84,17 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const [hw, setHw] = useState('');
   const [full, setFull] = useState(false);
   const [uiShown, setUiShown] = useState(true);
-  const [menu, setMenu] = useState<'' | 'audio' | 'sub' | 'speed' | 'eps' | 'substyle'>('');
+  const [menu, setMenu] = useState<'' | 'audio' | 'sub' | 'speed' | 'eps' | 'substyle' | 'sleep'>('');
   const seekRef = useRef<HTMLDivElement | null>(null);
   const [scrub, setScrub] = useState<number | null>(null);
   const [subStyle, setSubStyleState] = useState<SubStyle>(loadSubStyle);
   const [fps, setFps] = useState(0);
+  // 定时关闭（手机）：sleepAt=到点时间戳；sleepEnd=播完本集/本部后退出
+  const [sleepAt, setSleepAt] = useState(0);
+  const [sleepEnd, setSleepEnd] = useState(false);
+  const [sleepCustom, setSleepCustom] = useState('');
+  const sleepEndRef = useRef(false);
+  sleepEndRef.current = sleepEnd;
   const [vbr, setVbr] = useState(0);
   const autoSkipArmed = useRef(false);
   const pendingSub = useRef<MediaStream | null>(null);
@@ -174,7 +181,8 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           endedRef.current = true;
           void report('stop');
           const n = nextRef.current;
-          if (loadPlayPrefs().autoNext && n) nav(`/player/${n.Id}`, { replace: true });
+          if (sleepEndRef.current) void exitRef.current();
+          else if (loadPlayPrefs().autoNext && n) nav(`/player/${n.Id}`, { replace: true });
           else setUiShown(true);
         }
         break;
@@ -215,7 +223,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         playRef.current = { source: { ...psrc, MediaStreams: psrc.MediaStreams || src.MediaStreams }, playSessionId: info.PlaySessionId };
         const resume = ticksToSec(item.UserData?.PlaybackPositionTicks);
         const total = ticksToSec(item.RunTimeTicks);
-        const startSec = total && resume > total * 0.95 ? 0 : resume;
+        const startSec = qs.get('from') === '0' ? 0 : total && resume > total * 0.95 ? 0 : resume;
         const sess = await openMpv({ hdr: loadPlayPrefs().hdr, onProp: (n, d) => onPropRef.current(n, d) });
         if (dead) {
           await sess.close();
@@ -338,6 +346,21 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     if (window.history.length > 1) nav(-1);
     else nav('/', { replace: true });
   }, [nav, report]);
+  exitRef.current = exit;
+  useEffect(() => {
+    if (!sleepAt) return;
+    const t = window.setTimeout(() => { setSleepAt(0); void sessRef.current?.set('pause', 'yes'); void exitRef.current(); }, Math.max(0, sleepAt - Date.now()));
+    return () => window.clearTimeout(t);
+  }, [sleepAt]);
+  const setSleepMin = (m: number): void => { setSleepEnd(false); setSleepAt(m > 0 ? Date.now() + m * 60000 : 0); setMenu(''); };
+  const setSleepClock = (hhmm: string): boolean => {
+    const m = /^(\d{1,2})[:：](\d{2})$/.exec(hhmm.trim());
+    if (!m) return false;
+    const d = new Date(); d.setHours(Number(m[1]), Number(m[2]), 0, 0);
+    if (d.getTime() <= Date.now()) d.setDate(d.getDate() + 1);
+    setSleepEnd(false); setSleepAt(d.getTime()); setMenu('');
+    return true;
+  };
   const goNext = useCallback(() => {
     if (nextRef.current) nav(`/player/${nextRef.current.Id}`, { replace: true });
   }, [nav]);
@@ -583,9 +606,9 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
 
       {/* 中间大按钮：后退 10 秒 / 播放暂停 / 快进 10 秒 */}
       <div className="we-center" onClick={(e) => e.stopPropagation()}>
-        <button className="we-cbtn" title="后退 10 秒（←）" aria-label="后退 10 秒" onClick={() => { seekBy(-10); poke(); }}>
+        {isAndroid && (<button className="we-cbtn" title="后退 10 秒（←）" aria-label="后退 10 秒" onClick={() => { seekBy(-10); poke(); }}>
           <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4" /><text x="8.4" y="15.2" fontSize="6.6" fill="currentColor" stroke="none" fontWeight="700">10</text></svg>
-        </button>
+        </button>)}
         <button className="we-cbtn we-cplay" title="播放/暂停（空格）" aria-label={paused ? '播放' : '暂停'} onClick={toggle}>
           {paused ? (
             <svg width="64" height="64" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" /></svg>
@@ -593,9 +616,9 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
             <svg width="64" height="64" viewBox="0 0 24 24"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z" fill="currentColor" /></svg>
           )}
         </button>
-        <button className="we-cbtn" title="快进 10 秒（→）" aria-label="快进 10 秒" onClick={() => { seekBy(10); poke(); }}>
+        {isAndroid && (<button className="we-cbtn" title="快进 10 秒（→）" aria-label="快进 10 秒" onClick={() => { seekBy(10); poke(); }}>
           <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12a8 8 0 1 1-3-6.2M20 4v4h-4" /><text x="8.4" y="15.2" fontSize="6.6" fill="currentColor" stroke="none" fontWeight="700">10</text></svg>
-        </button>
+        </button>)}
       </div>
 
       {drawer && (
@@ -613,7 +636,6 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           跳过片头 ›
         </button>
       )}
-      {!showUi && <div className="we-thin"><div style={{ width: `${pct}%` }} /></div>}
 
       <div className="we-bottom" onClick={(e) => e.stopPropagation()} onMouseEnter={() => { hoverUi.current = true; }} onMouseLeave={() => { hoverUi.current = false; poke(); }}>
         <div className="we-seekrow">
@@ -655,7 +677,32 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           <span className="we-volnum">{muted ? '静音' : Math.round(vol)}</span>
           </div>
 
+          {!isAndroid && (<>
+        <button className="we-btn" title="后退 10 秒（←）" aria-label="后退 10 秒" onClick={() => { seekBy(-10); poke(); }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4" /><text x="8.4" y="15.2" fontSize="6.6" fill="currentColor" stroke="none" fontWeight="700">10</text></svg>
+        </button>
+        <button className="we-btn" title="快进 10 秒（→）" aria-label="快进 10 秒" onClick={() => { seekBy(10); poke(); }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12a8 8 0 1 1-3-6.2M20 4v4h-4" /><text x="8.4" y="15.2" fontSize="6.6" fill="currentColor" stroke="none" fontWeight="700">10</text></svg>
+        </button>
+          </>)}
           <span style={{ flex: 1 }} />
+          {isAndroid && (
+            <div className="we-menu-wrap">
+              <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'sleep' ? '' : 'sleep')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" /></svg><span>{sleepEnd ? (item?.Type === 'Episode' ? '播完本集' : '播完退出') : sleepAt ? '定时中' : '定时'}</span></button>
+              {menu === 'sleep' && (
+                <div className="we-menu" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+                  <div className={`we-menu-item${!sleepAt && !sleepEnd ? ' active' : ''}`} onClick={() => { setSleepEnd(false); setSleepAt(0); setMenu(''); }}>不开启</div>
+                  <div className={`we-menu-item${sleepEnd ? ' active' : ''}`} onClick={() => { setSleepAt(0); setSleepEnd(true); setMenu(''); }}>{item?.Type === 'Episode' ? '播完本集' : '播完本部电影'}</div>
+                  {[15, 30, 45, 60, 90].map((m) => <div key={m} className="we-menu-item" onClick={() => setSleepMin(m)}>{m} 分钟后</div>)}
+                  <div className="we-menu-item" style={{ display: 'flex', gap: 6, alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+                    <input value={sleepCustom} onChange={(e) => setSleepCustom(e.target.value)} placeholder="分钟 或 23:30" inputMode="text" style={{ width: 104, height: 30, fontSize: 13 }} />
+                    <button type="button" className="we-btn" style={{ fontSize: 13 }} onClick={() => { const v = sleepCustom.trim(); if (/^\d+$/.test(v) && Number(v) > 0) setSleepMin(Number(v)); else setSleepClock(v); }}>确定</button>
+                  </div>
+                  {sleepAt > 0 && <div className="we-menu-item" style={{ opacity: .7 }}>将于 {new Date(sleepAt).toTimeString().slice(0, 5)} 关闭</div>}
+                </div>
+              )}
+            </div>
+          )}
           {nextEp && (
             <button className="we-btn we-lbl" title="下一集（N）" onClick={goNext}>
               <svg width="22" height="22" viewBox="0 0 24 24"><path d="M6 5v14l9-7-9-7Zm10 0h2.5v14H16z" fill="currentColor" /></svg><span>下一集</span>

@@ -1,10 +1,10 @@
-// 手机首页主推卡：圆角竖版海报 + 底部居中的标题 / 类型 / 两个并排按钮；手指拖动跟手滑动切换。
+// 手机首页主推卡：圆角横版剧照 + 底部居中的标题 / 类型 / 两个并排按钮；手指拖动跟手滑动切换。
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { emby, logoUrl, posterUrl } from '../emby/client';
+import { backdropUrl, emby, logoUrl, posterUrl, thumbUrl } from '../emby/client';
 import type { EmbyItem } from '../emby/types';
 
 export default function MobileHero({ items, onOpen, onPlay }: { items: EmbyItem[]; onOpen: (it: EmbyItem) => void; onPlay: (it: EmbyItem) => void }) {
-  const list = useMemo(() => items.slice(0, 6), [items]);
+  const list = useMemo(() => items.slice(0, 12), [items]);
   const key = list.map((i) => i.Id).join('|');
   const [idx, setIdx] = useState(0);
   const [drag, setDrag] = useState(0);
@@ -72,7 +72,7 @@ export default function MobileHero({ items, onOpen, onPlay }: { items: EmbyItem[
             const tags = [...(it.Genres || []).slice(0, 3), it.Type === 'Series' ? '' : ''].filter(Boolean);
             return (
               <div key={it.Id} className="mh-slide">
-                {Math.abs(i - idx) <= 1 && <img className="mh-img" src={posterUrl(it, 800)} alt="" draggable={false} onClick={() => onOpen(it)} />}
+                {Math.abs(i - idx) <= 1 && <img className="mh-img" src={backdropUrl(it, 1000) || thumbUrl(it, 1000) || posterUrl(it, 800)} alt="" draggable={false} onClick={() => onOpen(it)} />}
                 <div className="mh-shade" />
                 <div className="mh-info">
                   {logo ? <img className="mh-logo" src={logo} alt={it.Name} /> : <div className="mh-title">{it.Name}</div>}
