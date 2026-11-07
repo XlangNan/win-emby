@@ -1,17 +1,19 @@
 // 首页：聚光卡 + 继续观看 / 下一集 / 各媒体库最近添加。
 // 版式随皮肤：shelf（网飝）/ shelfWide（大果）= 横向内容行；wall（大豆）= 分区 chip + 海报墙；其余 = 朴素横滚行。
-import { useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import HScrollRow from '../components/HScrollRow';
 import HomeSpotlight from '../components/HomeSpotlight';
 import MediaCard from '../components/MediaCard';
 import { emby } from '../emby/client';
 import type { EmbyItem } from '../emby/types';
-import { useAsync } from '../lib/useAsync';
+import { useCachedAsync } from '../lib/useAsync';
 import { useSkinLayout } from '../lib/theme';
 import { loadPlayPrefs } from '../lib/prefs';
 import { isAndroid } from '../lib/platform';
 import MobileHero from '../mobile/MobileHero';
+
+let homeScroll = 0;
 
 interface Section {
   id: string;
@@ -62,10 +64,34 @@ export default function HomePage() {
   const nf = layout.discoverStyle === 'shelf';
   const ap = layout.discoverStyle === 'shelfWide';
   const db = layout.discoverStyle === 'wall';
-  const { data, loading, error, reload } = useAsync(loadSections, []);
+  // 缓存首页数据（1 分钟内再进来直接用，之后后台刷新）+ 记住滚动位置：从详情返回回到原来的位置
+  const { data, loading, error, reload } = useCachedAsync('home', loadSections, 60 * 1000);
+  const box = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (box.current && homeScroll > 0) box.current.scrollTop = homeScroll;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!data]);
   const [wallSec, setWallSec] = useState(0);
 
-  const sections = data?.sections || [];
+  // 「继续观看 / 接着看」每次进首页都立刻重新取（很快），不受缓存影响
+  const [fresh, setFresh] = useState<{ resume: EmbyItem[]; next: EmbyItem[] } | null>(null);
+  useEffect(() => {
+    let dead = false;
+    Promise.all([emby.resume().catch(() => null), emby.nextUp().catch(() => null)]).then(([r, n]) => {
+      if (!dead && r && n) setFresh({ resume: r, next: n });
+    });
+    return () => { dead = true; };
+  }, []);
+  const sections: Section[] = (() => {
+    const base = data?.sections || [];
+    if (!fresh) return base;
+    const rest = base.filter((x) => x.id !== 'resume' && x.id !== 'next');
+    return [
+      ...(fresh.resume.length ? [{ id: 'resume', title: '继续观看', items: fresh.resume }] : []),
+      ...(fresh.next.length ? [{ id: 'next', title: '接着看下一集', items: fresh.next }] : []),
+      ...rest,
+    ];
+  })();
   const open = (it: EmbyItem): void => nav(`/detail/${it.Type === 'Episode' && it.SeriesId ? it.SeriesId : it.Id}`);
   const play = (it: EmbyItem): void => {
     if (it.Type === 'Series') nav(`/detail/${it.Id}`);
@@ -117,7 +143,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="content">
+    <div className="content" ref={box} onScroll={(e) => { homeScroll = e.currentTarget.scrollTop; }}>
       {isAndroid && <div className="m-home-top" />}
       {isAndroid && data && data.spot.length > 0 && <MobileHero items={data.spot} onOpen={open} onPlay={play} />}
       {!isAndroid && data && data.spot.length > 0 && <HomeSpotlight items={data.spot} landscape={nf && !isAndroid} onOpen={open} onPlay={play} />}
