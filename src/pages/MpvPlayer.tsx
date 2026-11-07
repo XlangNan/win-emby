@@ -914,11 +914,18 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
             )}
           </div>
 
-          <button className="we-btn" title="全屏（F）" onClick={() => void toggleFull()}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          {isAndroid ? (
+            <button className="we-btn we-lbl" title="旋转屏幕（横屏 / 竖屏）" onClick={() => void toggleFull()}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="7" y="3" width="10" height="18" rx="2" transform={full ? 'rotate(90 12 12)' : undefined} /><path d="M20 8a9 9 0 0 0-3-3.5M4 16a9 9 0 0 0 3 3.5M20 4v4h-4M4 20v-4h4" /></svg>
+              <span>{full ? '竖屏' : '横屏'}</span>
+            </button>
+          ) : (
+            <button className="we-btn" title="全屏（F）" onClick={() => void toggleFull()}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               {full ? <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /> : <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />}
             </svg>
-          </button>
+            </button>
+          )}
         </div>
       </div>
     </div>

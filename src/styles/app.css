@@ -561,3 +561,14 @@ html.android .we-upnext.up { bottom: 90px; }
 .we-sr-p { flex: none; width: 78px; text-align: center; cursor: pointer; font-size: 12px; }
 .we-sr-p img, .we-sr-ph { display: flex; width: 72px; height: 72px; margin: 0 auto 6px; border-radius: 50%; object-fit: cover; background: #2a2a2a; align-items: center; justify-content: center; font-size: 24px; }
 .we-sr-p span:last-child { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 手机竖屏播放：底部按钮排成 5 列网格，全部可见；弹窗改成贴在按钮上方的整行面板 */
+@media (orientation: portrait) {
+  html.android .we-player .we-bottom { padding-left: 12px; padding-right: 12px; }
+  html.android .we-ctrls { display: grid !important; grid-template-columns: repeat(5, 1fr); gap: 6px 0; justify-items: center; }
+  html.android .we-ctrls .we-lbl { min-width: 0; width: 100%; padding: 4px 2px; }
+  html.android .we-menu { position: fixed; left: 12px; right: 12px; bottom: 168px; width: auto; transform: none; max-height: 40vh; }
+  html.android .we-menu.we-dm { bottom: 168px !important; left: 12px !important; right: 12px !important; transform: none !important; width: auto !important; grid-template-columns: 1fr; }
+  html.android .we-upnext.up { bottom: 190px; }
+  html.android .we-skip.up { bottom: 190px; }
+}
