@@ -306,3 +306,10 @@ html.android .we-dm .we-menu-item { font-size: 12px; padding: 5px 6px; }
 html.android .we-dm .we-dm-row { padding: 4px 6px; font-size: 12px; gap: 6px; flex-wrap: nowrap; }
 html.android .we-dm .we-dm-row input[type='range'] { height: 22px; flex: 1 1 60px; min-width: 0; }
 html.android .we-dm .we-dm-chip { font-size: 11px; padding: 2px 7px !important; }
+
+/* 详情页三个圆按钮：统一大小、实心底、图标粗一些，文字对齐 */
+:root.android[data-shell] .nfd-circles { gap: 28px; padding: 4px 8px; align-items: flex-start !important; }
+:root.android[data-shell] .nfd-act, :root.android[data-shell] .nfd-more-wrap { display: flex !important; flex-direction: column; align-items: center; gap: 6px !important; width: 64px; }
+:root.android[data-shell] .nfd-circle { width: 50px !important; height: 50px !important; border-radius: 50%; background: rgba(255, 255, 255, .16) !important; border: none !important; color: #fff; display: flex; align-items: center; justify-content: center; }
+:root.android[data-shell] .nfd-circle.on:not(.done) { background: rgba(255, 255, 255, .28) !important; }
+:root.android[data-shell] .nfd-act-l { font-size: 12.5px !important; color: #e6e6e6 !important; font-weight: 500; text-align: center; white-space: nowrap; }

@@ -78,19 +78,19 @@ export default function NfDetail(p: NfDetailProps) {
             <div className="nfd-circles">
               <div className="nfd-act">
                 <button className={`nfd-circle${p.fav ? ' on' : ''}`} title={p.fav ? '已收藏' : '加入收藏'} aria-pressed={p.fav} onClick={p.onFav}>
-                  {p.fav ? '✓' : '＋'}
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{p.fav ? <path d="m5 12.5 4.5 4.5L19 7.5" /> : <path d="M12 5v14M5 12h14" />}</svg>
                 </button>
                 <span className="nfd-act-l">{p.fav ? '已收藏' : '收藏'}</span>
               </div>
               <div className="nfd-act">
                 <button className={`nfd-circle${p.played ? ' on done' : ''}`} title={p.played ? '已观看，点击标为未观看' : '标记为已观看'} aria-pressed={p.played} onClick={p.onPlayed}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={p.played ? 3 : 1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ opacity: p.played ? 1 : 0.7 }}><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
                 </button>
                 <span className="nfd-act-l" style={p.played ? { color: '#f0414b', fontWeight: 700 } : undefined}>{p.played ? '已观看' : '标为已看'}</span>
               </div>
               <div className="nfd-act nfd-more-wrap">
                 <button className={`nfd-circle${more ? ' on' : ''}`} title="更多操作" aria-haspopup="menu" aria-expanded={more} onClick={() => setMore((v) => !v)}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2.3" /><circle cx="12" cy="12" r="2.3" /><circle cx="19" cy="12" r="2.3" /></svg>
                 </button>
                 <span className="nfd-act-l">更多</span>
                 {more && (
