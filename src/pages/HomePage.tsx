@@ -75,13 +75,26 @@ export default function HomePage() {
 
   // 「继续观看 / 接着看」每次进首页都立刻重新取（很快），不受缓存影响
   const [fresh, setFresh] = useState<{ resume: EmbyItem[]; next: EmbyItem[] } | null>(null);
-  useEffect(() => {
-    let dead = false;
+  const refreshFresh = (): void => {
     Promise.all([emby.resume().catch(() => null), emby.nextUp().catch(() => null)]).then(([r, n]) => {
-      if (!dead && r && n) setFresh({ resume: r, next: n });
+      if (r && n) setFresh({ resume: r, next: n });
     });
-    return () => { dead = true; };
-  }, []);
+  };
+  useEffect(() => { refreshFresh(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  // 菜单操作后：先立刻把该项从「继续观看」拿掉（含缓存里的旧数据），再向服务器重新取
+  const changed = (info?: { id: string; remove?: boolean }): void => {
+    if (info?.remove) {
+      const id = info.id;
+      setFresh((f) => {
+        const cur = f || { resume: (data?.sections.find((x) => x.id === 'resume')?.items) || [], next: (data?.sections.find((x) => x.id === 'next')?.items) || [] };
+        return { resume: cur.resume.filter((x) => x.Id !== id), next: cur.next };
+      });
+      if (data) for (const sec of data.sections) if (sec.id === 'resume') sec.items = sec.items.filter((x) => x.Id !== id);
+      return;
+    }
+    refreshFresh();
+    reload();
+  };
   const sections: Section[] = (() => {
     const base = data?.sections || [];
     if (!fresh) return base;
@@ -112,7 +125,7 @@ export default function HomePage() {
           </div>
           <div className="grid db-wall-grid" key={`wall-${wallSec}`}>
             {(cur?.items || []).map((it) => (
-              <MediaCard key={it.Id} it={it} landscape={cur?.id === 'resume'} inResume={cur?.id === 'resume'} onChanged={reload} onOpen={(x) => (x.Type === 'Episode' ? play(x) : open(x))} />
+              <MediaCard key={it.Id} it={it} landscape={cur?.id === 'resume'} inResume={cur?.id === 'resume'} onChanged={changed} onOpen={(x) => (x.Type === 'Episode' ? play(x) : open(x))} />
             ))}
           </div>
         </div>
@@ -132,7 +145,7 @@ export default function HomePage() {
                 it={it}
                 landscape={s.id === 'resume'}
                 inResume={s.id === 'resume'}
-                onChanged={reload}
+                onChanged={changed}
                 onOpen={(x) => (s.id === 'resume' || s.id === 'next' ? play(x) : open(x))}
               />
             </div>

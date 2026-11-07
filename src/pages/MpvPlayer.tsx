@@ -9,6 +9,7 @@ import type { EmbyItem, MediaSource, MediaStream } from '../emby/types';
 import { openMpv, type MpvSession } from '../lib/mpv';
 import { androidBridge, isAndroid } from '../lib/platform';
 import { getManual, setManual } from '../lib/introManual';
+import { syncSeriesMarkers } from '../lib/markerSync';
 import DanmakuLayer from '../components/DanmakuLayer';
 import { fetchDanmaku, loadDanmaku, saveDanmaku, type Dm } from '../lib/danmaku';
 import { fetchIntroDb, introDbOn, type IntroInfo } from '../lib/introdb';
@@ -97,7 +98,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const [dmList, setDmList] = useState<Dm[]>([]);
   const [dmMsg, setDmMsg] = useState('');
   const [idb, setIdb] = useState<IntroInfo | null>(null);
-  const [manual, setManualS] = useState<{ st?: number; en?: number } | null>(null);
+  const [manual, setManualS] = useState<{ st?: number; en?: number; tail?: number } | null>(null);
   const [introTip, setIntroTip] = useState('');
   const [clock, setClockNow] = useState(() => new Date());
   const [sleepWarn, setSleepWarn] = useState(false);
@@ -608,12 +609,14 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const total = dur || ticksToSec(item?.RunTimeTicks);
   // 片尾：Emby 的「片尾」章节标记优先，没有再用 TheIntroDB
   const creditsAt = useMemo(() => {
+    const mm = getManual(item?.SeriesId);
+    if (mm?.tail != null && total > mm.tail) return total - mm.tail;
     const c = item?.Chapters?.find((x) => x.MarkerType === 'CreditsStart');
     if (c) return ticksToSec(c.StartPositionTicks);
     if (idb?.credits) return idb.credits.st;
     // 没有任何片尾标记：按整片比例（和 Emby 一样）
     return total > 0 && nextRef.current ? total * (loadPlayPrefs().creditsPct / 100) : null;
-  }, [item, idb, total]);
+  }, [item, idb, total, manual]);
   const inCredits = creditsAt != null && total > 0 && cur >= creditsAt && cur < total - 1;
   const skipCredits = (): void => {
     if (nextRef.current) goNext();
@@ -833,16 +836,34 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
               <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'intro' ? '' : 'intro')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 5v14l8-7-8-7Zm10 0v14" /></svg><span>片头</span></button>
               {menu === 'intro' && (
                 <div className="we-menu" onClick={(e) => e.stopPropagation()}>
-                  <div className="we-menu-head">跳过片头（整部剧通用）</div>
-                  <div className="we-menu-item" style={{ opacity: .75 }}>{intro ? `当前：${fmtDuration(intro.st)} – ${fmtDuration(intro.en)}` : '当前：没有片头数据'}{introTip ? `　${introTip}` : ''}</div>
+                  <div className="we-menu-head">片头 / 片尾（整部剧通用，自动同步到 Emby）</div>
+                  <div className="we-menu-item" style={{ opacity: .75 }}>{intro ? `片头：${fmtDuration(intro.st)} – ${fmtDuration(intro.en)}` : '片头：没有数据'}{creditsAt != null ? `　片尾：${fmtDuration(creditsAt)}` : ''}</div>
+                  {introTip && <div className="we-menu-item" style={{ opacity: .85 }}>{introTip}</div>}
                   <div className="we-menu-item" onClick={() => setManualS((m) => ({ ...m, st: posRef.current }))}>此刻 {fmtDuration(cur)} = 片头开始{manual?.st != null ? `（已选 ${fmtDuration(manual.st)}）` : ''}</div>
                   <div className="we-menu-item" onClick={() => setManualS((m) => ({ ...m, en: posRef.current }))}>此刻 {fmtDuration(cur)} = 片头结束{manual?.en != null ? `（已选 ${fmtDuration(manual.en)}）` : ''}</div>
+                  <div className="we-menu-item" onClick={() => setManualS((m) => ({ ...m, tail: Math.max(0, Math.round(total - posRef.current)) }))}>此刻 {fmtDuration(cur)} = 片尾开始{manual?.tail != null ? `（距结尾 ${fmtDuration(manual.tail)}）` : ''}</div>
                   <div className="we-menu-item" onClick={() => {
+                    const hasIntro = manual?.st != null || manual?.en != null;
                     const st = manual?.st ?? intro?.st ?? 0, en = manual?.en ?? intro?.en;
-                    if (!item?.SeriesId || en == null || en <= st) { setIntroTip('请先选好开始和结束'); return; }
-                    setManual(item.SeriesId, { st, en }); setManualS({ st, en }); setIntroTip('已应用到本剧所有集');
-                  }}>保存并应用到本剧所有集</div>
-                  <div className="we-menu-item" onClick={() => { if (item?.SeriesId) setManual(item.SeriesId, null); setManualS(null); setIntroTip('已清除手动设置'); }}>清除手动设置</div>
+                    const tail = manual?.tail;
+                    if (!item?.SeriesId) return;
+                    if (hasIntro && (en == null || en <= st)) { setIntroTip('片头：请先选好开始和结束'); return; }
+                    if (!hasIntro && tail == null) { setIntroTip('请先选好片头或片尾'); return; }
+                    const old = getManual(item.SeriesId);
+                    const next = { st: hasIntro ? st : old?.st ?? 0, en: hasIntro ? (en as number) : old?.en ?? 0, tail: tail ?? old?.tail };
+                    setManual(item.SeriesId, next); setManualS(next);
+                    setIntroTip('已保存，正在同步到 Emby…');
+                    syncSeriesMarkers(item.SeriesId, { st: hasIntro ? st : undefined, en: hasIntro ? en : undefined, tail: tail ?? undefined })
+                      .then((n) => setIntroTip(`已同步到 Emby：${n} 集`))
+                      .catch((e: unknown) => setIntroTip(`已保存在本机；同步 Emby 失败：${e instanceof Error ? e.message : '未知错误'}`));
+                  }}>保存并同步到本剧所有集</div>
+                  <div className="we-menu-item" onClick={() => {
+                    if (!item?.SeriesId) return;
+                    setManual(item.SeriesId, null); setManualS(null); setIntroTip('已清除本机设置，正在清除 Emby 标记…');
+                    syncSeriesMarkers(item.SeriesId, { st: null, en: null, tail: null })
+                      .then(() => setIntroTip('已清除（本机 + Emby）'))
+                      .catch(() => setIntroTip('已清除本机设置（Emby 未同步）'));
+                  }}>清除本剧标记（含 Emby）</div>
                 </div>
               )}
             </div>

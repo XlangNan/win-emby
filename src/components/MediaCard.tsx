@@ -17,7 +17,7 @@ export default function MediaCard({
   /** 在「继续观看」里：右键菜单多一项「移除」 */
   inResume?: boolean;
   /** 右键菜单改了已看/收藏后刷新列表 */
-  onChanged?: () => void;
+  onChanged?: (info?: { id: string; remove?: boolean }) => void;
 }) {
   const [menu, setMenu] = useState<MenuState | null>(null);
   const nav = useNavigate();
@@ -85,7 +85,7 @@ export default function MediaCard({
           onClose={() => setMenu(null)}
           onPlay={(x) => (x.Type === 'Series' || x.Type === 'Season' ? nav(`/detail/${x.Id}`) : nav(`/player/${x.Id}`))}
           onOpen={(x) => nav(`/detail/${x.Type === 'Episode' && x.SeriesId ? x.SeriesId : x.Id}`)}
-          onChanged={() => onChanged?.()}
+          onChanged={(i) => onChanged?.(i)}
         />
       )}
     </div>

@@ -18,7 +18,8 @@ export default function ItemMenu({
   onClose: () => void;
   onPlay: (it: EmbyItem) => void;
   onOpen: (it: EmbyItem) => void;
-  onChanged: () => void;
+  /** info.remove：该项应立刻从「继续观看」里消失（先乐观移除，服务器完成后会再无参调用一次以刷新） */
+  onChanged: (info?: { id: string; remove?: boolean }) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ x: state.x, y: state.y });
@@ -52,13 +53,14 @@ export default function ItemMenu({
     };
   }, [onClose]);
 
-  const run = (fn: () => Promise<void> | void): void => {
+  const run = (fn: () => Promise<void> | void, drop?: boolean): void => {
     onClose();
-    Promise.resolve(fn()).then(onChanged, onChanged);
+    if (drop && inResume) onChanged({ id: it.Id, remove: true });
+    Promise.resolve(fn()).then(() => onChanged(), () => onChanged());
   };
 
-  const row = (label: string, fn: () => Promise<void> | void, danger?: boolean): React.ReactNode => (
-    <div className={`we-ctx-item${danger ? ' danger' : ''}`} role="menuitem" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); e.preventDefault(); run(fn); }}>
+  const row = (label: string, fn: () => Promise<void> | void, danger?: boolean, drop?: boolean): React.ReactNode => (
+    <div className={`we-ctx-item${danger ? ' danger' : ''}`} role="menuitem" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); e.preventDefault(); run(fn, drop); }}>
       {label}
     </div>
   );
@@ -75,12 +77,12 @@ export default function ItemMenu({
       onContextMenu={(e) => e.preventDefault()}
     >
       {row('▶ 播放', () => onPlay(it))}
-      {it.Type !== 'Series' && it.Type !== 'Season' && !played && row(it.Type === 'Episode' ? '✓ 标记本集为已观看' : '✓ 标记为已观看', () => emby.setPlayed(it.Id, true))}
-      {(played || (it.UserData?.PlaybackPositionTicks || 0) > 0 || it.Type === 'Series') && row(it.Type === 'Episode' ? '○ 标记本集为未观看' : '○ 标记为未观看', async () => { await emby.setPlayed(it.Id, false); if ((it.UserData?.PlaybackPositionTicks || 0) > 0) await emby.clearResume(it.Id); })}
+      {it.Type !== 'Series' && it.Type !== 'Season' && !played && row(it.Type === 'Episode' ? '✓ 标记本集为已观看' : '✓ 标记为已观看', () => emby.setPlayed(it.Id, true), false, true)}
+      {(played || inResume || (it.UserData?.PlaybackPositionTicks || 0) > 0 || it.Type === 'Series') && row(it.Type === 'Episode' ? '○ 标记本集为未观看' : '○ 标记为未观看', async () => { await emby.setPlayed(it.Id, false); if ((it.UserData?.PlaybackPositionTicks || 0) > 0) await emby.clearResume(it.Id); }, false, true)}
       {it.Type === 'Series' && row('✓ 标记整部为已观看', () => emby.setPlayed(it.Id, true))}
       {row(fav ? '★ 取消收藏' : '☆ 加入收藏', () => emby.setFavorite(it.Id, !fav))}
       {row(it.Type === 'Episode' ? '▤ 查看剧集（标记已看 / 未看）' : 'ⓘ 查看详情', () => onOpen(it))}
-      {inResume && row('✕ 从继续观看中移除', () => emby.clearResume(it.Id), true)}
+      {inResume && row('✕ 从继续观看中移除', () => emby.clearResume(it.Id), true, true)}
     </div>,
     document.body,
   );

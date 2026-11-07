@@ -271,6 +271,14 @@ export const emby = {
     await api(on ? 'POST' : 'DELETE', `/Users/${s.userId}/PlayedItems/${id}`);
   },
 
+  /** 片头标记插件（EmbyStrmIntroMarker）：某部剧所有集及现有标记 */
+  async markerEpisodes(seriesId: string): Promise<unknown[]> {
+    return api<unknown[]>('GET', '/StrmIntroMarker/Episodes', { SeasonId: seriesId });
+  },
+  async markerBulk(items: Array<{ ItemId: string; IntroStart: number | null; IntroEnd: number | null; CreditsStart: number | null }>): Promise<{ AppliedCount: number; SkippedCount: number }> {
+    return api('POST', '/StrmIntroMarker/Markers/Bulk', undefined, { Items: items });
+  },
+
   /** 把影片从「继续观看」里移除（进度清零，不改已看状态） */
   async clearResume(id: string): Promise<void> {
     const s = need();
