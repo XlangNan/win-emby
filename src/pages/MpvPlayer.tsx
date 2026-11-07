@@ -98,6 +98,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const [dmList, setDmList] = useState<Dm[]>([]);
   const [dmMsg, setDmMsg] = useState('');
   const [idb, setIdb] = useState<IntroInfo | null>(null);
+  const synced = useRef(new Set<string>());
   const [manual, setManualS] = useState<{ st?: number; en?: number; tail?: number } | null>(null);
   const [introTip, setIntroTip] = useState('');
   const [clock, setClockNow] = useState(() => new Date());
@@ -146,6 +147,17 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     }
     return idb?.intro || null; // Emby 没有片头标记 → 用 TheIntroDB
   }, [item, idb, manual]);
+
+  // 本剧设置过片头/片尾规则：新增的集一播放就自动补写到 Emby（只补没有标记的集）
+  useEffect(() => {
+    if (!item || item.Type !== 'Episode' || !item.SeriesId) return;
+    const mm = getManual(item.SeriesId);
+    if (!mm || synced.current.has(item.SeriesId)) return;
+    const ch = item.Chapters || [];
+    if (ch.some((c) => c.MarkerType === 'IntroStart') && (mm.tail == null || ch.some((c) => c.MarkerType === 'CreditsStart'))) return;
+    synced.current.add(item.SeriesId);
+    syncSeriesMarkers(item.SeriesId, { st: mm.en > mm.st ? mm.st : undefined, en: mm.en > mm.st ? mm.en : undefined, tail: mm.tail, onlyMissing: true }).catch(() => undefined);
+  }, [item]);
 
   // TheIntroDB 片头时间 + 弹幕：都按 TMDB 编号 / 片名匹配
   useEffect(() => {

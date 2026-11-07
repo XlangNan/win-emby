@@ -8,6 +8,8 @@ export interface MarkerSet {
   en?: number | null;
   /** 片尾：距每集结尾多少秒开始（每集时长略有不同，按结尾倒数更准）；null = 清除；undefined = 保持原值 */
   tail?: number | null;
+  /** 只补没有标记的集（新增的集），不动已有的 */
+  onlyMissing?: boolean;
 }
 
 interface EpDto { Id: string; RuntimeSeconds?: number | null; IntroStart?: number | null; IntroEnd?: number | null; CreditsStart?: number | null }
@@ -21,10 +23,12 @@ export async function syncSeriesMarkers(seriesId: string, m: MarkerSet): Promise
     throw new Error('服务端没有装「片头标记插件」或没有权限');
   }
   if (!eps.length) throw new Error('插件没找到这部剧：请在插件里把这个媒体库勾进白名单');
-  const items = eps.map((e) => {
-    const pick = (v: number | null | undefined, old: number | null | undefined): number | null => (v === undefined ? old ?? null : v);
+  const todo = m.onlyMissing ? eps.filter((e) => e.IntroStart == null || e.IntroEnd == null || e.CreditsStart == null) : eps;
+  if (!todo.length) return 0;
+  const items = todo.map((e) => {
+    const pick = (v: number | null | undefined, old: number | null | undefined): number | null => (v === undefined || (m.onlyMissing && old != null) ? old ?? null : v);
     let credits: number | null;
-    if (m.tail === undefined) credits = e.CreditsStart ?? null;
+    if (m.tail === undefined || (m.onlyMissing && e.CreditsStart != null)) credits = e.CreditsStart ?? null;
     else if (m.tail === null) credits = null;
     else credits = e.RuntimeSeconds ? Math.max(0, e.RuntimeSeconds - m.tail) : e.CreditsStart ?? null;
     return { ItemId: e.Id, IntroStart: pick(m.st, e.IntroStart), IntroEnd: pick(m.en, e.IntroEnd), CreditsStart: credits };
