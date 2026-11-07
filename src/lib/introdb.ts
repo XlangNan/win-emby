@@ -23,6 +23,16 @@ function pick(v: unknown): Seg | undefined {
   return en / 1000 > st ? { st, en: en / 1000 } : undefined;
 }
 
+const PX_KEY = 'wemby-introdb-proxy';
+export function loadIntroProxy(): string {
+  try { return localStorage.getItem(PX_KEY) || ''; } catch { return ''; }
+}
+export function saveIntroProxy(v: string): void {
+  let p = v.trim();
+  if (p && !/^[a-z]+:\/\//i.test(p)) p = `http://${p}`;
+  try { localStorage.setItem(PX_KEY, p); } catch { /* ignore */ }
+}
+
 export async function fetchIntroDb(tmdbId: string, season?: number, episode?: number): Promise<IntroInfo> {
   const key = `${tmdbId}|${season ?? ''}|${episode ?? ''}`;
   const hit = store()[key];
@@ -30,12 +40,17 @@ export async function fetchIntroDb(tmdbId: string, season?: number, episode?: nu
   const q = `tmdb_id=${tmdbId}${season != null ? `&season=${season}&episode=${episode}` : ''}`;
   const url = `https://api.theintrodb.org/v4/media?${q}`;
   let r: Response;
+  // 优先用「TheIntroDB 专用代理」，没填就用 TMDB 的代理；都没有就直连（安卓上 hosts 也对它生效）
+  const px = (loadIntroProxy() || loadTmdb().proxy || '').trim();
+  const hdr = { headers: { Accept: 'application/json' } };
   try {
-    r = await httpFetch(url, { headers: { Accept: 'application/json' } });
-  } catch {
-    const px = loadTmdb().proxy;
-    if (!px) throw new Error('连不上 TheIntroDB');
-    r = await httpFetch(url, { headers: { Accept: 'application/json' } }, { proxy: px });
+    r = await httpFetch(url, hdr, px ? { proxy: px } : undefined);
+  } catch (e) {
+    if (px) {
+      // 代理不通时再试直连
+      try { r = await httpFetch(url, hdr); } catch { throw new Error('连不上 TheIntroDB（请检查代理 / hosts）'); }
+    } else throw new Error('连不上 TheIntroDB（请到设置里给它填代理或 hosts）');
+    void e;
   }
   let info: IntroInfo = {};
   if (r.ok) {

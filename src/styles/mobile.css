@@ -322,3 +322,21 @@ html.android .we-dm .we-dm-chip { font-size: 11px; padding: 2px 7px !important; 
 html.android ::-webkit-scrollbar, html.android *::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: none; }
 html.android * { scrollbar-width: none; }
 .we-sbar-old { position: fixed; right: 2px; top: 0; width: 3px; border-radius: 2px; background: rgba(255, 255, 255, .45); opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 9999; }
+
+/* 片库（TMDB 发现页）：海报缩小，一行放更多 */
+:root.android[data-shell] .mp-cell { flex: 0 0 104px; }
+:root.android[data-shell] .mp-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 6px; padding: 0 8px; }
+:root.android[data-shell] .mp-title { font-size: 12px; }
+:root.android[data-shell] .mp-sub { font-size: 11px; }
+:root.android[data-shell] .mp-poster { border-radius: 6px; }
+:root.android[data-shell] .mp-rate { font-size: 10px; padding: 1px 5px; }
+:root.android[data-shell] .mp-type { font-size: 9px; padding: 1px 5px; }
+:root.android[data-shell] .mp-state { font-size: 9px; padding: 1px 5px; }
+:root.android[data-shell] .mp-sec-head h3 { font-size: 16px; }
+
+/* 搜索框清空按钮 */
+.m-search-bar .m-search-x { position: absolute !important; right: 20px !important; top: 50% !important; transform: translateY(-50%) !important; width: 28px !important; height: 28px !important; min-height: 0 !important; padding: 0 !important; margin: 0 !important; border: none !important; border-radius: 50% !important; background: #4a4a4a !important; color: #fff !important; box-shadow: none !important; display: flex !important; align-items: center; justify-content: center; font-size: 0 !important; }
+.m-search-bar .m-search-x svg { width: 12px; height: 12px; display: block; }
+.m-person { all: unset; flex: none; width: 76px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
+.m-person-img { width: 64px; height: 64px; border-radius: 50%; background: #2a2a2a center / cover no-repeat; }
+.m-person-name { font-size: 12px; color: #ddd; text-align: center; max-width: 76px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

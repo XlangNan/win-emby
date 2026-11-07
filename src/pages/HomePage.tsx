@@ -11,6 +11,7 @@ import { useCachedAsync } from '../lib/useAsync';
 import { useSkinLayout } from '../lib/theme';
 import { loadPlayPrefs } from '../lib/prefs';
 import { isAndroid } from '../lib/platform';
+import { getSession } from '../emby/session';
 import MobileHero from '../mobile/MobileHero';
 
 let homeScroll = 0;
@@ -58,6 +59,13 @@ async function loadSections(): Promise<{ sections: Section[]; spot: EmbyItem[] }
   return { sections, spot };
 }
 
+/** 缓存键：区分账号，也区分轮播 / 媒体库显示设置——换账号、改设置后立刻按新的来 */
+function homeKey(): string {
+  const s = getSession();
+  const p = loadPlayPrefs();
+  return `home:${s?.server || ''}:${s?.userId || ''}:${JSON.stringify([p.heroOn, p.heroLibs, p.heroMode, p.heroCount, p.hiddenLibs, p.libOrder])}`;
+}
+
 export default function HomePage() {
   const nav = useNavigate();
   const layout = useSkinLayout();
@@ -65,7 +73,7 @@ export default function HomePage() {
   const ap = layout.discoverStyle === 'shelfWide';
   const db = layout.discoverStyle === 'wall';
   // 缓存首页数据（1 分钟内再进来直接用，之后后台刷新）+ 记住滚动位置：从详情返回回到原来的位置
-  const { data, loading, error, reload } = useCachedAsync('home', loadSections, 60 * 1000);
+  const { data, loading, error, reload } = useCachedAsync(homeKey(), loadSections, 60 * 1000);
   const box = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     if (box.current && homeScroll > 0) box.current.scrollTop = homeScroll;

@@ -5,7 +5,7 @@ import { getSession, listAccounts, removeAccount, sameAccount, saveSession } fro
 import type { EmbyItem, Session } from '../emby/types';
 import { isAndroid } from '../lib/platform';
 import { applyFont, FONT_PRESETS, loadFont } from '../lib/font';
-import { introDbOn, setIntroDbOn } from '../lib/introdb';
+import { introDbOn, loadIntroProxy, saveIntroProxy, setIntroDbOn } from '../lib/introdb';
 import { loadDanmaku, saveDanmaku, testDanmaku } from '../lib/danmaku';
 import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
 import { kg, loadKg, saveKg } from '../lib/kg';
@@ -443,6 +443,13 @@ export default function ConfigPage() {
             </span>
             <input type="checkbox" checked={introOn} onChange={(e) => { setIntroOn(e.target.checked); setIntroDbOn(e.target.checked); }} />
           </label>
+          <div className="we-set-row" style={{ display: 'block' }}>
+            <span>
+              TheIntroDB 代理
+              <span className="muted" style={{ display: 'block', fontSize: 12, marginBottom: 6 }}>留空 = 沿用上面 TMDB 的代理；安卓可在 TMDB 设置里写 hosts，对它同样生效</span>
+            </span>
+            <input defaultValue={loadIntroProxy()} onChange={(e) => saveIntroProxy(e.target.value)} placeholder="如 http://127.0.0.1:7890 或 socks5://127.0.0.1:7891" spellCheck={false} style={{ width: '100%', boxSizing: 'border-box' }} />
+          </div>
           <label className="we-set-row">
             <span>
               没有片尾标记时，播到 {prefs.creditsPct}% 显示「下一集」

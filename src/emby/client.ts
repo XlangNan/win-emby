@@ -8,7 +8,7 @@ const CLIENT = 'Weave';
 const VERSION = '0.2.0';
 
 function authHeader(token?: string): Record<string, string> {
-  const v = `MediaBrowser Client="${CLIENT}", Device="${isAndroid ? 'Android' : 'Windows'}", DeviceId="${deviceId()}", Version="${VERSION}"`;
+  const v = `MediaBrowser Client="${CLIENT}", Device="Weave ${isAndroid ? 'Android' : 'Windows'}", DeviceId="${deviceId()}", Version="${VERSION}"`;
   const h: Record<string, string> = { 'X-Emby-Authorization': v, Accept: 'application/json' };
   if (token) h['X-Emby-Token'] = token;
   return h;

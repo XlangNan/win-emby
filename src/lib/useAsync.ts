@@ -59,6 +59,7 @@ export function useCachedAsync<T>(key: string, fn: () => Promise<T>, ttlMs = 10 
   useEffect(() => {
     const c = store.get(key) as { data: T; at: number } | undefined;
     if (c) setData(c.data);
+    else setData(null); // 换了 key（比如换账号）：先别显示上一个 key 的内容
     if (c && tick === 0 && Date.now() - c.at < ttlMs) {
       setLoading(false);
       return;

@@ -584,3 +584,16 @@ html, html * { scrollbar-width: none !important; }
 .nfd-title-sub { font-size: 20px !important; font-weight: 700; margin: 8px 0 4px; letter-spacing: .01em; }
 .nfd-title small, .nfd-title .nfd-orig { display: block; font-size: 13px; font-weight: 400; color: #b3b3b3; margin-top: 2px; }
 .mh-title-sub { font-size: 15px !important; font-weight: 700; margin-top: 2px; }
+
+/* 电脑版窗口调窄：轮播的名称、按钮不再错位（全局 900px 规则会把 .spot 改成纵向，这里在 topbar 下改回压在左下角） */
+@media (max-width: 900px) {
+  :root[data-shell='topbar'] .spot { flex-direction: row; align-items: flex-end; justify-content: flex-start; gap: 0; padding: 0 22px 34px; height: max(56.25vw, 320px); }
+  :root[data-shell='topbar'] .spot-body { max-width: 100%; }
+  :root[data-shell='topbar'] .spot-title { font-size: clamp(24px, 6vw, 40px); }
+  :root[data-shell='topbar'] .spot-meta { flex-wrap: wrap; row-gap: 4px; }
+  :root[data-shell='topbar'] .spot-acts { flex-wrap: wrap; margin-top: 14px; gap: 8px; }
+  :root[data-shell='topbar'] .spot-dots { position: absolute; left: auto; right: 22px; bottom: 12px; margin: 0; }
+}
+@media (max-width: 560px) {
+  :root[data-shell='topbar'] .spot-acts button { padding: 8px 16px; font-size: 13px; }
+}
