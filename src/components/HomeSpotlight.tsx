@@ -25,7 +25,7 @@ export default function HomeSpotlight({
   // 横版模式只轮播「真有背景图」的片子；一张都没有时退回全部
   const list = useMemo(() => {
     const withBg = landscape ? items.filter((it) => backdropUrl(it) || it.ImageTags?.Thumb) : items;
-    return (withBg.length ? withBg : items).slice(0, 6);
+    return (withBg.length ? withBg : items).slice(0, 12);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, landscape]);
 

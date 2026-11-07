@@ -153,7 +153,8 @@ const today = (): string => new Date().toISOString().slice(0, 10);
 /** 发现接口的排序参数（date 只取已上映 / 已播出的，rating 要求有足够票数避免冷门高分） */
 function sortParams(kind: 'movie' | 'tv', sort: SortId = 'default'): Record<string, string | number> {
   const f = kind === 'movie' ? 'primary_release_date' : 'first_air_date';
-  if (sort === 'date') return { sort_by: `${f}.desc`, [`${f}.lte`]: today() };
+  // 最新上映：不要票数门槛（新片票数少），否则最新的都被过滤掉了
+  if (sort === 'date') return { sort_by: `${f}.desc`, [`${f}.lte`]: today(), 'vote_count.gte': 0 };
   if (sort === 'rating') return { sort_by: 'vote_average.desc', 'vote_count.gte': 200 };
   return { sort_by: 'popularity.desc' };
 }

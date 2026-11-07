@@ -12,6 +12,7 @@ export default function SearchPanel({ bar = false }: { bar?: boolean }) {
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
   const [res, setRes] = useState<EmbyItem[]>([]);
+  const [ppl, setPpl] = useState<EmbyItem[]>([]);
   const [hist, setHist] = useState<string[]>(() => loadSearchHistory());
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -39,11 +40,13 @@ export default function SearchPanel({ bar = false }: { bar?: boolean }) {
     const term = q.trim();
     if (!term) {
       setRes([]);
+      setPpl([]);
       return;
     }
     let dead = false;
     setBusy(true);
     const t = setTimeout(() => {
+      emby.searchPersons(term, 5).then((r) => !dead && setPpl(r)).catch(() => !dead && setPpl([]));
       emby
         .items({ search: term, types: 'Movie,Series,BoxSet', limit: 12, sortBy: 'SortName' })
         .then((r) => !dead && setRes(r.Items))
@@ -103,7 +106,13 @@ export default function SearchPanel({ bar = false }: { bar?: boolean }) {
           {q.trim() ? (
             <div className="sp-list">
               {busy && res.length === 0 && <div className="sp-item muted">搜索中…</div>}
-              {!busy && res.length === 0 && <div className="sp-item muted">没有匹配「{q.trim()}」的内容</div>}
+              {!busy && res.length === 0 && ppl.length === 0 && <div className="sp-item muted">没有匹配「{q.trim()}」的内容</div>}
+              {ppl.map((p) => (
+                <div key={p.Id} className="sp-item" role="button" tabIndex={0} onClick={() => { setHist(pushSearchHistory(q)); setOpen(false); nav(`/person/${p.Id}`); }}>
+                  <span>👤 {p.Name}</span>
+                  <span className="muted sp-meta">演员 / 导演</span>
+                </div>
+              ))}
               {res.map((it) => (
                 <div key={it.Id} className="sp-item" role="button" tabIndex={0} onClick={() => goDetail(it)} onKeyDown={(e) => act(e, () => goDetail(it))}>
                   <span>{cardTitle(it)}</span>

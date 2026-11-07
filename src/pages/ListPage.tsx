@@ -13,12 +13,14 @@ export default function ListPage({
   empty,
   deps,
   onOpen,
+  header,
 }: {
   title: string;
   load: (start: number, limit: number) => Promise<ItemsResult>;
   empty: string;
   deps: unknown[];
   onOpen?: (it: EmbyItem) => void;
+  header?: React.ReactNode;
 }) {
   const [items, setItems] = useState<EmbyItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -57,6 +59,7 @@ export default function ListPage({
         <span className="muted" style={{ fontSize: 12 }}>{total ? `${total} 项` : ''}</span>
       </div>
       <div className="content">
+        {header}
         {err ? (
           <div className="err">{err}<button style={{ marginLeft: 10 }} onClick={() => fetchPage(0, true)}>重试</button></div>
         ) : items.length === 0 && loading ? (

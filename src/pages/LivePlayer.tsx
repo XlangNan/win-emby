@@ -46,6 +46,14 @@ export default function LivePlayer() {
   const [, setClock] = useState(0);
   useEffect(() => { const t = window.setInterval(() => setClock((n) => n + 1), 30000); return () => window.clearInterval(t); }, []);
   const [full, setFull] = useState(false);
+  // 像电视一样：开播 / 换台时在左上角显示 台号 · 台名 · 正在播放 · 接下来，5 秒后淡出
+  const [osd, setOsd] = useState(false);
+  useEffect(() => {
+    if (!name) return;
+    setOsd(true);
+    const t = window.setTimeout(() => setOsd(false), 5000);
+    return () => window.clearTimeout(t);
+  }, [name]);
 
   const nextLine = useCallback((reason: string) => {
     const c = chRef.current;
@@ -245,6 +253,26 @@ export default function LivePlayer() {
       <div className="we-surface" onClick={() => { if (!isAndroid) toggle(); }} onDoubleClick={() => { if (!isAndroid) void toggleFull(); }} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} />
       {hud && <div className="we-hud">{hud}</div>}
       {busy && !err && <div className="we-loading"><span className="spinner" aria-hidden="true" />正在连接…</div>}
+      {osd && ch && (() => {
+        const { now, next } = nowNext(ch);
+        const no = Math.max(0, pool.findIndex((c) => c.name === ch.name)) + 1;
+        const pctNow = now ? Math.min(100, Math.max(0, ((Date.now() - now.s) / (now.e - now.s)) * 100)) : 0;
+        return (
+          <div className="we-osd" key={ch.name}>
+            <div className="we-osd-no">{String(no).padStart(3, '0')}</div>
+            <div className="we-osd-main">
+              <div className="we-osd-name">{ch.name}</div>
+              {now ? (
+                <>
+                  <div className="we-osd-now">正在播放　{now.t}<span>{hhmm(now.s)}–{hhmm(now.e)}</span></div>
+                  <div className="we-osd-bar"><i style={{ width: `${pctNow}%` }} /></div>
+                </>
+              ) : <div className="we-osd-now" style={{ opacity: .6 }}>暂无节目信息</div>}
+              {next && <div className="we-osd-next">接下来　{next.t}<span>{hhmm(next.s)}</span></div>}
+            </div>
+          </div>
+        );
+      })()}
       {err && <div className="we-error">{err}</div>}
 
       <div className="we-top">

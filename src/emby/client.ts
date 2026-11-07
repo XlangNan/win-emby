@@ -195,6 +195,13 @@ export const emby = {
     });
   },
 
+  /** 按名字搜演员 / 导演 */
+  async searchPersons(q: string, limit = 12): Promise<EmbyItem[]> {
+    const s = need();
+    const r = await api<{ Items: EmbyItem[] }>('GET', '/Persons', { SearchTerm: q, Limit: limit, UserId: s.userId, EnableImages: 'true' });
+    return r.Items || [];
+  },
+
   /** 演员 / 导演资料 */
   async person(id: string): Promise<EmbyItem & { PremiereDate?: string; ProductionLocations?: string[]; EndDate?: string }> {
     const s = need();

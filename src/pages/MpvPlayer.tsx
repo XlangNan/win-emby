@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import PlayerDrawer from '../components/PlayerDrawer';
-import { directStreamUrl, emby, subtitleUrl } from '../emby/client';
+import { directStreamUrl, emby, posterUrl, subtitleUrl, thumbUrl } from '../emby/client';
 import { fmtDuration, ticksToSec } from '../emby/format';
 import type { EmbyItem, MediaSource, MediaStream } from '../emby/types';
 import { openMpv, type MpvSession } from '../lib/mpv';
 import { androidBridge, isAndroid } from '../lib/platform';
+import { getManual, setManual } from '../lib/introManual';
 import DanmakuLayer from '../components/DanmakuLayer';
 import { fetchDanmaku, loadDanmaku, saveDanmaku, type Dm } from '../lib/danmaku';
 import { fetchIntroDb, introDbOn, type IntroInfo } from '../lib/introdb';
@@ -87,7 +88,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const [hw, setHw] = useState('');
   const [full, setFull] = useState(false);
   const [uiShown, setUiShown] = useState(true);
-  const [menu, setMenu] = useState<'' | 'audio' | 'sub' | 'speed' | 'eps' | 'substyle' | 'sleep' | 'danmu'>('');
+  const [menu, setMenu] = useState<'' | 'audio' | 'sub' | 'speed' | 'eps' | 'substyle' | 'sleep' | 'danmu' | 'intro'>('');
   const seekRef = useRef<HTMLDivElement | null>(null);
   const [scrub, setScrub] = useState<number | null>(null);
   const [subStyle, setSubStyleState] = useState<SubStyle>(loadSubStyle);
@@ -96,6 +97,12 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const [dmList, setDmList] = useState<Dm[]>([]);
   const [dmMsg, setDmMsg] = useState('');
   const [idb, setIdb] = useState<IntroInfo | null>(null);
+  const [manual, setManualS] = useState<{ st?: number; en?: number } | null>(null);
+  const [introTip, setIntroTip] = useState('');
+  const [clock, setClockNow] = useState(() => new Date());
+  const [sleepWarn, setSleepWarn] = useState(false);
+  useEffect(() => { const t = window.setInterval(() => setClockNow(new Date()), 15000); return () => window.clearInterval(t); }, []);
+
   const posAt = useRef(0);
   const rateRef = useRef(1);
   rateRef.current = rate;
@@ -104,6 +111,12 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const [sleepAt, setSleepAt] = useState(0);
   const [sleepEnd, setSleepEnd] = useState(false);
   const [sleepCustom, setSleepCustom] = useState('');
+  useEffect(() => {
+    setSleepWarn(false);
+    if (!sleepAt) return;
+    const t = window.setInterval(() => { const left = sleepAt - Date.now(); setSleepWarn(left > 0 && left <= 60000); }, 1000);
+    return () => window.clearInterval(t);
+  }, [sleepAt]);
   const sleepEndRef = useRef(false);
   sleepEndRef.current = sleepEnd;
   const [vbr, setVbr] = useState(0);
@@ -121,6 +134,8 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const srcFps = vstream?.RealFrameRate || vstream?.AverageFrameRate || 0;
   const fpsShow = fps || srcFps;
   const intro = useMemo(() => {
+    const mm = getManual(item?.SeriesId);
+    if (mm && mm.en > mm.st) return mm; // 手动设置优先
     const ch = item?.Chapters || [];
     const a = ch.find((c) => c.MarkerType === 'IntroStart');
     const b = ch.find((c) => c.MarkerType === 'IntroEnd');
@@ -129,7 +144,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       if (en > st) return { st, en };
     }
     return idb?.intro || null; // Emby 没有片头标记 → 用 TheIntroDB
-  }, [item, idb]);
+  }, [item, idb, manual]);
 
   // TheIntroDB 片头时间 + 弹幕：都按 TMDB 编号 / 片名匹配
   useEffect(() => {
@@ -591,6 +606,20 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       : item.Name
     : '';
   const total = dur || ticksToSec(item?.RunTimeTicks);
+  // 片尾：Emby 的「片尾」章节标记优先，没有再用 TheIntroDB
+  const creditsAt = useMemo(() => {
+    const c = item?.Chapters?.find((x) => x.MarkerType === 'CreditsStart');
+    if (c) return ticksToSec(c.StartPositionTicks);
+    if (idb?.credits) return idb.credits.st;
+    // 没有任何片尾标记：按整片比例（和 Emby 一样）
+    return total > 0 && nextRef.current ? total * (loadPlayPrefs().creditsPct / 100) : null;
+  }, [item, idb, total]);
+  const inCredits = creditsAt != null && total > 0 && cur >= creditsAt && cur < total - 1;
+  const skipCredits = (): void => {
+    if (nextRef.current) goNext();
+    else void sessRef.current?.cmd('seek', [String(Math.max(0, total - 0.5)), 'absolute']);
+  };
+
   const shownCur = scrub ?? cur;
   const pct = total > 0 ? Math.max(0, Math.min(100, (shownCur / total) * 100)) : 0;
   const scrubAt = (clientX: number): number => {
@@ -611,6 +640,12 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       )}
       {hud && <div className="we-hud">{hud}</div>}
 
+      {sleepWarn && (
+        <div className="we-sleepwarn" onClick={(e) => e.stopPropagation()}>
+          <span>1 分钟后将关闭播放</span>
+          <button onClick={() => { setSleepAt(0); setSleepWarn(false); }}>取消定时，继续播放</button>
+        </div>
+      )}
       <DanmakuLayer list={dmList} getTime={() => (pausedRef.current ? posRef.current : posRef.current + ((performance.now() - posAt.current) / 1000) * rateRef.current)} size={dmCfg.size} speed={dmCfg.speed} opacity={dmCfg.opacity} area={dmCfg.area} offset={dmCfg.offset} visible={dmCfg.on && scrub === null} />
       {(busy || caching) && !err && <div className="we-loading"><span className="spinner" aria-hidden="true" />{busy ? '正在加载…' : '缓冲中…'}</div>}
       {err && <div className="we-error">{err}</div>}
@@ -670,6 +705,25 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         />
       )}
 
+      {inCredits && !inIntro && (
+        <div className={`we-upnext${showUi ? ' up' : ''}`} onClick={(e) => e.stopPropagation()}>
+          {nextEp ? (
+            <>
+              <div className="we-upnext-h">接下来播放</div>
+              <div className="we-upnext-body">
+                <img src={thumbUrl(nextEp, 360) || posterUrl(nextEp, 200)} alt="" draggable={false} />
+                <div>
+                  <div className="we-upnext-t">{nextEp.ParentIndexNumber != null && nextEp.IndexNumber != null ? `S${nextEp.ParentIndexNumber}:E${nextEp.IndexNumber}　` : ''}{nextEp.Name}</div>
+                  {nextEp.Overview && <div className="we-upnext-o">{nextEp.Overview}</div>}
+                </div>
+              </div>
+              <div className="we-upnext-b"><button onClick={skipCredits}>播放下一集 ›</button></div>
+            </>
+          ) : (
+            <button className="we-skip" style={{ position: 'static' }} onClick={skipCredits}>跳过片尾 ›</button>
+          )}
+        </div>
+      )}
       {inIntro && intro && (
         <button className={`we-skip${showUi ? ' up' : ''}`} onClick={(e) => { e.stopPropagation(); void sessRef.current?.cmd('seek', [String(intro.en), 'absolute']); }}>
           跳过片头 ›
@@ -678,6 +732,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
 
       <div className="we-bottom" onClick={(e) => e.stopPropagation()} onMouseEnter={() => { hoverUi.current = true; }} onMouseLeave={() => { hoverUi.current = false; poke(); }}>
         <div className="we-seekrow">
+          <span className="we-time we-time-l">{fmtDuration(shownCur)}</span>
           <div
             ref={seekRef}
             className="we-seek"
@@ -702,7 +757,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
             <div className="we-seek-cur" style={{ width: `${pct}%` }} />
             <div className="we-seek-dot" style={{ left: `${pct}%` }} />
           </div>
-          <span className="we-time" title={`${fmtDuration(shownCur)} / ${fmtDuration(total)}`}>{total > 0 ? fmtDuration(Math.max(0, total - shownCur)) : fmtDuration(shownCur)}</span>
+          <span className="we-time we-time-r" title={`${fmtDuration(shownCur)} / ${fmtDuration(total)}`}>{total > 0 ? `-${fmtDuration(Math.max(0, total - shownCur))}` : ''}<i className="we-clock">{clock.toTimeString().slice(0, 5)}</i></span>
         </div>
         <div className="we-ctrls">
           {!isAndroid && (
@@ -773,6 +828,25 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
             </div>
           )}
 
+          {item?.Type === 'Episode' && (
+            <div className="we-menu-wrap">
+              <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'intro' ? '' : 'intro')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 5v14l8-7-8-7Zm10 0v14" /></svg><span>片头</span></button>
+              {menu === 'intro' && (
+                <div className="we-menu" onClick={(e) => e.stopPropagation()}>
+                  <div className="we-menu-head">跳过片头（整部剧通用）</div>
+                  <div className="we-menu-item" style={{ opacity: .75 }}>{intro ? `当前：${fmtDuration(intro.st)} – ${fmtDuration(intro.en)}` : '当前：没有片头数据'}{introTip ? `　${introTip}` : ''}</div>
+                  <div className="we-menu-item" onClick={() => setManualS((m) => ({ ...m, st: posRef.current }))}>此刻 {fmtDuration(cur)} = 片头开始{manual?.st != null ? `（已选 ${fmtDuration(manual.st)}）` : ''}</div>
+                  <div className="we-menu-item" onClick={() => setManualS((m) => ({ ...m, en: posRef.current }))}>此刻 {fmtDuration(cur)} = 片头结束{manual?.en != null ? `（已选 ${fmtDuration(manual.en)}）` : ''}</div>
+                  <div className="we-menu-item" onClick={() => {
+                    const st = manual?.st ?? intro?.st ?? 0, en = manual?.en ?? intro?.en;
+                    if (!item?.SeriesId || en == null || en <= st) { setIntroTip('请先选好开始和结束'); return; }
+                    setManual(item.SeriesId, { st, en }); setManualS({ st, en }); setIntroTip('已应用到本剧所有集');
+                  }}>保存并应用到本剧所有集</div>
+                  <div className="we-menu-item" onClick={() => { if (item?.SeriesId) setManual(item.SeriesId, null); setManualS(null); setIntroTip('已清除手动设置'); }}>清除手动设置</div>
+                </div>
+              )}
+            </div>
+          )}
           <div className="we-menu-wrap">
             <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'danmu' ? '' : 'danmu')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="12" rx="2" /><path d="M7 9h6M10 13h7M8 21l3-4" /></svg><span>弹幕{dmCfg.on && dmList.length ? '' : dmCfg.on ? '' : '·关'}</span></button>
             {menu === 'danmu' && (
@@ -814,6 +888,8 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
             <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'sub' || menu === 'substyle' ? '' : 'sub')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 5h16v11H9l-5 4V5Z" /><path d="M8 10h8M8 13h5" /></svg><span>字幕{sid ? ' ●' : ''}</span></button>
             {menu === 'sub' && (
               <div className="we-menu">
+                <div className="we-menu-item" onClick={() => setMenu('substyle')}>字幕大小 / 位置 / 延迟 ›</div>
+                <div className="we-menu-sep" />
                 <div className={`we-menu-item${!sid ? ' active' : ''}`} onClick={() => void pickSub(null)}>关闭</div>
                 {embSubs.map((s) => (
                   <div key={s.Index} className={`we-menu-item${curSub === s ? ' active' : ''}`} onClick={() => void pickSub(s)}>{subLabel(s)}</div>
@@ -822,8 +898,6 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
                   <div key={s.Index} className={`we-menu-item${curSub === s ? ' active' : ''}`} onClick={() => void pickSub(s)}>{subLabel(s)}（外挂）</div>
                 ))}
                 {embSubs.length + extSubs.length === 0 && <div className="we-menu-item" style={{ opacity: 0.6 }}>没有字幕轨</div>}
-                <div className="we-menu-sep" />
-                <div className="we-menu-item" onClick={() => setMenu('substyle')}>字幕大小 / 位置 ›</div>
               </div>
             )}
             {menu === 'substyle' && (

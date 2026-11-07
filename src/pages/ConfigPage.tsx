@@ -443,6 +443,13 @@ export default function ConfigPage() {
             </span>
             <input type="checkbox" checked={introOn} onChange={(e) => { setIntroOn(e.target.checked); setIntroDbOn(e.target.checked); }} />
           </label>
+          <label className="we-set-row">
+            <span>
+              没有片尾标记时，播到 {prefs.creditsPct}% 显示「下一集」
+              <span className="muted" style={{ display: 'block', fontSize: 12 }}>和 Emby 一样按整片比例；有片尾标记时以标记为准</span>
+            </span>
+            <input type="range" min={85} max={99} value={prefs.creditsPct} onChange={(e) => set({ creditsPct: Number(e.target.value) })} />
+          </label>
           <label className="we-set-row" style={{ cursor: 'pointer' }}>
             <span>播完自动播放下一集</span>
             <input type="checkbox" checked={prefs.autoNext} onChange={(e) => set({ autoNext: e.target.checked })} />

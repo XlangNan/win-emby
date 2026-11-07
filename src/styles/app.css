@@ -441,7 +441,7 @@ html.android .we-volgrp { display: none !important; }
 .we-player:has(.we-drawer) .we-center .we-cbtn { pointer-events: none; }
 
 /* 详情页：已观看按钮的选中效果、更多菜单、提示条 */
-.nfd-circle.done { background: var(--accent); border-color: var(--accent); color: #fff; }
+
 .nfd-more-wrap { position: relative; }
 .nfd-more-mask { position: fixed; inset: 0; z-index: 40; }
 .nfd-more { position: absolute; z-index: 41; left: 0; bottom: 74px; min-width: 190px; padding: 6px; border-radius: 10px; background: #1f1f1f; border: 1px solid rgba(255, 255, 255, .12); box-shadow: 0 10px 30px rgba(0, 0, 0, .6); display: flex; flex-direction: column; }
@@ -488,8 +488,76 @@ html.android .we-epg { width: min(240px, 48vw); }
 
 /* 电脑版首页轮播：横版大图卡片（16:9），不再撑满整个窗口高度 */
 :root[data-shell='topbar'] .spot {
-  height: auto; min-height: 0; aspect-ratio: 16 / 9; max-height: 66vh;
+  width: 100%; height: min(56.25vw, 66vh); min-height: 0; aspect-ratio: auto;
   margin: 0 0 28px; padding: 0 40px 40px; border-radius: 14px; overflow: hidden;
 }
 :root[data-shell='topbar'] .spot-art { inset: 0; }
 :root[data-shell='topbar'] .spot-art-layer { background-size: cover; background-position: center 22%; }
+
+/* 已观看按钮：已看 = 红底白勾；未看 = 灰色描边 */
+.nfd-circle.done, :root .nfd-circle.done { background: #f0414b !important; border-color: #f0414b !important; color: #fff !important; }
+:root.android[data-shell] .nfd-circle.done { background: #f0414b !important; border: none !important; }
+/* 桌面端 .nfd-act 是 display:contents，弹窗定位需要它自己成为定位容器 */
+.nfd-more-wrap { display: block !important; position: relative; }
+.nfd-more-wrap .nfd-act-l { display: none; }
+html.android .nfd-more-wrap .nfd-act-l { display: block; }
+.nfd-more { bottom: 54px; }
+html.android .nfd-more { bottom: 74px; }
+
+/* 进度条两端时间：左=已播，右=剩余 + 当前时间 */
+.we-seekrow .we-time-l { min-width: 52px; text-align: left; }
+.we-seekrow .we-time-r { min-width: 110px; text-align: right; white-space: nowrap; }
+.we-clock { font-style: normal; margin-left: 10px; padding-left: 10px; border-left: 1px solid rgba(255, 255, 255, .35); color: #cfcfcf; }
+
+/* 定时关闭倒计时提示 */
+.we-sleepwarn { position: absolute; left: 50%; top: 72px; transform: translateX(-50%); z-index: 12; display: flex; gap: 12px; align-items: center; padding: 10px 14px; border-radius: 10px; background: rgba(20, 20, 20, .92); border: 1px solid rgba(255, 255, 255, .2); font-size: 14px; }
+.we-sleepwarn button { padding: 6px 12px; border-radius: 6px; background: #f0414b; color: #fff; border: none; font-weight: 700; font-size: 13px; }
+
+/* 手机：弹出菜单打开时隐藏中间三个按钮，避免重叠 */
+.we-player:has(.we-menu) .we-center { opacity: 0 !important; pointer-events: none !important; }
+.we-player:has(.we-menu) .we-center .we-cbtn { pointer-events: none !important; }
+
+/* 直播：电视式台标信息（开播 / 换台时显示） */
+.we-osd { position: absolute; left: 28px; top: 70px; z-index: 6; display: flex; gap: 16px; align-items: flex-start; padding: 14px 20px; max-width: min(640px, 80vw); border-radius: 12px; background: linear-gradient(90deg, rgba(0, 0, 0, .78), rgba(0, 0, 0, .45)); animation: osdIn .35s ease both; pointer-events: none; }
+.we-osd-no { font-size: 38px; font-weight: 800; color: #f0414b; font-variant-numeric: tabular-nums; line-height: 1; }
+.we-osd-name { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+.we-osd-now, .we-osd-next { font-size: 14px; color: #eee; }
+.we-osd-now span, .we-osd-next span { margin-left: 12px; color: #aaa; font-variant-numeric: tabular-nums; }
+.we-osd-next { margin-top: 6px; color: #bbb; font-size: 13px; }
+.we-osd-bar { height: 3px; margin-top: 8px; background: rgba(255, 255, 255, .25); border-radius: 2px; overflow: hidden; }
+.we-osd-bar i { display: block; height: 100%; background: #f0414b; }
+html.android .we-osd { left: 14px; top: 56px; padding: 10px 14px; gap: 12px; }
+html.android .we-osd-no { font-size: 28px; }
+html.android .we-osd-name { font-size: 17px; }
+@keyframes osdIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+
+/* 影片详情：返回按钮悬浮（页面往下滑时一直停在左上角） */
+.nfd-back { position: sticky !important; top: 0 !important; left: 0 !important; height: 0; padding: 12px 0 0 16px; z-index: 30 !important; pointer-events: none; }
+.nfd-back .back-btn { pointer-events: auto; background: rgba(0, 0, 0, .55); backdrop-filter: blur(6px); border-radius: 999px; }
+:root.android[data-shell] .nfd-back { top: 0 !important; left: 0 !important; padding: 8px 0 0 8px; }
+
+/* 片尾：下一集卡片（带简介） */
+.we-upnext { position: absolute; right: 24px; bottom: 28px; z-index: 11; width: min(360px, 78vw); padding: 12px; border-radius: 12px; background: rgba(18, 18, 18, .94); border: 1px solid rgba(255, 255, 255, .18); box-shadow: 0 10px 30px rgba(0, 0, 0, .6); animation: osdIn .3s ease both; }
+.we-upnext.up { bottom: 110px; }
+.we-upnext-h { font-size: 12px; color: #aaa; margin-bottom: 8px; }
+.we-upnext-body { display: flex; gap: 10px; }
+.we-upnext-body img { width: 112px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px; flex: none; background: #222; }
+.we-upnext-t { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.we-upnext-o { font-size: 12px; color: #bbb; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.we-upnext-b { margin-top: 10px; text-align: right; }
+.we-upnext-b button { padding: 8px 16px; border-radius: 8px; background: #fff; color: #000; border: none; font-weight: 700; font-size: 13px; }
+html.android .we-upnext { right: 12px; bottom: 16px; width: min(340px, 60vw); }
+html.android .we-upnext.up { bottom: 90px; }
+
+/* 缓冲 / 加载中：转圈放在文字上方，用实色保证看得见 */
+.we-loading { display: flex !important; flex-direction: column; align-items: center; gap: 12px; font-size: 14px; }
+.we-loading .spinner { display: block; width: 38px; height: 38px; border: 3px solid rgba(255, 255, 255, .25); border-top-color: #f0414b; border-radius: 50%; animation: spin .8s linear infinite !important; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 搜索：演员行 */
+.we-sr-h { font-size: 15px; font-weight: 700; margin: 4px 0 10px; }
+.we-sr-row { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 12px; scrollbar-width: none; }
+.we-sr-row::-webkit-scrollbar { display: none; }
+.we-sr-p { flex: none; width: 78px; text-align: center; cursor: pointer; font-size: 12px; }
+.we-sr-p img, .we-sr-ph { display: flex; width: 72px; height: 72px; margin: 0 auto 6px; border-radius: 50%; object-fit: cover; background: #2a2a2a; align-items: center; justify-content: center; font-size: 24px; }
+.we-sr-p span:last-child { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

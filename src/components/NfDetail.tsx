@@ -84,9 +84,9 @@ export default function NfDetail(p: NfDetailProps) {
               </div>
               <div className="nfd-act">
                 <button className={`nfd-circle${p.played ? ' on done' : ''}`} title={p.played ? '已观看，点击标为未观看' : '标记为已观看'} aria-pressed={p.played} onClick={p.onPlayed}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={p.played ? 3 : 1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ opacity: p.played ? 1 : 0.7 }}><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
                 </button>
-                <span className="nfd-act-l">{p.played ? '已观看' : '标为已看'}</span>
+                <span className="nfd-act-l" style={p.played ? { color: '#f0414b', fontWeight: 700 } : undefined}>{p.played ? '已观看' : '标为已看'}</span>
               </div>
               <div className="nfd-act nfd-more-wrap">
                 <button className={`nfd-circle${more ? ' on' : ''}`} title="更多操作" aria-haspopup="menu" aria-expanded={more} onClick={() => setMore((v) => !v)}>

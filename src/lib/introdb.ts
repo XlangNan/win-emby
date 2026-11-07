@@ -40,7 +40,10 @@ export async function fetchIntroDb(tmdbId: string, season?: number, episode?: nu
   let info: IntroInfo = {};
   if (r.ok) {
     const j = (await r.json()) as Record<string, unknown>;
-    info = { intro: pick(j.intro), credits: pick(j.credits) };
+    const c = Array.isArray(j.credits) ? j.credits[0] : j.credits;
+    const cs = c && typeof c === 'object' ? ((c as { start_ms?: number | null; startMs?: number | null }).start_ms ?? (c as { startMs?: number | null }).startMs) : null;
+    // 片尾通常一直到片子结束（end_ms 为空）→ en = 0 表示「到结尾」
+    info = { intro: pick(j.intro), credits: cs != null && cs > 0 ? { st: cs / 1000, en: 0 } : pick(j.credits) };
   } else if (r.status !== 404) throw new Error(`TheIntroDB ${r.status}`);
   store()[key] = { ...info, at: Date.now() };
   try { localStorage.setItem(KEY, JSON.stringify(store())); } catch { /* ignore */ }
