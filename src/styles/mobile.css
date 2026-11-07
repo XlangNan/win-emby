@@ -313,3 +313,12 @@ html.android .we-dm .we-dm-chip { font-size: 11px; padding: 2px 7px !important; 
 :root.android[data-shell] .nfd-circle { width: 50px !important; height: 50px !important; border-radius: 50%; background: rgba(255, 255, 255, .16) !important; border: none !important; color: #fff; display: flex; align-items: center; justify-content: center; }
 :root.android[data-shell] .nfd-circle.on:not(.done) { background: rgba(255, 255, 255, .28) !important; }
 :root.android[data-shell] .nfd-act-l { font-size: 12.5px !important; color: #e6e6e6 !important; font-weight: 500; text-align: center; white-space: nowrap; }
+
+/* 状态栏留白由网页负责：普通页面留出，详情页让图片铺到状态栏下面 */
+.m-app { padding-top: var(--sat, 0px); box-sizing: border-box; }
+.m-app.m-app-detail { padding-top: 0; }
+:root.android[data-shell] .nfd-back { padding-top: calc(var(--sat, 0px) + 8px) !important; }
+/* 手机不显示常驻滚动条（原先 9px 的滚动条会在右边留一条空白） */
+html.android ::-webkit-scrollbar, html.android *::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: none; }
+html.android * { scrollbar-width: none; }
+.we-sbar-old { position: fixed; right: 2px; top: 0; width: 3px; border-radius: 2px; background: rgba(255, 255, 255, .45); opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 9999; }

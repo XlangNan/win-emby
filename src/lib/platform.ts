@@ -12,6 +12,7 @@ export interface AndroidBridge {
   getSysVolume(): number;
   setSysVolume(v: number): void;
   exit(): void;
+  getInsetTop?(): number;
 }
 
 export const androidBridge = (): AndroidBridge | null => (isAndroid ? ((window as unknown as { AndroidMpv?: AndroidBridge }).AndroidMpv ?? null) : null);

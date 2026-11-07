@@ -233,6 +233,15 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
         return if (b < 0f) 0.5f else b
     }
 
+    /** 状态栏 / 刘海高度（CSS px）；播放全屏时为 0 */
+    @JavascriptInterface
+    fun getInsetTop(): Float {
+        if (fullscreen) return 0f
+        val ins = ViewCompat.getRootWindowInsets(act.window.decorView)
+            ?.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+        return (ins?.top ?: 0) / act.resources.displayMetrics.density
+    }
+
     @JavascriptInterface
     fun exit() {
         act.runOnUiThread { act.finish() }

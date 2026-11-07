@@ -8,6 +8,7 @@ import TitleBar from './components/TitleBar';
 import { emby } from './emby/client';
 import { SESSION_EVENT, clearSession, getSession } from './emby/session';
 import ConfigPage from './pages/ConfigPage';
+import ScrollIndicator from './components/ScrollIndicator';
 import MediaPage from './pages/MediaPage';
 import PersonPage from './pages/PersonPage';
 import DetailPage from './pages/DetailPage';
@@ -97,8 +98,12 @@ export default function App() {
     window.addEventListener('contextmenu', block);
     return () => window.removeEventListener('contextmenu', block);
   }, []);
-  if (!session) return <LoginPage />;
-  return <AppShell key={session.userId + session.server} />;
+  return (
+    <>
+      {session ? <AppShell key={session.userId + session.server} /> : <LoginPage />}
+      <ScrollIndicator />
+    </>
+  );
 }
 
 function AppShell() {

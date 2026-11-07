@@ -1,6 +1,7 @@
 // 手机外壳（安卓）：底部标签栏 + 首页顶部品牌/分类条。结构参照主流流媒体手机 App 的交互习惯。
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { androidBridge } from '../lib/platform';
 import type { EmbyItem } from '../emby/types';
 import { listSources } from '../lib/live';
 
@@ -65,10 +66,23 @@ export default function MobileShell({ views, routes }: { views: EmbyItem[]; rout
     window.addEventListener('wemby-live-changed', f);
     return () => window.removeEventListener('wemby-live-changed', f);
   }, []);
+  // 状态栏高度 → --sat（原生不再给顶部留白，详情页的图片才能铺到状态栏下面）
+  useEffect(() => {
+    const set = (): void => {
+      try {
+        const v = androidBridge()?.getInsetTop?.();
+        if (typeof v === 'number') document.documentElement.style.setProperty('--sat', `${v}px`);
+      } catch { /* ignore */ }
+    };
+    set();
+    const t = window.setTimeout(set, 400);
+    window.addEventListener('resize', set);
+    return () => { window.clearTimeout(t); window.removeEventListener('resize', set); };
+  }, []);
   const hideTabs = p.startsWith('/live/play') || p.startsWith('/detail') || /^\/discover\/(movie|tv)\//.test(p);
 
   return (
-    <div className="m-app">
+    <div className={`m-app${p.startsWith('/detail') ? ' m-app-detail' : ''}`}>
       <div className="m-main">
         {home && (
           <header className="m-head">

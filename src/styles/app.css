@@ -572,3 +572,10 @@ html.android .we-upnext.up { bottom: 90px; }
   html.android .we-upnext.up { bottom: 190px; }
   html.android .we-skip.up { bottom: 190px; }
 }
+
+/* 所有端：不常驻滚动条（常驻会在右边留一条空白），滚动时显示细指示条 */
+html ::-webkit-scrollbar, html *::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: none !important; }
+html, html * { scrollbar-width: none !important; }
+.we-sbar { position: fixed; right: 2px; top: 0; width: 8px; border-radius: 4px; background: rgba(255, 255, 255, .45); opacity: 0; transition: opacity .25s, background .15s; pointer-events: none; z-index: 99999; cursor: pointer; touch-action: none; }
+.we-sbar:hover { background: rgba(255, 255, 255, .75); }
+.we-sbar.phone { width: 3px; }
