@@ -1,4 +1,6 @@
 // 手机外壳（安卓）：底部标签栏 + 首页顶部品牌/分类条。结构参照主流流媒体手机 App 的交互习惯。
+import MiniPlayer from '../music/MiniPlayer';
+import NowPlaying from '../music/NowPlaying';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { androidBridge } from '../lib/platform';
@@ -31,6 +33,13 @@ const ICON = {
       <path d="m9 3 3 3 3-3" />
     </>
   ),
+  music: (
+    <>
+      <path d="M9 18V6l10-2v12" />
+      <circle cx="6.5" cy="18" r="2.5" />
+      <circle cx="16.5" cy="16" r="2.5" />
+    </>
+  ),
   me: (
     <>
       <circle cx="12" cy="8" r="4" />
@@ -52,6 +61,7 @@ const TABS: { to: string; label: string; ico: keyof typeof ICON; end?: boolean; 
   { to: '/media', label: '媒体', ico: 'media', also: ['/lib'] },
   { to: '/discover', label: '片库', ico: 'disc' },
   { to: '/live', label: '直播', ico: 'live' },
+  { to: '/music', label: '音乐', ico: 'music' },
   { to: '/me', label: '我的', ico: 'me', also: ['/favorites', '/history', '/config'] },
 ];
 
@@ -95,6 +105,8 @@ export default function MobileShell({ views, routes }: { views: EmbyItem[]; rout
         )}
         {routes}
       </div>
+      <MiniPlayer inline />
+      <NowPlaying />
       {!hideTabs && (
         <nav className="m-tabs" aria-label="主导航">
           {TABS.filter((t) => t.to !== '/live' || hasLive).map((t) => {

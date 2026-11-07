@@ -15,6 +15,10 @@ import DetailPage from './pages/DetailPage';
 import DiscoverDetail from './pages/DiscoverDetail';
 import DiscoverMore from './pages/DiscoverMore';
 import DiscoverPage from './pages/DiscoverPage';
+import MusicPage from './music/MusicPage';
+import MusicDetail from './music/MusicDetail';
+import MiniPlayer from './music/MiniPlayer';
+import NowPlaying from './music/NowPlaying';
 import FavoritesPage from './pages/FavoritesPage';
 import HistoryPage from './pages/HistoryPage';
 import HomePage from './pages/HomePage';
@@ -179,6 +183,8 @@ function AppShell() {
         <Route path="/favorites" element={<FavoritesPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/live" element={<LivePage />} />
+        <Route path="/music" element={<MusicPage />} />
+        <Route path="/music/:kind/:id" element={<MusicDetail />} />
         <Route path="/discover" element={<DiscoverPage />} />
         <Route path="/discover/more/:row" element={<DiscoverMore />} />
         <Route path="/discover/:media/:id" element={<DiscoverDetail />} />
@@ -191,10 +197,13 @@ function AppShell() {
   // 播放页：独占整个窗口，不带外壳
   if (isPlayer) {
     return (
-      <Routes>
-        <Route path="/player/:id" element={<PlayerPage />} />
-        <Route path="/live/play" element={<LivePlayer />} />
-      </Routes>
+      <>
+        <Routes>
+          <Route path="/player/:id" element={<PlayerPage />} />
+          <Route path="/live/play" element={<LivePlayer />} />
+        </Routes>
+        <MiniPlayer />
+      </>
     );
   }
 
@@ -316,7 +325,7 @@ function AppShell() {
         <nav className="nf-nav">
           <span className="nf-logo" title="回到首页" role="button" tabIndex={0} style={{ cursor: 'pointer' }} onClick={() => nav('/')} onKeyDown={(e) => e.key === 'Enter' && nav('/')}>WEAVE</span>
           <div className="we-navlinks" onWheel={(e) => { e.currentTarget.scrollLeft += e.deltaY; }}>
-            {[{ to: '/', label: '首页', end: true }, { to: '/media', label: '媒体' }, { to: '/live', label: '直播' }, { to: '/config', label: '设置' }].map((n) => (
+            {[{ to: '/', label: '首页', end: true }, { to: '/media', label: '媒体' }, { to: '/live', label: '直播' }, { to: '/music', label: '音乐' }, { to: '/config', label: '设置' }].map((n) => (
               <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => 'nf-link' + (isActive || (n.to === '/media' && loc.pathname.startsWith('/lib/')) ? ' active' : '')}>
                 {n.label}
               </NavLink>
@@ -329,6 +338,8 @@ function AppShell() {
         </nav>
         {routes}
       </main>
+      <MiniPlayer />
+      <NowPlaying />
     </div>
   );
 }

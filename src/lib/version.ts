@@ -1,2 +1,2 @@
 // 每次改动我会换一个编号，设置页底部能看到。看到的编号和我说的一致，才说明装的是最新版。
-export const BUILD_ID = '1107-E';
+export const BUILD_ID = '1107-F';

@@ -9,6 +9,7 @@ import { introDbOn, loadIntroProxy, saveIntroProxy, setIntroDbOn } from '../lib/
 import { loadDanmaku, saveDanmaku, testDanmaku } from '../lib/danmaku';
 import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
 import { kg, loadKg, saveKg } from '../lib/kg';
+import { loadNd, nd, saveNd } from '../music/navidrome';
 import { loadMp, mp, saveMp } from '../lib/mp';
 import { BUILD_ID } from '../lib/version';
 import { HOSTS_TEMPLATE, loadHostsText, saveHostsText } from '../lib/net';
@@ -359,6 +360,40 @@ function FontSettings() {
   );
 }
 
+/** Navidrome（音乐）设置 */
+function NavidromeSettings() {
+  const [c, setC] = useState(loadNd);
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  const test = async (): Promise<void> => {
+    setBusy(true);
+    setMsg('');
+    try {
+      const r = await nd.ping(c);
+      saveNd(c);
+      setMsg(`连接成功：${r.server}${r.version ? ` ${r.version}` : ''}，已保存`);
+    } catch (e) {
+      setMsg(`连接失败：${e instanceof Error ? e.message : String(e)}`);
+    } finally { setBusy(false); }
+  };
+  return (
+    <div className="card we-set" style={{ marginBottom: 14 }}>
+      <h3>音乐（Navidrome）</h3>
+      <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>填写 Navidrome 的地址（不写端口默认 4533，用域名 / https 请写完整）、用户名和密码，连接成功后底部会出现「音乐」。</div>
+      <div style={{ display: 'grid', gap: 8 }}>
+        <input value={c.server} onChange={(e) => setC({ ...c, server: e.target.value })} placeholder="如 192.168.1.10:4533 或 https://music.example.com" spellCheck={false} autoCapitalize="off" />
+        <input value={c.user} onChange={(e) => setC({ ...c, user: e.target.value })} placeholder="用户名" autoComplete="username" spellCheck={false} autoCapitalize="off" />
+        <input type="password" value={c.pass} onChange={(e) => setC({ ...c, pass: e.target.value })} placeholder="密码" autoComplete="current-password" />
+        <input value={c.proxy} onChange={(e) => setC({ ...c, proxy: e.target.value })} placeholder="代理（可选，一般局域网不用填）" spellCheck={false} />
+        <div className="row" style={{ gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button type="button" className="primary" disabled={busy || !c.server.trim() || !c.user.trim()} onClick={() => void test()}>{busy ? '连接中…' : '测试并保存'}</button>
+          {msg && <span className={msg.startsWith('连接成功') ? 'muted' : 'err'} style={{ fontSize: 12.5 }}>{msg}</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ConfigPage() {
   const [prefs, setPrefs] = useState(loadPlayPrefs);
   const [introOn, setIntroOn] = useState(introDbOn);
@@ -371,6 +406,7 @@ export default function ConfigPage() {
         <Accounts />
         <HeroSettings prefs={prefs} set={set} />
         <HomeLibs prefs={prefs} set={set} />
+        <NavidromeSettings />
         <TmdbSettings />
         <KgSettings />
         <MpSettings />

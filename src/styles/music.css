@@ -1,0 +1,126 @@
+/* 音乐（Navidrome） */
+.mu-page { padding-bottom: calc(24px + var(--mini-h, 0px)) !important; }
+.mu-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 6px 0 10px; }
+.mu-title { font-size: 26px; font-weight: 800; letter-spacing: .5px; }
+.mu-search { flex: 1; min-width: 180px; max-width: 360px; height: 38px; border-radius: 19px; background: #1f1f23; color: #9a9aa3; display: flex; align-items: center; gap: 8px; padding: 0 14px; box-sizing: border-box; }
+.mu-search input { flex: 1; min-width: 0; background: transparent; border: none; outline: none; color: #fff; font-size: 14px; box-shadow: none; padding: 0; }
+.mu-chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 14px; }
+.mu-chip { border: none; border-radius: 18px; padding: 8px 16px; background: #232327; color: #d4d4d8; font-size: 14px; box-shadow: none; }
+.mu-chip.on { background: #f0414b; color: #fff; font-weight: 600; }
+.mu-sec { margin-bottom: 24px; }
+.mu-sec h3 { margin: 0 0 10px; font-size: 18px; }
+.mu-sec-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.mu-sec-head h3 { margin: 0; }
+.mu-hrow { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
+.mu-hrow::-webkit-scrollbar { display: none; }
+.mu-hcell { flex: 0 0 150px; min-width: 0; }
+.mu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px 16px; }
+.mu-card { cursor: pointer; min-width: 0; }
+.mu-card-t { margin-top: 8px; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mu-card-s { font-size: 12.5px; color: #a0a0a8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mu-cover { position: relative; width: 100%; aspect-ratio: 1 / 1; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; flex: none; }
+.mu-cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.mu-cover-ph { font-size: 28px; font-weight: 800; color: rgba(255, 255, 255, .75); }
+.mu-card:hover .mu-cover { box-shadow: 0 8px 22px rgba(0, 0, 0, .5); }
+.mu-artist .mu-cover { border-radius: 50%; }
+.mu-plist { display: flex; flex-direction: column; gap: 6px; max-width: 720px; }
+.mu-prow { display: flex; align-items: center; gap: 14px; padding: 8px; border-radius: 10px; cursor: pointer; }
+.mu-prow:hover { background: #1c1c20; }
+.mu-prow-cv { width: 56px !important; }
+.mu-prow-main { display: flex; flex-direction: column; gap: 2px; }
+.mu-prow-main span { font-size: 12.5px; color: #a0a0a8; }
+/* 歌曲行 */
+.mu-songs { display: flex; flex-direction: column; }
+.mu-song { display: flex; align-items: center; gap: 14px; min-height: 54px; padding: 4px 10px; border-radius: 8px; cursor: pointer; }
+.mu-song:hover { background: #1c1c20; }
+.mu-song.active .mu-song-name, .mu-song.active .mu-song-no { color: #f0414b; }
+.mu-song-no { width: 26px; text-align: center; color: #a0a0a8; font-size: 14px; flex: none; }
+.mu-song-cv { width: 44px !important; border-radius: 6px; }
+.mu-song-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mu-song-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mu-song-sub { font-size: 12px; color: #a0a0a8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mu-song-len { font-size: 13px; color: #a0a0a8; width: 40px; text-align: right; flex: none; }
+.mu-star { all: unset; cursor: pointer; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; color: #77777f; flex: none; }
+.mu-star.on { color: #f0414b; }
+/* 详情头 */
+.mu-dhead { display: flex; gap: 24px; align-items: flex-end; margin: 6px 0 20px; flex-wrap: wrap; }
+.mu-dhead-cv { width: 200px !important; box-shadow: 0 14px 34px rgba(0, 0, 0, .5); }
+.mu-dhead-info { min-width: 0; flex: 1; }
+.mu-dhead-t { font-size: 28px; font-weight: 800; }
+.mu-dhead-sub { margin-top: 4px; font-size: 15px; font-weight: 600; color: #f0414b; }
+.mu-dhead-sub a { color: inherit; text-decoration: none; }
+.mu-dhead-meta { margin-top: 6px; font-size: 13px; color: #a0a0a8; }
+.mu-dhead-btns { display: flex; gap: 10px; margin-top: 16px; }
+.mu-dhead-btns button { display: inline-flex; align-items: center; gap: 6px; height: 42px; padding: 0 20px; border-radius: 21px; }
+/* 迷你播放条 */
+.mu-mini { position: fixed; left: 0; right: 0; bottom: 0; height: 84px; z-index: 60; background: #17171a; border-top: 1px solid #26262b; display: flex; align-items: center; gap: 10px; padding: 0 24px; box-sizing: border-box; }
+.mu-mini-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; cursor: pointer; }
+.mu-mini-cv { width: 56px !important; border-radius: 6px; }
+.mu-mini-txt { display: flex; flex-direction: column; min-width: 0; }
+.mu-mini-txt b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mu-mini-txt span { font-size: 12.5px; color: #a0a0a8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mu-mini-bar { position: absolute; left: 0; right: 0; top: -1px; height: 2px; background: #34343a; }
+.mu-mini-bar div { height: 2px; background: #f0414b; }
+.mu-mini.inline { position: relative; flex: none; height: 60px; margin: 0 8px 6px; border: none; border-radius: 10px; background: #242429; padding: 0 6px 0 8px; box-shadow: 0 6px 18px rgba(0, 0, 0, .45); }
+.mu-mini.inline .mu-mini-main { gap: 10px; }
+.mu-mini.inline .mu-mini-cv { width: 44px !important; }
+.mu-mini.inline .mu-mini-bar { left: 10px; right: 10px; top: auto; bottom: 0; }
+.mu-ib { all: unset; cursor: pointer; position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #e4e4e7; border-radius: 50%; flex: none; }
+.mu-ib:hover { color: #fff; }
+.mu-ib.on { color: #f0414b; }
+.mu-ib-main { background: #fff; color: #0e0e10 !important; width: 42px; height: 42px; }
+.mu-ib:focus-visible { outline: 2px solid #f0414b; outline-offset: 2px; }
+.mu-rep1 { position: absolute; right: 8px; top: 8px; font-size: 9px; font-style: normal; font-weight: 800; }
+/* 完整播放页 */
+.mu-np { position: fixed; inset: 0; z-index: 200; display: flex; flex-direction: column; background: #120a0f; color: #f2f2f3; overflow: hidden; padding-top: var(--sat, 0px); box-sizing: border-box; }
+.mu-np-bg { position: absolute; inset: -40px; background-size: cover; background-position: center; filter: blur(60px) saturate(1.4) brightness(.45); opacity: .9; }
+.mu-np > *:not(.mu-np-bg) { position: relative; }
+.mu-np-top { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; }
+.mu-np-top-t { font-size: 13px; letter-spacing: 1px; color: #d9c3cc; }
+.mu-np-body { flex: 1; min-height: 0; display: flex; gap: 64px; padding: 0 64px; align-items: center; }
+.mu-np-left { width: 400px; flex: none; }
+.mu-np-cv { box-shadow: 0 24px 60px rgba(0, 0, 0, .55); border-radius: 12px; }
+.mu-np-title { margin-top: 22px; font-size: 28px; font-weight: 800; }
+.mu-np-artist { margin-top: 6px; font-size: 15px; color: #f0414b; font-weight: 600; }
+.mu-np-artist a { color: inherit; text-decoration: none; }
+.mu-np-q { margin-top: 8px; font-size: 12.5px; color: #d9c3cc; }
+.mu-np-right { flex: 1; min-width: 0; height: 100%; max-height: 560px; overflow-y: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(180deg, transparent, #000 12%, #000 88%, transparent); mask-image: linear-gradient(180deg, transparent, #000 12%, #000 88%, transparent); }
+.mu-np-right::-webkit-scrollbar { display: none; }
+.mu-lyr { padding: 40vh 0; display: flex; flex-direction: column; gap: 22px; }
+.mu-lyr-l { font-size: 26px; font-weight: 700; line-height: 1.3; color: rgba(255, 255, 255, .4); cursor: pointer; transition: color .25s, font-size .25s; }
+.mu-lyr-l.on { color: #fff; font-size: 34px; }
+.mu-lyr-l.plain { color: rgba(255, 255, 255, .85); font-size: 20px; font-weight: 500; cursor: default; }
+.mu-np-nolyr { height: 100%; display: flex; align-items: center; justify-content: center; color: #d9c3cc; }
+.mu-np-queue { padding: 20px 0; }
+.mu-np-qrow { display: flex; gap: 12px; align-items: baseline; padding: 10px 8px; border-radius: 8px; cursor: pointer; }
+.mu-np-qrow:hover { background: rgba(255, 255, 255, .08); }
+.mu-np-qrow.on b { color: #f0414b; }
+.mu-np-qrow span { width: 26px; color: #d9c3cc; font-size: 13px; }
+.mu-np-qrow b { font-size: 15px; }
+.mu-np-qrow em { font-style: normal; font-size: 12.5px; color: #d9c3cc; margin-left: auto; }
+.mu-np-ctl { padding: 6px 64px 18px; background: rgba(14, 14, 16, .55); }
+.mu-np-prog { display: flex; align-items: center; gap: 12px; font-size: 12px; color: #d9c3cc; }
+.mu-np-prog input { flex: 1; -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px; outline: none; background: linear-gradient(90deg, #f0414b var(--p, 0%), rgba(255, 255, 255, .22) var(--p, 0%)); padding: 0; border: none; box-shadow: none; }
+.mu-np-prog input::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #fff; }
+.mu-np-btns { display: flex; justify-content: center; align-items: center; gap: 22px; margin-top: 8px; }
+.mu-ib-big { width: 64px; height: 64px; background: #fff; color: #0e0e10 !important; }
+.mu-np-foot { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; color: #d9c3cc; margin-top: 2px; }
+@media (max-width: 900px) {
+  .mu-np-body { flex-direction: column; gap: 14px; padding: 6px 24px 0; align-items: stretch; }
+  .mu-np-left { width: auto; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .mu-np-cv { width: 72px !important; border-radius: 8px; }
+  .mu-np-title { margin: 0; font-size: 20px; flex: 1; min-width: 0; }
+  .mu-np-artist, .mu-np-q { flex-basis: 100%; margin: 0; }
+  .mu-np-right { max-height: none; }
+  .mu-lyr { padding: 18vh 0; gap: 18px; }
+  .mu-lyr-l { font-size: 20px; }
+  .mu-lyr-l.on { font-size: 24px; }
+  .mu-np-ctl { padding: 6px 22px calc(18px + env(safe-area-inset-bottom)); }
+  .mu-np-btns { gap: 14px; }
+  .mu-dhead-cv { width: 160px !important; }
+  .mu-dhead { flex-direction: column; align-items: center; text-align: center; }
+  .mu-dhead-btns { justify-content: center; }
+  .mu-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 14px 10px; }
+  .mu-hcell { flex-basis: 120px; }
+}
+@media (max-width: 560px) { .mu-song-len { display: none; } }

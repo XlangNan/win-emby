@@ -11,6 +11,7 @@ import './styles/global.css';
 import './styles/netflix.css';
 import './styles/app.css';
 import './styles/mobile.css';
+import './styles/music.css';
 
 // 挂载前先应用皮肤，避免首屏闪烁
 initTheme();
