@@ -61,7 +61,7 @@ pnpm tauri dev
 pnpm tauri build
 ```
 
-安装包在 `src-tauri\target\release\bundle\nsis\织影_0.1.0_x64-setup.exe`。第一次打包 Tauri 会从 GitHub 下载 NSIS，卡住的话给终端开代理再试。
+安装包在 `src-tauri\target\release\bundle\nsis\织影_0.2.0_x64-setup.exe`。第一次打包 Tauri 会从 GitHub 下载 NSIS，卡住的话给终端开代理再试。
 
 ## 用 GitHub Actions 打包
 
@@ -71,8 +71,8 @@ pnpm tauri build
 - 发布版本：打一个 `v` 开头的标签，安装包会自动挂到 Releases。
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 ## 目录

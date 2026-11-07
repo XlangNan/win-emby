@@ -3,11 +3,12 @@ import { useState } from 'react';
 import AppAmbient from '../components/AppAmbient';
 import TitleBar from '../components/TitleBar';
 import { emby } from '../emby/client';
+import { fn } from '../emby/fnos';
 import { saveSession } from '../emby/session';
 
 const LAST = 'wemby-last-login';
 
-function lastLogin(): { server: string; user: string } {
+function lastLogin(): { server: string; user: string; kind?: string } {
   try {
     return { server: '', user: '', ...(JSON.parse(localStorage.getItem(LAST) || '{}') as object) };
   } catch {
@@ -17,6 +18,7 @@ function lastLogin(): { server: string; user: string } {
 
 export default function LoginPage() {
   const last = lastLogin();
+  const [kind, setKind] = useState<'emby' | 'fnos'>(last.kind === 'fnos' ? 'fnos' : 'emby');
   const [server, setServer] = useState(last.server);
   const [user, setUser] = useState(last.user);
   const [pw, setPw] = useState('');
@@ -29,16 +31,17 @@ export default function LoginPage() {
     setBusy(true);
     setErr('');
     try {
-      if (!server.trim()) throw new Error('请填写服务器地址，例如 192.168.1.10:8096');
+      const api = kind === 'fnos' ? fn : emby;
+      if (!server.trim()) throw new Error(`请填写服务器地址，例如 ${kind === 'fnos' ? '192.168.1.10:8056' : '192.168.1.10:8096'}`);
       if (!user.trim()) throw new Error('请填写用户名');
       try {
-        await emby.ping(server);
+        await api.ping(server);
       } catch {
-        throw new Error('连接不上服务器：检查地址 / 端口，电脑和 Emby 是否在同一局域网');
+        throw new Error('连接不上服务器：检查地址 / 端口，设备和服务器是否在同一局域网');
       }
-      const s = await emby.login(server, user.trim(), pw);
+      const s = await api.login(server, user.trim(), pw);
       try {
-        localStorage.setItem(LAST, JSON.stringify({ server: s.server, user: user.trim() }));
+        localStorage.setItem(LAST, JSON.stringify({ server: s.server, user: user.trim(), kind }));
       } catch {
         /* ignore */
       }
@@ -58,11 +61,16 @@ export default function LoginPage() {
         <TitleBar />
         <div className="we-login-wrap">
           <form className="card we-login" onSubmit={(e) => void submit(e)}>
-            <h2 style={{ margin: '0 0 4px' }}>连接 Emby</h2>
-            <div className="muted" style={{ marginBottom: 16, fontSize: 12 }}>填写局域网里 Emby 服务器的地址和账号</div>
+            <h2 style={{ margin: '0 0 4px' }}>连接服务器</h2>
+            <div className="muted" style={{ marginBottom: 10, fontSize: 12 }}>选择服务器类型，填写局域网里的地址和账号</div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+              {([['emby', 'Emby'], ['fnos', '飞牛影视']] as const).map(([k, n]) => (
+                <button key={k} type="button" className={kind === k ? 'primary' : ''} style={{ flex: 1 }} onClick={() => { setKind(k); setErr(''); }}>{n}</button>
+              ))}
+            </div>
             <label className="we-field">
               <span>服务器地址</span>
-              <input value={server} onChange={(e) => setServer(e.target.value)} placeholder="192.168.1.10:8096" autoFocus spellCheck={false} />
+              <input value={server} onChange={(e) => setServer(e.target.value)} placeholder={kind === 'fnos' ? '192.168.1.10:8056' : '192.168.1.10:8096'} autoFocus spellCheck={false} />
             </label>
             <label className="we-field">
               <span>用户名</span>

@@ -1,6 +1,6 @@
 {
   "name": "weave",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Weave — 多媒体库播放器（Tauri + React）",
   "type": "module",

@@ -64,6 +64,8 @@ export interface MediaSource {
   MediaStreams?: MediaStream[];
   Path?: string;
   Chapters?: Chapter[];
+  /** 飞牛：播放时要带的请求头（"名: 值"） */
+  HttpHeaders?: string[];
 }
 
 export interface Chapter {
@@ -127,4 +129,6 @@ export interface Session {
   serverName?: string;
   token: string;
   deviceId: string;
+  /** 服务器类型，缺省 = Emby */
+  kind?: 'emby' | 'fnos';
 }

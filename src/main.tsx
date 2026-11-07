@@ -1,3 +1,4 @@
+import { installFnImg } from './emby/fnimg';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { HashRouter } from 'react-router-dom';
@@ -17,6 +18,7 @@ initTheme();
 if (isAndroid) applyTheme('netflix'); // 手机端固定用流媒体风格
 initFont();
 installDragRegion();
+installFnImg();
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
