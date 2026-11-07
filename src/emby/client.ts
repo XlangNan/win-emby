@@ -2,8 +2,6 @@
 import { isAndroid } from '../lib/platform';
 import { httpFetch } from './http';
 import { deviceId, getSession, normalizeServer } from './session';
-import { fn, fnDuration, isFnos } from './fnos';
-import { fnImg } from './fnimg';
 import type { EmbyItem, ItemsResult, PlaybackInfo, Session } from './types';
 
 const CLIENT = 'Weave';
@@ -118,21 +116,18 @@ export const emby = {
 
   /** 仅探测服务器是否可达（登录前给出更友好的报错） */
   async ping(serverInput: string): Promise<{ ServerName?: string; Version?: string }> {
-    if (isFnos()) return fn.ping(serverInput);
     const server = normalizeServer(serverInput);
     return call(server, undefined, 'GET', '/System/Info/Public');
   },
 
   /** 媒体库（电影 / 剧集 / 混合…） */
   async views(): Promise<EmbyItem[]> {
-    if (isFnos()) return fn.views();
     const s = need();
     const r = await api<ItemsResult>('GET', `/Users/${s.userId}/Views`);
     return r.Items || [];
   },
 
   async items(o: ListOpts): Promise<ItemsResult> {
-    if (isFnos()) return fn.items(o);
     const s = need();
     return api<ItemsResult>('GET', `/Users/${s.userId}/Items`, {
       ParentId: o.parentId,
@@ -156,7 +151,6 @@ export const emby = {
 
   /** 继续观看 */
   async resume(limit = 24): Promise<EmbyItem[]> {
-    if (isFnos()) return fn.resume(limit);
     const s = need();
     const r = await api<ItemsResult>('GET', `/Users/${s.userId}/Items/Resume`, {
       Limit: limit,
@@ -171,7 +165,6 @@ export const emby = {
 
   /** 剧集「下一集」 */
   async nextUp(limit = 24): Promise<EmbyItem[]> {
-    if (isFnos()) return fn.nextUp();
     const s = need();
     const r = await api<ItemsResult>('GET', '/Shows/NextUp', {
       UserId: s.userId,
@@ -185,7 +178,6 @@ export const emby = {
 
   /** 某媒体库的最新入库 */
   async latest(parentId: string, limit = 24): Promise<EmbyItem[]> {
-    if (isFnos()) return fn.latest(parentId, limit);
     const s = need();
     return api<EmbyItem[]>('GET', `/Users/${s.userId}/Items/Latest`, {
       ParentId: parentId,
@@ -197,7 +189,6 @@ export const emby = {
   },
 
   async item(id: string): Promise<EmbyItem> {
-    if (isFnos()) return fn.item(id);
     const s = need();
     return api<EmbyItem>('GET', `/Users/${s.userId}/Items/${id}`, {
       Fields: 'OriginalTitle,Overview,People,Genres,Studios,Taglines,MediaSources,MediaStreams,ProviderIds,Chapters,Path',
@@ -206,7 +197,6 @@ export const emby = {
 
   /** 按名字搜演员 / 导演 */
   async searchPersons(q: string, limit = 12): Promise<EmbyItem[]> {
-    if (isFnos()) return fn.searchPersons();
     const s = need();
     const r = await api<{ Items: EmbyItem[] }>('GET', '/Persons', { SearchTerm: q, Limit: limit, UserId: s.userId, EnableImages: 'true' });
     return r.Items || [];
@@ -214,14 +204,12 @@ export const emby = {
 
   /** 演员 / 导演资料 */
   async person(id: string): Promise<EmbyItem & { PremiereDate?: string; ProductionLocations?: string[]; EndDate?: string }> {
-    if (isFnos()) return fn.person(id);
     const s = need();
     return api('GET', `/Users/${s.userId}/Items/${id}`, { Fields: 'Overview,PremiereDate,ProductionLocations' });
   },
 
   /** 库里所有电影 / 剧集的 TMDB 编号，形如 movie:123、tv:456（用来标「已入库」） */
   async tmdbIndex(): Promise<Set<string>> {
-    if (isFnos()) return fn.tmdbIndex();
     const s = need();
     const out = new Set<string>();
     for (const [type, tag] of [['Movie', 'movie'], ['Series', 'tv']] as const) {
@@ -237,7 +225,6 @@ export const emby = {
   },
 
   async seasons(seriesId: string): Promise<EmbyItem[]> {
-    if (isFnos()) return fn.seasons(seriesId);
     const s = need();
     const r = await api<ItemsResult>('GET', `/Shows/${seriesId}/Seasons`, {
       UserId: s.userId,
@@ -247,7 +234,6 @@ export const emby = {
   },
 
   async episodes(seriesId: string, seasonId?: string): Promise<EmbyItem[]> {
-    if (isFnos()) return fn.episodes(seriesId, seasonId);
     const s = need();
     const r = await api<ItemsResult>('GET', `/Shows/${seriesId}/Episodes`, {
       UserId: s.userId,
@@ -260,7 +246,6 @@ export const emby = {
   },
 
   async similar(id: string, limit = 12): Promise<EmbyItem[]> {
-    if (isFnos()) return fn.similar();
     const s = need();
     const r = await api<ItemsResult>('GET', `/Items/${id}/Similar`, {
       UserId: s.userId,
@@ -271,37 +256,31 @@ export const emby = {
   },
 
   async genres(parentId: string): Promise<string[]> {
-    if (isFnos()) return fn.genres(parentId);
     const s = need();
     const r = await api<ItemsResult>('GET', '/Genres', { UserId: s.userId, ParentId: parentId, SortBy: 'SortName' });
     return (r.Items || []).map((g) => g.Name);
   },
 
   async setFavorite(id: string, on: boolean): Promise<void> {
-    if (isFnos()) return fn.setFavorite(id, on);
     const s = need();
     await api(on ? 'POST' : 'DELETE', `/Users/${s.userId}/FavoriteItems/${id}`);
   },
 
   async setPlayed(id: string, on: boolean): Promise<void> {
-    if (isFnos()) return fn.setPlayed(id, on);
     const s = need();
     await api(on ? 'POST' : 'DELETE', `/Users/${s.userId}/PlayedItems/${id}`);
   },
 
   /** 片头标记插件（EmbyStrmIntroMarker）：某部剧所有集及现有标记 */
   async markerEpisodes(seriesId: string): Promise<unknown[]> {
-    if (isFnos()) throw new Error('飞牛影视不支持片头标记同步');
     return api<unknown[]>('GET', '/StrmIntroMarker/Episodes', { SeasonId: seriesId });
   },
   async markerBulk(items: Array<{ ItemId: string; IntroStart: number | null; IntroEnd: number | null; CreditsStart: number | null }>): Promise<{ AppliedCount: number; SkippedCount: number }> {
-    if (isFnos()) throw new Error('飞牛影视不支持片头标记同步');
     return api('POST', '/StrmIntroMarker/Markers/Bulk', undefined, { Items: items });
   },
 
   /** 把影片从「继续观看」里移除（进度清零，不改已看状态） */
   async clearResume(id: string): Promise<void> {
-    if (isFnos()) return fn.clearResume(id);
     const s = need();
     await api('POST', `/Users/${s.userId}/Items/${id}/UserData`, undefined, { PlaybackPositionTicks: 0 });
   },
@@ -317,7 +296,6 @@ export const emby = {
       subtitleIndex?: number;
     },
   ): Promise<PlaybackInfo> {
-    if (isFnos()) return fn.playbackInfo(id);
     const s = need();
     return api<PlaybackInfo>(
       'POST',
@@ -336,15 +314,12 @@ export const emby = {
   },
 
   reportStart(b: PlayReport): Promise<void> {
-    if (isFnos()) return fn.report(b.itemId, b.mediaSourceId, b.positionSec, fnDuration(b.mediaSourceId));
     return api('POST', '/Sessions/Playing', undefined, toReport(b)).catch(() => undefined) as Promise<void>;
   },
   reportProgress(b: PlayReport): Promise<void> {
-    if (isFnos()) return fn.report(b.itemId, b.mediaSourceId, b.positionSec, fnDuration(b.mediaSourceId));
     return api('POST', '/Sessions/Playing/Progress', undefined, toReport(b)).catch(() => undefined) as Promise<void>;
   },
   reportStop(b: PlayReport): Promise<void> {
-    if (isFnos()) return fn.report(b.itemId, b.mediaSourceId, b.positionSec, fnDuration(b.mediaSourceId));
     return api('POST', '/Sessions/Playing/Stopped', undefined, toReport(b)).catch(() => undefined) as Promise<void>;
   },
 };
@@ -391,7 +366,6 @@ export function absUrl(rel: string): string {
 
 export function posterUrl(it: EmbyItem, width = 360): string {
   if (!getSession()) return '';
-  if (isFnos()) return fnImg(it.ImageTags?.Primary, width);
   const tag = it.ImageTags?.Primary;
   if (tag) return withAuth(`/Items/${it.Id}/Images/Primary`, { maxWidth: width, quality: 90, tag });
   // 单集没有竖版海报 → 用剧集海报
@@ -404,7 +378,6 @@ export function posterUrl(it: EmbyItem, width = 360): string {
 /** 横版缩略图（单集剧照 / Thumb），没有则退回背景图 */
 export function thumbUrl(it: EmbyItem, width = 480): string {
   if (!getSession()) return '';
-  if (isFnos()) return fnImg(it.Type === 'Episode' ? it.ImageTags?.Primary : it.BackdropImageTags?.[0] || it.ImageTags?.Primary, width);
   const t = it.ImageTags?.Primary;
   if (it.Type === 'Episode' && t) return withAuth(`/Items/${it.Id}/Images/Primary`, { maxWidth: width, quality: 85, tag: t });
   if (it.ImageTags?.Thumb) return withAuth(`/Items/${it.Id}/Images/Thumb`, { maxWidth: width, quality: 85, tag: it.ImageTags.Thumb });
@@ -413,7 +386,6 @@ export function thumbUrl(it: EmbyItem, width = 480): string {
 
 export function backdropUrl(it: EmbyItem, width = 1600): string {
   if (!getSession()) return '';
-  if (isFnos()) return fnImg(it.BackdropImageTags?.[0], width);
   const own = it.BackdropImageTags?.[0];
   if (own) return withAuth(`/Items/${it.Id}/Images/Backdrop/0`, { maxWidth: width, quality: 85, tag: own });
   const pt = it.ParentBackdropImageTags?.[0];
@@ -426,20 +398,17 @@ export function backdropUrl(it: EmbyItem, width = 1600): string {
 /** 片名 Logo（有的话用来代替文字标题） */
 export function logoUrl(it: EmbyItem, width = 600): string {
   if (!getSession()) return '';
-  if (isFnos()) return fnImg(it.ImageTags?.Logo, width);
   const tag = it.ImageTags?.Logo;
   return tag ? withAuth(`/Items/${it.Id}/Images/Logo`, { maxWidth: width, quality: 90, tag }) : '';
 }
 
 export function personUrl(p: { Id: string; PrimaryImageTag?: string }, width = 200): string {
   if (!getSession() || !p.PrimaryImageTag) return '';
-  if (isFnos()) return fnImg(p.PrimaryImageTag, width);
   return withAuth(`/Items/${p.Id}/Images/Primary`, { maxWidth: width, quality: 85, tag: p.PrimaryImageTag });
 }
 
 /** 直连播放地址（原文件，不转码） */
-export function directStreamUrl(itemId: string, source: { Id: string; Container?: string; DirectStreamUrl?: string }, playSessionId?: string): string {
-  if (isFnos() && source.DirectStreamUrl) return source.DirectStreamUrl;
+export function directStreamUrl(itemId: string, source: { Id: string; Container?: string }, playSessionId?: string): string {
   return withAuth(`/Videos/${itemId}/stream${source.Container ? `.${source.Container.split(',')[0]}` : ''}`, {
     Static: 'true',
     MediaSourceId: source.Id,

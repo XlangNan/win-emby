@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import PlayerDrawer from '../components/PlayerDrawer';
 import { directStreamUrl, emby, posterUrl, subtitleUrl, thumbUrl } from '../emby/client';
-import { fnSubGuid, fnSubtitleText, isFnos } from '../emby/fnos';
 import { fmtDuration, ticksToSec } from '../emby/format';
 import type { EmbyItem, MediaSource, MediaStream } from '../emby/types';
 import { openMpv, type MpvSession } from '../lib/mpv';
@@ -334,11 +333,6 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           if (ei >= 0) opts.sid = String(ei + 1);
           else pendingSub.current = mst.find((x) => x.Index === pick.sub) || null; // 外挂字幕：载入后再挂
         }
-        if (psrc.HttpHeaders?.length) {
-          // 飞牛：请求头带签名；用 %长度% 写法，值里才能含逗号
-          const hv = psrc.HttpHeaders.join(',');
-          opts['http-header-fields'] = `%${new TextEncoder().encode(hv).length}%${hv}`;
-        }
         await sess.loadfile(directStreamUrl(id, psrc, info.PlaySessionId), opts);
         if (loadPlayPrefs().autoSkipIntro) autoSkipArmed.current = true;
         void report('start');
@@ -466,14 +460,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     const p = playRef.current;
     if (!p) return;
     const ext = s.Codec === 'ass' || s.Codec === 'ssa' ? 'ass' : 'srt';
-    let subSrc = subtitleUrl(id, p.source.Id, s.Index, ext);
-    if (isFnos()) {
-      // 飞牛的字幕地址要签名，mpv 自己取不了：由我们取回文本再交给 mpv
-      const g = fnSubGuid(p.source.Id, s.Index);
-      if (!g) return;
-      subSrc = `memory://${await fnSubtitleText(g)}`;
-    }
-    await sess.cmd('sub-add', [subSrc, 'select', subLabel(s), s.Language || '']);
+    await sess.cmd('sub-add', [subtitleUrl(id, p.source.Id, s.Index, ext), 'select', subLabel(s), s.Language || '']);
     const now = Number(await sess.get('sid', 'int64'));
     if (Number.isFinite(now)) extSid.current.set(s.Index, now);
   };
