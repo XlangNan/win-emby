@@ -5,9 +5,9 @@ import { useCachedAsync } from '../lib/useAsync';
 import { Cover, fmtTime, Ic, SongRow } from './MusicUi';
 import { AlbumCard } from './MusicPage';
 import { loadNd, nd, type Album, type Song } from './navidrome';
-import { playQueue, setShuffle } from './player';
+import { enqueue, playQueue, setShuffle } from './player';
 
-function Head({ cover, title, sub, meta, songs }: { cover: string; title: string; sub?: React.ReactNode; meta: string; songs: Song[] }) {
+function Head({ cover, title, sub, meta, songs, extra }: { cover: string; title: string; sub?: React.ReactNode; meta: string; songs: Song[]; extra?: React.ReactNode }) {
   const go = (shuffle: boolean): void => {
     setShuffle(shuffle);
     playQueue(songs, shuffle ? Math.floor(Math.random() * songs.length) : 0);
@@ -22,6 +22,8 @@ function Head({ cover, title, sub, meta, songs }: { cover: string; title: string
         <div className="mu-dhead-btns">
           <button type="button" className="primary" disabled={!songs.length} onClick={() => go(false)}><Ic n="play" size={18} /> 播放</button>
           <button type="button" disabled={!songs.length} onClick={() => go(true)}><Ic n="shuffle" size={18} /> 随机</button>
+          <button type="button" disabled={!songs.length} onClick={() => enqueue(songs)}><Ic n="plus" size={18} /> 加入队列</button>
+          {extra}
         </div>
       </div>
     </div>
@@ -34,7 +36,7 @@ export default function MusicDetail() {
   const { kind, id } = useParams();
   const nav = useNavigate();
   const k = loadNd().server;
-  const d = useCachedAsync<{ title: string; cover: string; sub?: string; subTo?: string; songs: Song[]; albums: Album[]; year?: number; fmt?: string }>(
+  const d = useCachedAsync<{ title: string; cover: string; sub?: string; subTo?: string; songs: Song[]; albums: Album[]; top?: Song[]; year?: number; fmt?: string }>(
     `nd:${k}:${kind}:${id}`,
     async () => {
       if (kind === 'album') {
@@ -47,7 +49,8 @@ export default function MusicDetail() {
         return { title: r.playlist.name, cover: r.playlist.coverArt, songs: r.songs, albums: [] };
       }
       const r = await nd.artist(id || '');
-      return { title: r.artist.name, cover: r.artist.coverArt, songs: [], albums: r.albums };
+      const top = await nd.topSongs(r.artist.name, 15).catch(() => [] as Song[]);
+      return { title: r.artist.name, cover: r.artist.coverArt, songs: [], albums: r.albums, top };
     },
     60 * 1000,
   );
@@ -61,10 +64,13 @@ export default function MusicDetail() {
         <>
           <Head cover={x.cover} title={x.title} songs={x.songs}
             sub={x.sub ? (x.subTo ? <a href={`#${x.subTo}`} onClick={(e) => { e.preventDefault(); nav(x.subTo as string); }}>{x.sub}</a> : x.sub) : undefined}
-            meta={[kind === 'album' ? '专辑' : '歌单', x.year || '', total(x.songs), x.fmt || ''].filter(Boolean).join(' · ')} />
+            meta={[kind === 'album' ? '专辑' : '歌单', x.year || '', total(x.songs), x.fmt || ''].filter(Boolean).join(' · ')}
+            extra={kind === 'playlist' ? <button type="button" className="mu-danger" onClick={() => { if (window.confirm(`删除歌单「${x.title}」？`)) nd.deletePlaylist(id || '').then(() => { window.dispatchEvent(new Event('wemby-nd-playlists')); nav('/music', { replace: true }); }, (e: Error) => window.alert(e.message)); }}><Ic n="trash" size={18} /> 删除歌单</button> : undefined} />
           <div className="mu-songs">
-            {x.songs.map((s, i) => <SongRow key={`${s.id}-${i}`} s={s} i={i} list={x.songs} showArtist={kind === 'playlist'} showCover={kind === 'playlist'} />)}
+            {x.songs.map((s, i) => <SongRow key={`${s.id}-${i}`} s={s} i={i} list={x.songs} showArtist={kind === 'playlist'} showCover={kind === 'playlist'}
+              ctx={kind === 'playlist' ? { onRemove: () => { nd.removeFromPlaylist(id || '', i).then(() => { window.dispatchEvent(new Event('wemby-nd-playlists')); d.reload(); }, (e: Error) => window.alert(e.message)); } } : undefined} />)}
           </div>
+          {x.songs.length === 0 && <div className="empty">这里还没有歌曲</div>}
           {kind === 'album' && x.songs.length > 0 && <div className="muted" style={{ padding: '14px 4px', fontSize: 12 }}>总时长 {fmtTime(x.songs.reduce((a, s) => a + s.duration, 0))}</div>}
         </>
       )}
@@ -74,7 +80,13 @@ export default function MusicDetail() {
             <Cover id={x.cover} size={400} radius="50%" className="mu-dhead-cv" label={x.title} />
             <div className="mu-dhead-info"><div className="mu-dhead-t">{x.title}</div><div className="mu-dhead-meta">艺术家 · {x.albums.length} 张专辑</div></div>
           </div>
-          <div className="mu-grid">{x.albums.map((a) => <AlbumCard key={a.id} a={a} />)}</div>
+          {x.top && x.top.length > 0 && (
+            <section className="mu-sec">
+              <div className="mu-sec-head"><h3>热门歌曲</h3><button type="button" className="primary" onClick={() => playQueue(x.top as Song[], 0)}><Ic n="play" size={16} /> 播放热门</button></div>
+              <div className="mu-songs">{x.top.slice(0, 10).map((s, i) => <SongRow key={s.id} s={s} i={i} list={x.top as Song[]} showCover />)}</div>
+            </section>
+          )}
+          <section className="mu-sec"><h3>专辑 · {x.albums.length}</h3><div className="mu-grid">{x.albums.map((a) => <AlbumCard key={a.id} a={a} />)}</div></section>
         </>
       )}
     </div>

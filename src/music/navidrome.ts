@@ -78,15 +78,15 @@ const album = (o: Obj): Album => ({
 const artist = (o: Obj): Artist => ({ id: s(o.id), name: s(o.name), albumCount: n(o.albumCount), coverArt: s(o.coverArt), starred: !!o.starred });
 const arr = (v: unknown): Obj[] => (Array.isArray(v) ? (v as Obj[]) : []);
 
-export type AlbumListType = 'newest' | 'recent' | 'frequent' | 'random' | 'alphabeticalByName' | 'alphabeticalByArtist' | 'starred';
+export type AlbumListType = 'byGenre' | 'newest' | 'recent' | 'frequent' | 'random' | 'alphabeticalByName' | 'alphabeticalByArtist' | 'starred';
 
 export const nd = {
   async ping(cfg: NdConfig): Promise<{ version: string; server: string }> {
     const r = await call<{ version?: string; type?: string; serverVersion?: string }>('ping', {}, { ...cfg, server: normalizeNdServer(cfg.server) });
     return { version: s(r.serverVersion || r.version), server: s(r.type || 'Subsonic') };
   },
-  async albumList(type: AlbumListType, size = 30, offset = 0): Promise<Album[]> {
-    const r = await call<{ albumList2?: { album?: Obj[] } }>('getAlbumList2', { type, size, offset });
+  async albumList(type: AlbumListType, size = 30, offset = 0, genre?: string): Promise<Album[]> {
+    const r = await call<{ albumList2?: { album?: Obj[] } }>('getAlbumList2', { type, size, offset, genre });
     return arr(r.albumList2?.album).map(album);
   },
   async album(id: string): Promise<{ album: Album; songs: Song[] }> {
@@ -121,6 +121,38 @@ export const nd = {
   async randomSongs(size = 50): Promise<Song[]> {
     const r = await call<{ randomSongs?: { song?: Obj[] } }>('getRandomSongs', { size });
     return arr(r.randomSongs?.song).map(song);
+  },
+  async genres(): Promise<{ name: string; albums: number }[]> {
+    const r = await call<{ genres?: { genre?: Obj[] } }>('getGenres');
+    return arr(r.genres?.genre).map((g) => ({ name: s(g.value), albums: n(g.albumCount) })).filter((g) => g.name).sort((a, b) => b.albums - a.albums);
+  },
+  async topSongs(artistName: string, count = 12): Promise<Song[]> {
+    const r = await call<{ topSongs?: { song?: Obj[] } }>('getTopSongs', { artist: artistName, count });
+    return arr(r.topSongs?.song).map(song);
+  },
+  async createPlaylist(name: string, songIds: string[] = []): Promise<string> {
+    const cfg = loadNd();
+    const extra = songIds.map((i) => `&songId=${encodeURIComponent(i)}`).join('');
+    const url = `${cfg.server}/rest/createPlaylist.view?${authQs(cfg)}&f=json&name=${encodeURIComponent(name)}${extra}`;
+    const res = await httpFetch(url, { headers: { Accept: 'application/json' } }, cfg.proxy ? { proxy: cfg.proxy } : undefined);
+    const j = (await res.json()) as { 'subsonic-response'?: { status: string; error?: { message: string }; playlist?: { id?: string } } };
+    const r = j['subsonic-response'];
+    if (!r || r.status !== 'ok') throw new Error(r?.error?.message || '创建歌单失败');
+    return s(r.playlist?.id);
+  },
+  async addToPlaylist(id: string, songIds: string[]): Promise<void> {
+    const cfg = loadNd();
+    const extra = songIds.map((i) => `&songIdToAdd=${encodeURIComponent(i)}`).join('');
+    const url = `${cfg.server}/rest/updatePlaylist.view?${authQs(cfg)}&f=json&playlistId=${encodeURIComponent(id)}${extra}`;
+    const res = await httpFetch(url, { headers: { Accept: 'application/json' } }, cfg.proxy ? { proxy: cfg.proxy } : undefined);
+    const j = (await res.json()) as { 'subsonic-response'?: { status: string; error?: { message: string } } };
+    if (j['subsonic-response']?.status !== 'ok') throw new Error(j['subsonic-response']?.error?.message || '添加失败');
+  },
+  async removeFromPlaylist(id: string, index: number): Promise<void> {
+    await call('updatePlaylist', { playlistId: id, songIndexToRemove: index });
+  },
+  async deletePlaylist(id: string): Promise<void> {
+    await call('deletePlaylist', { id });
   },
   async star(id: string, on: boolean): Promise<void> {
     await call(on ? 'star' : 'unstar', { id });

@@ -6,12 +6,21 @@ export type Repeat = 'off' | 'all' | 'one';
 export interface MusicState {
   queue: Song[]; index: number; playing: boolean; pos: number; dur: number;
   shuffle: boolean; repeat: Repeat; open: boolean; loading: boolean; error: string; cur: Song | null;
+  volume: number; sleepAt: number;
 }
 
 let audio: HTMLAudioElement | null = null;
-let st: MusicState = { queue: [], index: -1, playing: false, pos: 0, dur: 0, shuffle: false, repeat: 'off', open: false, loading: false, error: '', cur: null };
+const P0 = prefs();
+let st: MusicState = { queue: [], index: -1, playing: false, pos: 0, dur: 0, shuffle: P0.shuffle, repeat: P0.repeat, open: false, loading: false, error: '', cur: null, volume: P0.vol, sleepAt: 0 };
 const subs = new Set<() => void>();
 let history: number[] = [];
+const VOL_KEY = 'wemby-music-prefs';
+let sleepTimer = 0;
+export interface SleepInfo { at: number }
+function prefs(): { vol: number; shuffle: boolean; repeat: Repeat } {
+  try { return { vol: 0.8, shuffle: false, repeat: 'off', ...(JSON.parse(localStorage.getItem(VOL_KEY) || '{}') as object) }; } catch { return { vol: 0.8, shuffle: false, repeat: 'off' }; }
+}
+function savePrefs(): void { try { localStorage.setItem(VOL_KEY, JSON.stringify({ vol: st.volume, shuffle: st.shuffle, repeat: st.repeat })); } catch { /* ignore */ } }
 let triedTranscode = false;
 let scrobbled = '';
 
@@ -25,6 +34,7 @@ function el(): HTMLAudioElement {
   if (audio) return audio;
   const a = new Audio();
   a.preload = 'auto';
+  a.volume = st.volume;
   a.addEventListener('timeupdate', () => {
     emit({ pos: a.currentTime, dur: Number.isFinite(a.duration) ? a.duration : st.cur?.duration || 0 });
     if (st.cur && scrobbled !== st.cur.id && a.currentTime > Math.min(30, (st.cur.duration || 60) / 2)) {
@@ -94,25 +104,53 @@ export function next(auto = false): void {
 }
 export function prev(): void {
   const a = el();
-  if (a.currentTime > 3 || !history.length) {
-    if (history.length === 0 && a.currentTime <= 3 && st.index > 0 && !st.shuffle) { load(st.index - 1); return; }
-    a.currentTime = 0;
-    return;
-  }
-  load(history.pop() as number);
+  if (a.currentTime > 3) { a.currentTime = 0; return; }
+  if (history.length) { load(history.pop() as number); return; }
+  if (st.index > 0 && !st.shuffle) { load(st.index - 1); return; }
+  a.currentTime = 0;
 }
 export function seek(t: number): void { const a = el(); if (Number.isFinite(t)) a.currentTime = Math.max(0, t); }
-export function setShuffle(v: boolean): void { emit({ shuffle: v }); }
-export function cycleRepeat(): void { emit({ repeat: st.repeat === 'off' ? 'all' : st.repeat === 'all' ? 'one' : 'off' }); }
+export function setShuffle(v: boolean): void { emit({ shuffle: v }); savePrefs(); }
+export function cycleRepeat(): void { emit({ repeat: st.repeat === 'off' ? 'all' : st.repeat === 'all' ? 'one' : 'off' }); savePrefs(); }
+export function setVolume(v: number): void { const x = Math.min(1, Math.max(0, v)); el().volume = x; emit({ volume: x }); savePrefs(); }
+/** 下一首播放 / 加入队列 */
+export function playNext(songs: Song[]): void {
+  if (!st.queue.length) { playQueue(songs, 0); return; }
+  const q = [...st.queue];
+  q.splice(st.index + 1, 0, ...songs);
+  emit({ queue: q });
+}
+export function enqueue(songs: Song[]): void {
+  if (!st.queue.length) { playQueue(songs, 0); return; }
+  emit({ queue: [...st.queue, ...songs] });
+}
+export function removeAt(i: number): void {
+  if (i < 0 || i >= st.queue.length) return;
+  if (st.queue.length === 1) { stopMusic(); return; }
+  const q = st.queue.filter((_, k) => k !== i);
+  if (i < st.index) { history = history.map((h) => (h > i ? h - 1 : h)).filter((h) => h !== i); emit({ queue: q, index: st.index - 1 }); return; }
+  if (i === st.index) { emit({ queue: q }); load(Math.min(i, q.length - 1)); return; }
+  history = history.map((h) => (h > i ? h - 1 : h));
+  emit({ queue: q });
+}
+/** 定时关闭：minutes=0 取消 */
+export function setSleep(minutes: number): void {
+  window.clearTimeout(sleepTimer);
+  if (!minutes) { emit({ sleepAt: 0 }); return; }
+  const at = Date.now() + minutes * 60000;
+  emit({ sleepAt: at });
+  sleepTimer = window.setTimeout(() => { pause(); emit({ sleepAt: 0 }); }, minutes * 60000);
+}
 export function setOpen(v: boolean): void { emit({ open: v }); }
 export function playIndex(i: number): void { if (st.queue[i]) { history.push(st.index); load(i); } }
 export function setStarred(id: string, on: boolean): void {
   emit({ queue: st.queue.map((x) => (x.id === id ? { ...x, starred: on } : x)) });
 }
 export function stopMusic(): void {
+  window.clearTimeout(sleepTimer);
   if (audio) { audio.pause(); audio.removeAttribute('src'); audio.load(); }
   history = [];
-  emit({ queue: [], index: -1, playing: false, pos: 0, dur: 0, open: false });
+  emit({ queue: [], index: -1, playing: false, pos: 0, dur: 0, open: false, sleepAt: 0 });
 }
 
 function updateSession(): void {
@@ -129,8 +167,9 @@ function setupMediaSession(): void {
   if (!('mediaSession' in navigator)) return;
   const ms = navigator.mediaSession;
   const set = (a: MediaSessionAction, f: MediaSessionActionHandler): void => { try { ms.setActionHandler(a, f); } catch { /* ignore */ } };
-  set('play', () => togglePlay());
-  set('pause', () => togglePlay());
+  set('play', () => { if (audio?.paused) togglePlay(); });
+  set('pause', () => pause());
+  set('stop', () => stopMusic());
   set('previoustrack', () => prev());
   set('nexttrack', () => next());
   set('seekto', (d) => { if (d.seekTime != null) seek(d.seekTime); });

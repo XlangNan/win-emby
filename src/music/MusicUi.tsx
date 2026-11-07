@@ -1,7 +1,9 @@
 // 音乐页面共用的小组件：图标、封面、歌曲行
-import { useState } from 'react';
-import { coverUrl, nd, type Song } from './navidrome';
-import { playQueue, setStarred, useMusic } from './player';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
+import { coverUrl, nd, type Playlist, type Song } from './navidrome';
+import { enqueue, playNext, playQueue, setStarred, useMusic } from './player';
 
 const P: Record<string, string> = {
   play: 'M7 4.5v15l13-7.5z',
@@ -19,6 +21,20 @@ const STROKE: Record<string, string> = {
   search: 'M20 20l-4.2-4.2M11 17.5a6.5 6.5 0 1 1 0-13 6.5 6.5 0 0 1 0 13z',
   close: 'M6 6l12 12M18 6L6 18',
   back: 'M15 5l-7 7 7 7',
+  more: 'M5 12h.01M12 12h.01M19 12h.01',
+  vol: 'M4 9v6h4l5 4V5L8 9zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12',
+  mute: 'M4 9v6h4l5 4V5L8 9zM17 9l5 6M22 9l-5 6',
+  plus: 'M12 5v14M5 12h14',
+  trash: 'M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13',
+  moon: 'M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z',
+  chart: 'M5 20V10M12 20V4M19 20v-7',
+  cal: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4',
+  disc: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+  user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20a8 8 0 0 1 16 0',
+  radio: 'M3 12a9 9 0 0 1 18 0M7 12a5 5 0 0 1 10 0M12 12h.01M5 16l-2 4M19 16l2 4',
+  note: 'M9 18V6l10-2v12M9 18a2.5 2.5 0 1 1-2.5-2.5A2.5 2.5 0 0 1 9 18zM19 16a2.5 2.5 0 1 1-2.5-2.5A2.5 2.5 0 0 1 19 16z',
+  clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',
+  fwd: 'M9 6l6 6-6 6',
 };
 
 const SOLID = new Set(['play', 'pause', 'prev', 'next']);
@@ -51,27 +67,111 @@ export const fmtTime = (sec: number): string => {
   return `${m}:${String(s).padStart(2, '0')}`;
 };
 
-export function SongRow({ s, i, list, showArtist, showCover }: { s: Song; i: number; list: Song[]; showArtist?: boolean; showCover?: boolean }) {
+/* ───────── 歌曲「···」菜单 ───────── */
+export interface MenuCtx { onRemove?: () => void }
+export function SongMenu({ s, anchor, onClose, ctx }: { s: Song; anchor: DOMRect; onClose: () => void; ctx?: MenuCtx }) {
+  const nav = useNavigate();
+  const [sub, setSub] = useState<'' | 'pl'>('');
+  const [pls, setPls] = useState<Playlist[] | null>(null);
+  const [msg, setMsg] = useState('');
+  useEffect(() => {
+    const k = (e: KeyboardEvent): void => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, [onClose]);
+  useEffect(() => { if (sub === 'pl' && !pls) nd.playlists().then(setPls).catch(() => setPls([])); }, [sub, pls]);
+  const W = 200;
+  const left = Math.min(Math.max(8, anchor.right - W), window.innerWidth - W - 8);
+  const below = anchor.bottom + 8;
+  const top = below + 300 > window.innerHeight ? Math.max(8, anchor.top - 8 - (sub ? 300 : 290)) : below;
+  const flash = (t: string): void => { setMsg(t); window.setTimeout(onClose, 900); };
+  const item = (label: string, fn: () => void, icon?: string): React.ReactNode => (
+    <button type="button" className="mu-menu-i" onClick={fn}>{icon && <Ic n={icon} size={16} />}<span>{label}</span></button>
+  );
+  const addTo = (id: string): void => { nd.addToPlaylist(id, [s.id]).then(() => flash('已添加到歌单'), (e: Error) => flash(e.message)); };
+  const create = (): void => {
+    const name = window.prompt('新建歌单名称');
+    if (!name?.trim()) return;
+    nd.createPlaylist(name.trim(), [s.id]).then(() => { window.dispatchEvent(new Event('wemby-nd-playlists')); flash('已创建并添加'); }, (e: Error) => flash(e.message));
+  };
+  return createPortal(
+    <>
+      <div className="mu-menu-mask" onClick={onClose} onContextMenu={(e) => { e.preventDefault(); onClose(); }} />
+      <div className="mu-menu" style={{ left, top, width: W }} role="menu">
+        {msg ? <div className="mu-menu-msg">{msg}</div> : sub === 'pl' ? (
+          <>
+            {item('返回', () => setSub(''), 'back')}
+            {item('新建歌单', create, 'plus')}
+            <div className="mu-menu-list">{!pls ? <div className="mu-menu-msg">加载中…</div> : pls.length === 0 ? <div className="mu-menu-msg">还没有歌单</div> : pls.map((p) => <button key={p.id} type="button" className="mu-menu-i" onClick={() => addTo(p.id)}><span>{p.name}</span></button>)}</div>
+          </>
+        ) : (
+          <>
+            {item('下一首播放', () => { playNext([s]); flash('已加入下一首'); }, 'next')}
+            {item('添加到播放队列', () => { enqueue([s]); flash('已加入队列'); }, 'list')}
+            {item('添加到歌单', () => setSub('pl'), 'plus')}
+            {item(s.starred ? '取消收藏' : '收藏', () => { nd.star(s.id, !s.starred).then(() => { setStarred(s.id, !s.starred); s.starred = !s.starred; flash(s.starred ? '已收藏' : '已取消'); }, () => flash('操作失败')); }, 'heart')}
+            {s.albumId && item('查看专辑', () => { onClose(); nav(`/music/album/${s.albumId}`); }, 'disc')}
+            {s.artistId && item('查看艺术家', () => { onClose(); nav(`/music/artist/${s.artistId}`); }, 'user')}
+            {ctx?.onRemove && item('从歌单中删除', () => { ctx.onRemove?.(); onClose(); }, 'trash')}
+          </>
+        )}
+      </div>
+    </>,
+    document.body,
+  );
+}
+
+/** 品质小标：无损 / 高解析 */
+export function Quality({ s }: { s: Song }) {
+  const lossless = /^(flac|alac|wav|ape|dsf|dff|aiff?)$/i.test(s.suffix);
+  if (!lossless && s.bitRate < 320) return null;
+  const hires = s.bitDepth > 16 || s.samplingRate > 48000;
+  return <i className={`mu-q${hires ? ' hr' : ''}`}>{hires ? 'HR' : lossless ? 'SQ' : 'HQ'}</i>;
+}
+
+export function SongRow({ s, i, list, showCover, ctx, showAlbum = true }: { s: Song; i: number; list: Song[]; showArtist?: boolean; showCover?: boolean; ctx?: MenuCtx; showAlbum?: boolean }) {
   const m = useMusic();
   const active = m.cur?.id === s.id;
   const [star, setStar] = useState(s.starred);
+  const [menu, setMenu] = useState<DOMRect | null>(null);
+  useEffect(() => setStar(s.starred), [s.starred]);
   const toggle = (e: React.MouseEvent): void => {
     e.stopPropagation();
     const v = !star;
     setStar(v);
     setStarred(s.id, v);
+    s.starred = v;
     nd.star(s.id, v).catch(() => setStar(!v));
   };
-  const meta = [showArtist ? s.artist : '', s.suffix ? s.suffix.toUpperCase() : '', s.bitDepth > 16 ? `${s.bitDepth}bit` : ''].filter(Boolean).join(' · ');
   return (
-    <div className={`mu-song${active ? ' active' : ''}`} role="button" tabIndex={0} onClick={() => playQueue(list, i)} onKeyDown={(e) => { if (e.key === 'Enter') playQueue(list, i); }}>
-      {showCover ? <Cover id={s.coverArt} size={80} className="mu-song-cv" /> : <span className="mu-song-no">{active && m.playing ? '♪' : s.track || i + 1}</span>}
+    <div className={`mu-song${active ? ' active' : ''}`} role="button" tabIndex={0} onClick={() => playQueue(list, i)}
+      onContextMenu={(e) => { e.preventDefault(); setMenu(new DOMRect(e.clientX, e.clientY, 0, 0)); }}
+      onKeyDown={(e) => { if (e.key === 'Enter') playQueue(list, i); }}>
+      {showCover ? <Cover id={s.coverArt} size={80} className="mu-song-cv" /> : <span className="mu-song-no">{active ? <Ic n={m.playing ? 'vol' : 'play'} size={15} /> : String(i + 1).padStart(2, '0')}</span>}
       <span className="mu-song-main">
-        <span className="mu-song-name">{s.title}</span>
-        {meta && <span className="mu-song-sub">{meta}</span>}
+        <span className="mu-song-name">{s.title}<Quality s={s} /></span>
+        <span className="mu-song-sub">{s.artist}</span>
       </span>
+      {showAlbum && <span className="mu-song-album">{s.album}</span>}
       <button type="button" className={`mu-star${star ? ' on' : ''}`} aria-label={star ? '取消收藏' : '收藏'} onClick={toggle}><Ic n="heart" size={18} fill={star} /></button>
+      <button type="button" className="mu-star mu-more" aria-label="更多" onClick={(e) => { e.stopPropagation(); setMenu((e.currentTarget as HTMLElement).getBoundingClientRect()); }}><Ic n="more" size={18} /></button>
       <span className="mu-song-len">{fmtTime(s.duration)}</span>
+      {menu && <SongMenu s={s} anchor={menu} onClose={() => setMenu(null)} ctx={ctx} />}
+    </div>
+  );
+}
+
+/** 封面 + 悬停播放按钮（点按钮直接播放，点封面进入详情） */
+export function PlayCover({ id, size, label, onPlay, round, badge }: { id: string; size?: number; label: string; onPlay: () => Promise<Song[]>; round?: boolean; badge?: string }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="mu-pc">
+      <Cover id={id} size={size} label={label} radius={round ? '50%' : undefined} />
+      {badge && <span className="mu-pc-badge">{badge}</span>}
+      <button type="button" className="mu-pc-play" aria-label={`播放 ${label}`} disabled={busy}
+        onClick={(e) => { e.stopPropagation(); setBusy(true); onPlay().then((l) => playQueue(l, 0)).catch(() => undefined).finally(() => setBusy(false)); }}>
+        <Ic n="play" size={18} />
+      </button>
     </div>
   );
 }

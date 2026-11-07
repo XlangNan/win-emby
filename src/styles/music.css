@@ -1,5 +1,5 @@
 /* 音乐（Navidrome） */
-.mu-page { padding-bottom: calc(24px + var(--mini-h, 0px)) !important; }
+.mu-page { padding-bottom: 24px; }
 .mu-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 6px 0 10px; }
 .mu-title { font-size: 26px; font-weight: 800; letter-spacing: .5px; }
 .mu-search { flex: 1; min-width: 180px; max-width: 360px; height: 38px; border-radius: 19px; background: #1f1f23; color: #9a9aa3; display: flex; align-items: center; gap: 8px; padding: 0 14px; box-sizing: border-box; }
@@ -124,3 +124,190 @@
   .mu-hcell { flex-basis: 120px; }
 }
 @media (max-width: 560px) { .mu-song-len { display: none; } }
+.mu-ib-stop { width: 36px; height: 36px; color: #a0a0a8; }
+.mu-ib-stop:hover { color: #f0414b; }
+.mu-stop { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 16px; background: rgba(255, 255, 255, .12); color: #f2f2f3; font-size: 12.5px; }
+.mu-stop:hover { background: rgba(240, 65, 75, .8); }
+/* 桌面端：播放条占位，页面内容不被盖住 */
+.app.nf { padding-bottom: var(--mini-h, 0px); box-sizing: border-box; }
+
+/* ═════════ 网易云风格 ═════════ */
+.mu-wy { display: flex; gap: 0; padding: 0 !important; max-width: none; }
+.mu-side { width: 210px; flex: none; padding: 14px 10px; box-sizing: border-box; border-right: 1px solid #1d1d21; position: sticky; top: 0; align-self: flex-start; max-height: calc(100vh - var(--mini-h, 0px) - 60px); overflow-y: auto; scrollbar-width: none; }
+.mu-side::-webkit-scrollbar { display: none; }
+.mu-side-g { display: flex; align-items: center; justify-content: space-between; padding: 14px 12px 6px; font-size: 12px; color: #8f8f98; letter-spacing: 1px; }
+.mu-side-add { all: unset; cursor: pointer; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: #a0a0a8; }
+.mu-side-add:hover { background: #26262b; color: #fff; }
+.mu-side-i { all: unset; box-sizing: border-box; width: 100%; height: 38px; display: flex; align-items: center; gap: 10px; padding: 0 12px; border-radius: 8px; font-size: 14px; color: #d4d4d8; cursor: pointer; }
+.mu-side-i span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mu-side-i:hover { background: #1c1c20; }
+.mu-side-i.on { background: #26262b; color: #fff; font-weight: 600; }
+.mu-side-i.on svg { color: #f0414b; }
+.mu-main { flex: 1; min-width: 0; padding: 14px 28px 24px; }
+.mu-utabs { display: none; }
+.mu-link { all: unset; cursor: pointer; font-size: 13px; color: #a0a0a8; display: inline-flex; align-items: center; gap: 2px; }
+.mu-link:hover { color: #fff; }
+.mu-search-x { all: unset; cursor: pointer; display: flex; color: #9a9aa3; }
+.mu-head { margin: 0 0 14px; }
+.mu-sec-head h3 { font-size: 19px; font-weight: 800; }
+.mu-sec h3 { font-size: 19px; font-weight: 800; }
+.mu-filter { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; font-size: 13px; color: #8f8f98; }
+.mu-filter > span { width: 36px; }
+.mu-tag { all: unset; cursor: pointer; padding: 4px 12px; border-radius: 14px; font-size: 13px; color: #d4d4d8; }
+.mu-tag:hover { background: #232327; }
+.mu-tag.on { background: rgba(240, 65, 75, .16); color: #f0414b; font-weight: 600; }
+/* 轮播 */
+.mu-banner { margin: 0 0 18px; }
+.mu-banner-ph { height: 220px; border-radius: 14px; background: #1c1c20; }
+.mu-banner-stage { position: relative; height: 220px; display: flex; align-items: center; justify-content: center; gap: 18px; overflow: hidden; border-radius: 14px; background: #151518; }
+.mu-banner-main { position: relative; height: 200px; aspect-ratio: 1 / 1; border-radius: 12px; overflow: hidden; cursor: pointer; box-shadow: 0 10px 30px rgba(0, 0, 0, .55); flex: none; }
+.mu-banner-main .mu-cover { height: 100%; border-radius: 0; }
+.mu-banner-cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 14px 10px; background: linear-gradient(transparent, rgba(0, 0, 0, .75)); display: flex; flex-direction: column; min-width: 0; }
+.mu-banner-cap b { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mu-banner-cap span { font-size: 12.5px; color: #d4d4d8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mu-banner-play { all: unset; cursor: pointer; position: absolute; right: 12px; top: 12px; width: 40px; height: 40px; border-radius: 50%; background: rgba(240, 65, 75, .95); color: #fff; display: flex; align-items: center; justify-content: center; }
+.mu-banner-side { height: 150px; aspect-ratio: 1 / 1; border-radius: 10px; overflow: hidden; opacity: .45; cursor: pointer; flex: none; filter: blur(1px); }
+.mu-banner-side:hover { opacity: .75; }
+.mu-banner-side .mu-cover { height: 100%; border-radius: 0; }
+.mu-dots { display: flex; justify-content: center; gap: 7px; margin-top: 10px; }
+.mu-dots button { all: unset; cursor: pointer; width: 7px; height: 7px; border-radius: 50%; background: #3a3a40; }
+.mu-dots button.on { background: #f0414b; width: 18px; border-radius: 4px; }
+/* 快捷入口 */
+.mu-short { display: flex; justify-content: space-around; gap: 8px; margin: 4px 0 22px; padding: 6px 0; }
+.mu-short button { all: unset; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 13px; color: #d4d4d8; min-width: 64px; }
+.mu-short i { width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, #f0414b, #b82a64); color: #fff; display: flex; align-items: center; justify-content: center; font-style: normal; transition: transform .15s; }
+.mu-short button:hover i { transform: translateY(-2px) scale(1.05); }
+/* 封面悬停播放 */
+.mu-pc { position: relative; }
+.mu-pc-play { all: unset; cursor: pointer; position: absolute; right: 8px; bottom: 8px; width: 38px; height: 38px; border-radius: 50%; background: rgba(240, 65, 75, .95); color: #fff; display: flex; align-items: center; justify-content: center; opacity: 0; transform: translateY(6px); transition: opacity .15s, transform .15s; }
+.mu-card:hover .mu-pc-play, .mu-pc-play:focus-visible { opacity: 1; transform: none; }
+.mu-pc-play:disabled { opacity: .6; }
+.mu-pc-badge { position: absolute; right: 6px; top: 6px; padding: 2px 8px; border-radius: 10px; background: rgba(0, 0, 0, .55); color: #fff; font-size: 11.5px; pointer-events: none; }
+@media (hover: none) { .mu-pc-play { opacity: .95; transform: none; width: 32px; height: 32px; } }
+/* 排行榜 */
+.mu-charts { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+.mu-chart { background: #151518; border-radius: 12px; padding: 8px 6px 10px; }
+.mu-chart-h { padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.mu-chart-h b { font-size: 17px; }
+.mu-chart-h span { font-size: 12px; color: #8f8f98; }
+.mu-rank { display: flex; align-items: center; gap: 12px; padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+.mu-rank:hover { background: #1f1f23; }
+.mu-rank em { width: 22px; text-align: center; font-style: normal; font-size: 16px; font-weight: 800; color: #6a6a72; }
+.mu-rank em.top { color: #f0414b; }
+.mu-rank-cv { width: 44px !important; border-radius: 6px; }
+.mu-rank-t { display: flex; flex-direction: column; min-width: 0; }
+.mu-rank-t b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mu-rank-t span { font-size: 12px; color: #8f8f98; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mu-danger { color: #f0414b !important; }
+/* 歌曲行 */
+.mu-song:nth-child(odd) { background: rgba(255, 255, 255, .025); }
+.mu-song:hover { background: #1f1f23; }
+.mu-song-album { flex: 0 0 24%; min-width: 0; color: #8f8f98; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mu-song-name { display: flex; align-items: center; gap: 6px; }
+.mu-q { font-style: normal; font-size: 9.5px; font-weight: 800; padding: 0 4px; border: 1px solid #f0414b; color: #f0414b; border-radius: 3px; line-height: 14px; flex: none; }
+.mu-q.hr { background: #f0414b; color: #fff; }
+.mu-more { opacity: .0; }
+.mu-song:hover .mu-more, .mu-song:focus-within .mu-more { opacity: 1; }
+@media (hover: none) { .mu-more { opacity: 1; } }
+/* 歌曲菜单 / 弹层 */
+.mu-menu-mask, .mu-pop-mask { position: fixed; inset: 0; z-index: 300; }
+.mu-pop-mask { z-index: 90; }
+.mu-menu { position: fixed; z-index: 301; background: #232327; border: 1px solid #34343a; border-radius: 10px; padding: 6px; box-shadow: 0 12px 32px rgba(0, 0, 0, .55); max-height: 340px; overflow-y: auto; }
+.mu-menu-i { all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 6px; font-size: 13.5px; color: #e4e4e7; cursor: pointer; }
+.mu-menu-i span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mu-menu-i:hover { background: #2f2f35; }
+.mu-menu-msg { padding: 12px; font-size: 13px; color: #a0a0a8; text-align: center; }
+.mu-menu-list { max-height: 220px; overflow-y: auto; }
+/* 播放条（桌面） */
+.mu-mini { height: 76px; background: rgba(23, 23, 26, .97); display: grid; grid-template-columns: minmax(200px, 1fr) minmax(320px, 2fr) minmax(240px, 1fr); gap: 16px; }
+.mu-mini.inline { display: flex; }
+.mu-mini-left { display: flex; align-items: center; gap: 12px; cursor: pointer; min-width: 0; }
+.mu-mini-left .mu-mini-cv { width: 52px !important; }
+.mu-mini-mid { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 0; }
+.mu-mini-btns { display: flex; align-items: center; gap: 12px; }
+.mu-mini-btns .mu-ib { width: 36px; height: 36px; }
+.mu-mini-btns .mu-ib-main { width: 40px; height: 40px; background: #f0414b; color: #fff !important; }
+.mu-mini-prog { width: 100%; max-width: 520px; display: flex; align-items: center; gap: 10px; font-size: 11.5px; color: #a0a0a8; }
+.mu-mini-right { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+.mu-mini-right .mu-ib { width: 36px; height: 36px; }
+.mu-ci { font-size: 13px; font-weight: 700; border: 1.5px solid currentColor; border-radius: 4px; padding: 0 3px; line-height: 15px; }
+.mu-mini-prog input, .mu-vol, .mu-np-vol input { flex: 1; -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px; outline: none; background: linear-gradient(90deg, #f0414b var(--p, 0%), rgba(255, 255, 255, .22) var(--p, 0%)); padding: 0; border: none; box-shadow: none; cursor: pointer; }
+.mu-vol { flex: none; width: 90px; background: linear-gradient(90deg, #e4e4e7 var(--p, 0%), rgba(255, 255, 255, .22) var(--p, 0%)); }
+.mu-np-vol input { width: 90px; flex: none; background: linear-gradient(90deg, #e4e4e7 var(--p, 0%), rgba(255, 255, 255, .22) var(--p, 0%)); }
+.mu-mini-prog input::-webkit-slider-thumb, .mu-vol::-webkit-slider-thumb, .mu-np-vol input::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #fff; }
+.mu-mini-bar { display: none; }
+.mu-mini.inline .mu-mini-bar { display: block; }
+.mu-mini.inline { height: 60px; }
+.mu-spin { border-radius: 50% !important; animation: mu-rot 12s linear infinite; }
+.mu-spin.paused { animation-play-state: paused; }
+@keyframes mu-rot { to { transform: rotate(360deg); } }
+.mu-queue { position: fixed; right: 16px; bottom: calc(var(--mini-h, 76px) + 8px); width: 400px; max-width: calc(100vw - 24px); max-height: 60vh; z-index: 95; background: #1d1d21; border: 1px solid #2d2d33; border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 14px 40px rgba(0, 0, 0, .6); }
+.mu-queue-h { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #2d2d33; }
+.mu-queue-h button { all: unset; cursor: pointer; display: inline-flex; gap: 4px; align-items: center; font-size: 12.5px; color: #a0a0a8; }
+.mu-queue-h button:hover { color: #f0414b; }
+.mu-queue-l { overflow-y: auto; padding: 6px; }
+.mu-qrow { display: flex; align-items: center; gap: 10px; padding: 8px 8px; border-radius: 6px; cursor: pointer; font-size: 13.5px; }
+.mu-qrow:hover { background: #26262b; }
+.mu-qrow.on b, .mu-qrow.on .mu-qrow-i { color: #f0414b; }
+.mu-qrow-i { width: 22px; text-align: center; color: #8f8f98; font-size: 12px; display: flex; justify-content: center; flex: none; }
+.mu-qrow b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+.mu-qrow em { font-style: normal; font-size: 12px; color: #8f8f98; white-space: nowrap; max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
+.mu-qrow button { all: unset; cursor: pointer; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color: #77777f; flex: none; }
+.mu-qrow button:hover { color: #f0414b; }
+.mu-mini.inline .mu-queue { left: 8px; right: 8px; width: auto; bottom: calc(var(--mini-h, 64px) + 14px); position: fixed; }
+/* 播放页：黑胶 */
+.mu-disc-wrap { position: relative; width: min(380px, 40vh); aspect-ratio: 1 / 1; margin: 0 auto; cursor: pointer; }
+.mu-disc { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle, #1b1b1e 0 58%, #0b0b0c 59% 100%); box-shadow: 0 0 0 10px rgba(255, 255, 255, .07), 0 24px 60px rgba(0, 0, 0, .55); display: flex; align-items: center; justify-content: center; animation: mu-rot 22s linear infinite; animation-play-state: paused; }
+.mu-disc.spin { animation-play-state: running; }
+.mu-disc-cv { width: 62% !important; border-radius: 50% !important; }
+.mu-needle { position: absolute; z-index: 2; left: 50%; top: -34px; width: 8px; height: 120px; background: linear-gradient(#e4e4e7, #8f8f98); border-radius: 4px; transform-origin: 50% 0; transform: translateX(-50%) rotate(-28deg); transition: transform .45s; pointer-events: none; }
+.mu-needle.on { transform: translateX(-50%) rotate(4deg); }
+.mu-np-left { width: 420px; display: flex; flex-direction: column; align-items: center; }
+.mu-np-info { margin-top: 28px; width: 100%; text-align: center; }
+.mu-np-body { gap: 48px; }
+.mu-np-qh { padding: 4px 8px 10px; font-size: 14px; color: #d9c3cc; }
+.mu-np-qx { all: unset; cursor: pointer; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color: #d9c3cc; }
+.mu-np-qx:hover { color: #f0414b; }
+.mu-np-foot { gap: 10px; }
+.mu-np-st { flex: 1; text-align: center; }
+.mu-np-vol { display: inline-flex; align-items: center; gap: 8px; }
+.mu-sleep-w { position: relative; }
+.mu-sleep { position: absolute; right: 0; bottom: 44px; z-index: 210; width: 140px; background: #2a2a30; border-radius: 10px; padding: 6px; box-shadow: 0 10px 30px rgba(0, 0, 0, .6); }
+.mu-sleep-h { padding: 6px 10px; font-size: 12px; color: #a0a0a8; }
+.mu-sleep button { all: unset; display: block; width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 6px; font-size: 13.5px; cursor: pointer; }
+.mu-sleep button:hover { background: #35353c; }
+.mu-sleep button.off { color: #f0414b; }
+.mu-sleep-w .mu-pop-mask { z-index: 205; }
+@media (max-width: 900px) {
+  .mu-side { display: none; }
+  .mu-main { padding: 8px 14px 24px; }
+  .mu-head { margin-bottom: 6px; }
+  .mu-search { max-width: none; width: 100%; height: 40px; border-radius: 20px; }
+  .mu-utabs { display: flex; gap: 22px; overflow-x: auto; scrollbar-width: none; margin: 4px 0 14px; border-bottom: 1px solid #1d1d21; }
+  .mu-utabs::-webkit-scrollbar { display: none; }
+  .mu-utabs button { all: unset; cursor: pointer; flex: none; padding: 8px 2px 10px; font-size: 15px; color: #a0a0a8; border-bottom: 3px solid transparent; }
+  .mu-utabs button.on { color: #fff; font-weight: 800; border-bottom-color: #f0414b; }
+  .mu-banner-stage { height: 170px; }
+  .mu-banner-main { height: 154px; }
+  .mu-banner-side { height: 110px; }
+  .mu-short { justify-content: space-between; overflow-x: auto; scrollbar-width: none; }
+  .mu-short i { width: 46px; height: 46px; }
+  .mu-short button { min-width: 56px; font-size: 12px; }
+  .mu-song-album { display: none; }
+  .mu-charts { grid-template-columns: 1fr; }
+  .mu-np-body { gap: 10px; padding: 0 20px; flex-direction: column; align-items: stretch; }
+  .mu-np-left { width: auto; flex: 1; min-height: 0; justify-content: center; }
+  .mu-np-body.lyr-mode .mu-disc-wrap { display: none; }
+  .mu-np-body.lyr-mode .mu-np-left { flex: none; flex-direction: row; justify-content: flex-start; }
+  .mu-np-body:not(.lyr-mode) .mu-np-right { display: none; }
+  .mu-np-body.lyr-mode .mu-np-right { flex: 1; min-height: 0; max-height: none; }
+  .mu-np-info { margin-top: 18px; text-align: center; }
+  .mu-np-body.lyr-mode .mu-np-info { margin: 0; text-align: left; }
+  .mu-disc-wrap { width: min(280px, 60vw); }
+  .mu-needle { top: -26px; height: 92px; }
+  .mu-np-foot { flex-wrap: wrap; }
+  .mu-np-vol { display: none; }
+  .mu-np-title { font-size: 20px; }
+  .mu-queue { width: auto; left: 8px; right: 8px; }
+}
+@media (max-width: 900px) { .mu-np-cv { display: none; } }

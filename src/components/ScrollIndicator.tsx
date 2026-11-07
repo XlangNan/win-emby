@@ -32,6 +32,21 @@ export default function ScrollIndicator() {
     b.style.transform = `translateY(${top}px)`;
     b.style.right = `${Math.max(1, window.innerWidth - r.right + 1)}px`;
   };
+  const hideNow = (): void => {
+    const b = bar.current;
+    if (!b) return;
+    drag.current = null;
+    hover.current = false;
+    b.style.opacity = '0';
+    b.style.pointerEvents = 'none';
+  };
+  /** 滚动区域已被移除 / 不再可滚动（比如弹窗关了）：立刻收起，鼠标还停在条上也一样 */
+  const validate = (): void => {
+    const el = cur.current, b = bar.current;
+    if (!b || b.style.opacity !== '1') return;
+    if (!el || !el.isConnected || el.scrollHeight <= el.clientHeight + 4 || el.getClientRects().length === 0) { cur.current = null; hideNow(); return; }
+    place(el);
+  };
   const hideLater = (ms = 700): void => {
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
@@ -71,9 +86,14 @@ export default function ScrollIndicator() {
         hideLater(500);
       });
     };
+    const iv = window.setInterval(validate, 250);
+    const onClick = (): void => { window.setTimeout(validate, 60); };
+    document.addEventListener('click', onClick, true);
     document.addEventListener('scroll', onScroll, true);
     document.addEventListener('mousemove', onMove, { passive: true });
     return () => {
+      window.clearInterval(iv);
+      document.removeEventListener('click', onClick, true);
       document.removeEventListener('scroll', onScroll, true);
       document.removeEventListener('mousemove', onMove);
       window.clearTimeout(timer.current);
