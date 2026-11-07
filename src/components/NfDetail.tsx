@@ -58,7 +58,12 @@ export default function NfDetail(p: NfDetailProps) {
         {bg && <img className="nfd-bg" src={bg} alt="" />}
         <div className="nfd-shade" />
         <div className="nfd-body">
-          {logo ? <img className="nfd-logo" src={logo} alt={it.Name} /> : <h1 className="nfd-title">{it.Name}</h1>}
+          {logo ? (
+            <>
+              <img className="nfd-logo" src={logo} alt={it.Name} />
+              <h1 className="nfd-title nfd-title-sub">{it.Name}{it.OriginalTitle && it.OriginalTitle !== it.Name ? <small>{it.OriginalTitle}</small> : null}</h1>
+            </>
+          ) : <h1 className="nfd-title">{it.Name}{it.OriginalTitle && it.OriginalTitle !== it.Name ? <small className="nfd-orig">{it.OriginalTitle}</small> : null}</h1>}
           <div className="nfd-meta">
             {it.CommunityRating ? <span className="nfd-match">★ {it.CommunityRating.toFixed(1)}</span> : null}
             {it.ProductionYear ? <span>{it.ProductionYear}</span> : null}

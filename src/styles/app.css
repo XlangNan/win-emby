@@ -579,3 +579,8 @@ html, html * { scrollbar-width: none !important; }
 .we-sbar { position: fixed; right: 2px; top: 0; width: 8px; border-radius: 4px; background: rgba(255, 255, 255, .45); opacity: 0; transition: opacity .25s, background .15s; pointer-events: none; z-index: 99999; cursor: pointer; touch-action: none; }
 .we-sbar:hover { background: rgba(255, 255, 255, .75); }
 .we-sbar.phone { width: 3px; }
+
+/* 有 Logo 时也显示片名（Logo 可能是外文），下面再带原名 */
+.nfd-title-sub { font-size: 20px !important; font-weight: 700; margin: 8px 0 4px; letter-spacing: .01em; }
+.nfd-title small, .nfd-title .nfd-orig { display: block; font-size: 13px; font-weight: 400; color: #b3b3b3; margin-top: 2px; }
+.mh-title-sub { font-size: 15px !important; font-weight: 700; margin-top: 2px; }

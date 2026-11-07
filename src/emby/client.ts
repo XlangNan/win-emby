@@ -191,7 +191,7 @@ export const emby = {
   async item(id: string): Promise<EmbyItem> {
     const s = need();
     return api<EmbyItem>('GET', `/Users/${s.userId}/Items/${id}`, {
-      Fields: 'Overview,People,Genres,Studios,Taglines,MediaSources,MediaStreams,ProviderIds,Chapters,Path',
+      Fields: 'OriginalTitle,Overview,People,Genres,Studios,Taglines,MediaSources,MediaStreams,ProviderIds,Chapters,Path',
     });
   },
 

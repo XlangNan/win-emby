@@ -91,7 +91,7 @@ export default function MobileHero({ items, onOpen, onPlay }: { items: EmbyItem[
                 {Math.abs(i - idx) <= 1 && <img className="mh-img" src={backdropUrl(it, 1000) || thumbUrl(it, 1000) || posterUrl(it, 800)} alt="" draggable={false} />}
                 <div className="mh-shade" />
                 <div className="mh-info">
-                  {logo ? <img className="mh-logo" src={logo} alt={it.Name} /> : <div className="mh-title">{it.Name}</div>}
+                  {logo ? <><img className="mh-logo" src={logo} alt={it.Name} /><div className="mh-title mh-title-sub">{it.Name}</div></> : <div className="mh-title">{it.Name}</div>}
                   <div className="mh-tags">{tags.length ? tags.join(' · ') : it.ProductionYear || ''}</div>
                   <div className="mh-btns">
                     <button className="mh-play" onClick={(e) => { e.stopPropagation(); onPlay(it); }}>
