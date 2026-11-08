@@ -177,8 +177,8 @@ export default function NowPlaying() {
                 <div className="mu-pop-mask" onClick={() => setSleepOpen(false)} />
                 <div className="mu-sleep">
                   <div className="mu-sleep-h">定时关闭</div>
-                  {SLEEPS.map((x) => <button key={x} type="button" onClick={() => { setSleep(x); setSleepOpen(false); }}>{x} 分钟后</button>)}
-                  {m.sleepAt > 0 && <button type="button" className="off" onClick={() => { setSleep(0); setSleepOpen(false); }}>取消定时</button>}
+                  {SLEEPS.map((x) => <button key={x} type="button" className="mu-sleep-i" onClick={() => { setSleep(x); setSleepOpen(false); }}>{x} 分钟后</button>)}
+                  {m.sleepAt > 0 && <button type="button" className="mu-sleep-i off" onClick={() => { setSleep(0); setSleepOpen(false); }}>取消定时</button>}
                 </div>
               </>
             )}

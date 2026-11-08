@@ -1401,14 +1401,14 @@ body { font-family: var(--font-ui); }
 :root[data-shell='topbar'] .topbar button.primary { background: rgba(255, 255, 255, .07); color: #c9c9c9; display: none; }
 
 /* ---- 按钮：白底主行动 / 半透明次要 / 红色 CTA；统一弹性过渡 + 按压回弹 ---- */
-:root[data-shell='topbar'] button {
+:root[data-shell='topbar'] button:not([class^='mu-']):not([class*=' mu-']) {
   background: rgba(109, 109, 110, .55); border: none; color: var(--text);
   border-radius: var(--radius-sm); font-weight: 500; padding: 6px 14px;
   transition: background var(--dur-state) var(--ease-standard), color var(--dur-quick) var(--ease-standard),
     box-shadow var(--dur-state) var(--ease-standard), transform var(--dur-instant) var(--ease-spring);
 }
-:root[data-shell='topbar'] button:hover { background: rgba(109, 109, 110, .38); color: var(--text); box-shadow: none; }
-:root[data-shell='topbar'] button:active { transform: scale(.96); }
+:root[data-shell='topbar'] button:not([class^='mu-']):not([class*=' mu-']):hover { background: rgba(109, 109, 110, .38); color: var(--text); box-shadow: none; }
+:root[data-shell='topbar'] button:not([class^='mu-']):not([class*=' mu-']):active { transform: scale(.96); }
 /* 中央大播放键是 translate(-50%,-50%) 定位，按压缩放必须带上位移（否则按下时跳走半个身位） */
 :root[data-shell='topbar'] .vp-big:active { transform: translate(-50%, -50%) scale(.95); }
 /* 红色只留给真正的品牌行动（详情页播放键悬停等），普通 primary 不作大红块 */

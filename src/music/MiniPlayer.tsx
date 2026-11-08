@@ -17,13 +17,13 @@ function Queue({ onClose }: { onClose: () => void }) {
     <>
       <div className="mu-pop-mask" onClick={onClose} />
       <div className="mu-queue" role="dialog" aria-label="播放队列">
-        <div className="mu-queue-h"><b>播放队列 · {m.queue.length}</b><button type="button" onClick={() => { stopMusic(); onClose(); }}><Ic n="trash" size={14} /> 清空</button></div>
+        <div className="mu-queue-h"><b>播放队列 · {m.queue.length}</b><button type="button" className="mu-queue-clr" onClick={() => { stopMusic(); onClose(); }}><Ic n="trash" size={14} /> 清空</button></div>
         <div className="mu-queue-l">
           {m.queue.map((s, i) => (
             <div key={`${s.id}-${i}`} className={`mu-qrow${i === m.index ? ' on' : ''}`} role="button" tabIndex={0} onClick={() => playIndex(i)} onKeyDown={(e) => { if (e.key === 'Enter') playIndex(i); }}>
               <span className="mu-qrow-i">{i === m.index ? <Ic n={m.playing ? 'vol' : 'play'} size={14} /> : i + 1}</span>
               <b>{s.title}</b><em>{s.artist}</em>
-              <button type="button" aria-label="从队列移除" onClick={(e) => { e.stopPropagation(); removeAt(i); }}><Ic n="close" size={14} /></button>
+              <button type="button" className="mu-qrow-x" aria-label="从队列移除" onClick={(e) => { e.stopPropagation(); removeAt(i); }}><Ic n="close" size={14} /></button>
             </div>
           ))}
         </div>

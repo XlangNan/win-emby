@@ -20,8 +20,8 @@ function Box({ o, done }: { o: Opts; done: (v: string | null) => void }) {
         <div className="mu-dlg-t">{o.title}</div>
         {o.text && <input ref={inp} className="mu-dlg-in" value={v} placeholder={o.placeholder} maxLength={60} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') submit(); }} />}
         <div className="mu-dlg-b">
-          <button type="button" onClick={() => done(null)}>取消</button>
-          <button type="button" className={o.danger ? 'danger' : 'ok'} onClick={submit}>{o.ok || '确定'}</button>
+          <button type="button" className="mu-dlg-btn" onClick={() => done(null)}>取消</button>
+          <button type="button" className={`mu-dlg-btn ${o.danger ? 'danger' : 'ok'}`} onClick={submit}>{o.ok || '确定'}</button>
         </div>
       </div>
     </div>
