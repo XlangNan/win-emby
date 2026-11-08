@@ -97,6 +97,7 @@ export function playQueue(songs: Song[], start = 0): void {
   if (!songs.length) return;
   initThumb({ prev: () => prev(), toggle: () => togglePlay(), next: () => next() });
   history = [];
+  upNext = [];
   emit({ queue: songs, open: st.open });
   load(Math.min(Math.max(start, 0), songs.length - 1));
 }
@@ -106,11 +107,19 @@ export function togglePlay(): void {
   if (a.paused) void a.play().catch(() => undefined); else a.pause();
 }
 export function pause(): void { if (audio && !audio.paused) audio.pause(); }
+// 「下一首播放」排的队：不管是不是随机模式，切歌时先按这个顺序播（按歌曲 id 记，队列被改动后也不会错位）
+let upNext: string[] = [];
 export function next(auto = false): void {
   const { queue, index, repeat, shuffle } = st;
   if (!queue.length) return;
   if (auto && repeat === 'one') { load(index); return; }
-  let n: number;
+  let n = -1;
+  while (upNext.length && n < 0) {
+    const id = upNext.shift() as string;
+    const after = queue.findIndex((x, k) => k > index && x.id === id);
+    n = after >= 0 ? after : queue.findIndex((x, k) => k !== index && x.id === id);
+  }
+  if (n >= 0) { history.push(index); load(n); return; }
   if (shuffle && queue.length > 1) {
     do { n = Math.floor(Math.random() * queue.length); } while (n === index);
   } else if (index + 1 < queue.length) n = index + 1;
@@ -134,8 +143,11 @@ export function setVolume(v: number): void { const x = Math.min(1, Math.max(0, v
 /** 下一首播放 / 加入队列 */
 export function playNext(songs: Song[]): void {
   if (!st.queue.length) { playQueue(songs, 0); return; }
+  // 连续点多首「下一首播放」：排在已经排好的后面，而不是插队到最前
   const q = [...st.queue];
-  q.splice(st.index + 1, 0, ...songs);
+  const pos = Math.min(q.length, st.index + 1 + upNext.length);
+  q.splice(pos, 0, ...songs);
+  upNext.push(...songs.map((x) => x.id));
   emit({ queue: q });
 }
 export function enqueue(songs: Song[]): void {
@@ -177,6 +189,7 @@ export function stopMusic(): void {
   window.clearTimeout(sleepTimer);
   if (audio) { audio.pause(); audio.removeAttribute('src'); audio.load(); }
   history = [];
+  upNext = [];
   emit({ queue: [], index: -1, playing: false, pos: 0, dur: 0, open: false, sleepAt: 0 });
 }
 

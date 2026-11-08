@@ -40,9 +40,11 @@ function Queue({ onClose }: { onClose: () => void }) {
 export default function MiniPlayer({ inline }: { inline?: boolean }) {
   const m = useMusic();
   const opts = useOpts();
+  const [dp, setDp] = useState<number | null>(null);
   const p = useLocation().pathname;
   const [q, setQ] = useState(false);
   const sy = useRef(0);
+  const sx = useRef(0);
   const lastVol = useRef(0.8);
   const video = p.startsWith('/player/') || p === '/live/play';
   useEffect(() => { if (video) pause(); }, [video]);
@@ -64,12 +66,18 @@ export default function MiniPlayer({ inline }: { inline?: boolean }) {
   const pct = m.dur > 0 ? Math.min(100, (m.pos / m.dur) * 100) : 0;
   if (inline) {
     return (
-      <div className="mu-mini mu-scope inline" onTouchStart={(e) => { sy.current = e.touches[0].clientY; }} onTouchEnd={(e) => { if (sy.current - e.changedTouches[0].clientY > 36) setOpen(true); }}>
+      <div className="mu-mini mu-scope inline" onTouchStart={(e) => { sy.current = e.touches[0].clientY; sx.current = e.touches[0].clientX; }} onTouchEnd={(e) => {
+        const dx = e.changedTouches[0].clientX - sx.current, dy = sy.current - e.changedTouches[0].clientY;
+        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) { if (dx < 0) next(); else prev(); }   // 左右滑：切歌
+        else if (dy > 36) setOpen(true);
+      }}>
         <div className="mu-mini-main" role="button" tabIndex={0} onClick={() => setOpen(true)} onKeyDown={(e) => { if (e.key === 'Enter' && e.target === e.currentTarget) setOpen(true); }}>
           <Cover id={c.coverArt} size={120} className={`mu-mini-cv mu-spin${m.playing ? '' : ' paused'}`} label={c.title} />
           <div className="mu-mini-txt"><b>{c.title}</b><BarSub /></div>
         </div>
+        <button type="button" className="mu-ib" aria-label="上一首" onClick={() => prev()}><Ic n="prev" size={20} /></button>
         <button type="button" className="mu-ib mu-ib-main" aria-label={m.playing ? '暂停' : '播放'} onClick={togglePlay}><Ic n={m.playing ? 'pause' : 'play'} size={22} /></button>
+        <button type="button" className="mu-ib" aria-label="下一首" onClick={() => next()}><Ic n="next" size={20} /></button>
         <button type="button" className="mu-ib" aria-label="播放队列" onClick={() => setQ(true)}><Ic n="list" /></button>
         <button type="button" className="mu-ib mu-ib-stop" aria-label="停止播放并关闭播放条" onClick={() => stopMusic()}><Ic n="close" size={18} /></button>
         <div className="mu-mini-bar"><div style={{ width: `${pct}%` }} /></div>
@@ -92,8 +100,8 @@ export default function MiniPlayer({ inline }: { inline?: boolean }) {
           <button type="button" className={`mu-ib${mode === 'shuffle' || mode === 'one' ? ' on' : ''}`} aria-label={`播放模式：${MODE_NAME[mode]}（点击切换）`} title={MODE_NAME[mode]} onClick={cycleMode}><Ic n={mode === 'shuffle' ? 'shuffle' : 'repeat'} size={19} />{mode === 'one' && <i className="mu-rep1">1</i>}</button>
         </div>
         <div className="mu-mini-prog">
-          <span>{fmtTime(m.pos)}</span>
-          <Slider value={m.pos} max={m.dur} onSeek={seek} />
+          <span>{fmtTime(dp ?? m.pos)}</span>
+          <Slider value={m.pos} max={m.dur} onSeek={seek} onDrag={setDp} />
           <span>{fmtTime(m.dur)}</span>
         </div>
       </div>

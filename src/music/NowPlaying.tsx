@@ -95,6 +95,7 @@ export default function NowPlaying() {
       <div className="mu-np-top">
         <button type="button" className="mu-ib" aria-label="收起" onClick={() => setOpen(false)}><Ic n="down" size={26} /></button>
         <span className="mu-np-top-t">正在播放</span>
+        <button type="button" className="mu-ib" aria-label="搜索歌词和封面" title="搜索 / 匹配歌词与封面" onClick={() => openMatch(cur)}><Ic n="search" size={22} /></button>
         <button type="button" className={`mu-ib mu-np-lyrbtn${lyrMode ? ' on' : ''}`} aria-label="歌词" onClick={() => { setQueueOpen(false); setLyrMode((v) => !v); }}><span className="mu-ci">词</span></button>
         <button type="button" className="mu-ib" aria-label="播放队列" onClick={() => setQueueOpen((v) => !v)}><Ic n="list" /></button>
       </div>

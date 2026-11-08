@@ -1,5 +1,5 @@
 // 设置：账号 / 皮肤 / 播放偏好
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { emby } from '../emby/client';
 import { getSession, listAccounts, removeAccount, sameAccount, saveSession } from '../emby/session';
 import type { EmbyItem, Session } from '../emby/types';
@@ -429,6 +429,9 @@ function MusicOptionsSettings() {
         <label className="row" style={{ gap: 10, alignItems: 'center' }}>
           <input type="checkbox" checked={o.barLyric} onChange={(e) => saveOpts({ barLyric: e.target.checked })} />在底部播放条显示当前歌词
         </label>
+        <label className="row" style={{ gap: 10, alignItems: 'center' }}>
+          <input type="checkbox" checked={o.autoLyric} onChange={(e) => saveOpts({ autoLyric: e.target.checked })} />服务器没有歌词时，自动从下面的在线来源匹配
+        </label>
         <div className="muted" style={{ fontSize: 12 }}>在线歌词 / 封面来源（用于歌曲「···」菜单里的「匹配 / 编辑 歌词与封面」，二选一，都填时优先 netease-api；只改本机显示，不会改动 Navidrome）。</div>
         <input value={n} onChange={(e) => setN(e.target.value)} onBlur={saveAll} placeholder="NeteaseCloudMusicApi 地址，如 http://192.168.1.10:3000" spellCheck={false} autoCapitalize="off" />
         <input value={mt} onChange={(e) => setMt(e.target.value)} onBlur={saveAll} placeholder="Meting API 地址，如 https://api.example.com/meting/" spellCheck={false} autoCapitalize="off" />
@@ -446,10 +449,30 @@ export default function ConfigPage() {
   const [introOn, setIntroOn] = useState(introDbOn);
   const set = (p: Partial<typeof prefs>): void => setPrefs(savePlayPrefs(p));
 
+  // 每个设置卡片按标题折叠：默认只展开「账号与服务器」，展开状态记在本机
+  const root = useRef<HTMLDivElement>(null);
+  const FOLD_KEY = 'wemby-cfg-open';
+  const readOpen = (): string[] => { try { return JSON.parse(localStorage.getItem(FOLD_KEY) || '["账号与服务器"]') as string[]; } catch { return ['账号与服务器']; } };
+  const titleOf = (c: Element): string => c.querySelector('h3')?.textContent?.trim() || '';
+  useEffect(() => {
+    const open = new Set(readOpen());
+    root.current?.querySelectorAll(':scope > .we-set').forEach((c) => { if (!open.has(titleOf(c))) c.classList.add('fold'); });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const onFold = (e: React.MouseEvent): void => {
+    const h = (e.target as HTMLElement).closest('h3');
+    const c = h?.closest('.we-set');
+    if (!h || !c || c.parentElement !== root.current) return;
+    c.classList.toggle('fold');
+    const t = titleOf(c);
+    const open = new Set(readOpen());
+    if (c.classList.contains('fold')) open.delete(t); else open.add(t);
+    try { localStorage.setItem(FOLD_KEY, JSON.stringify([...open])); } catch { /* ignore */ }
+  };
+
   return (
     <>
       <div className="topbar"><h3 style={{ margin: 0 }}>设置</h3></div>
-      <div className="content">
+      <div className="content cfg-fold" ref={root} onClick={onFold}>
         <Accounts />
         <HeroSettings prefs={prefs} set={set} />
         <HomeLibs prefs={prefs} set={set} />

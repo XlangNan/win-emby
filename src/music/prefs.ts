@@ -1,9 +1,9 @@
 // 音乐选项（本机保存）：随机歌曲数量 / 底部栏歌词 / 在线歌词封面接口
 import { useSyncExternalStore } from 'react';
 
-export interface MusicOpts { randomN: number; radioN: number; barLyric: boolean; neteaseApi: string; metingApi: string }
+export interface MusicOpts { randomN: number; radioN: number; barLyric: boolean; autoLyric: boolean; neteaseApi: string; metingApi: string }
 const KEY = 'wemby-music-opts';
-const DEF: MusicOpts = { randomN: 30, radioN: 60, barLyric: true, neteaseApi: '', metingApi: '' };
+const DEF: MusicOpts = { randomN: 30, radioN: 60, barLyric: true, autoLyric: true, neteaseApi: '', metingApi: '' };
 let cache: MusicOpts | null = null;
 const subs = new Set<() => void>();
 

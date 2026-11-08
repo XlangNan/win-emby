@@ -139,6 +139,7 @@ export function Quality({ s }: { s: Song }) {
   return <i className={`mu-q${hires ? ' hr' : ''}`}>{hires ? 'HR' : lossless ? 'SQ' : 'HQ'}</i>;
 }
 
+let lastMenuClose = 0;
 export function SongRow({ s, i, list, showCover, ctx, showAlbum = true }: { s: Song; i: number; list: Song[]; showArtist?: boolean; showCover?: boolean; ctx?: MenuCtx; showAlbum?: boolean }) {
   const m = useMusic();
   const active = m.cur?.id === s.id;
@@ -154,7 +155,12 @@ export function SongRow({ s, i, list, showCover, ctx, showAlbum = true }: { s: S
     nd.star(s.id, v).catch(() => setStar(!v)).finally(notifyStarred);
   };
   return (
-    <div className={`mu-song${active ? ' active' : ''}`} role="button" tabIndex={0} onClick={() => playQueue(list, i)}
+    <div className={`mu-song${active ? ' active' : ''}`} role="button" tabIndex={0} onClick={(e) => {
+      // 点在按钮 / 菜单上、或刚关掉菜单的瞬间，都不算「点这一行播放」
+      if ((e.target as HTMLElement).closest('button, [role="menu"], .mu-menu-mask')) return;
+      if (menu || Date.now() - lastMenuClose < 450) return;
+      playQueue(list, i);
+    }}
       onContextMenu={(e) => { e.preventDefault(); setMenu(new DOMRect(e.clientX, e.clientY, 0, 0)); }}
       onKeyDown={(e) => { if (e.key === 'Enter' && e.target === e.currentTarget) playQueue(list, i); }}>
       {showCover ? <Cover id={s.coverArt} size={80} className="mu-song-cv" /> : <span className="mu-song-no">{active ? <Ic n={m.playing ? 'vol' : 'play'} size={15} /> : String(i + 1).padStart(2, '0')}</span>}
@@ -166,7 +172,7 @@ export function SongRow({ s, i, list, showCover, ctx, showAlbum = true }: { s: S
       <button type="button" className={`mu-star${star ? ' on' : ''}`} aria-label={star ? '取消收藏' : '收藏'} onClick={toggle}><Ic n="heart" size={18} fill={star} /></button>
       <button type="button" className="mu-star mu-more" aria-label="更多" onClick={(e) => { e.stopPropagation(); setMenu((e.currentTarget as HTMLElement).getBoundingClientRect()); }}><Ic n="more" size={18} /></button>
       <span className="mu-song-len">{fmtTime(s.duration)}</span>
-      {menu && <SongMenu s={s} anchor={menu} onClose={() => setMenu(null)} ctx={ctx} />}
+      {menu && <SongMenu s={s} anchor={menu} onClose={() => { lastMenuClose = Date.now(); setMenu(null); }} ctx={ctx} />}
     </div>
   );
 }
@@ -189,6 +195,8 @@ export function PlayCover({ id, size, label, onPlay, round, badge }: { id: strin
 /** 进度条：触屏友好（28px 触控区、拖动时不被播放进度拉回、松手才跳转） */
 export function Slider({ value, max, onSeek, onDrag, label = '播放进度', className }: { value: number; max: number; onSeek: (v: number) => void; onDrag?: (v: number | null) => void; label?: string; className?: string }) {
   const [drag, setDrag] = useState<number | null>(null);
+  const [hold, setHold] = useState<number | null>(null);   // 松手后先停在目标位置，等播放进度追上来，避免闪回旧位置
+  const holdTm = useRef(0);
   const box = useRef<HTMLDivElement>(null);
   const dragRef = useRef<number | null>(null);
   const calc = (x: number): number => {
@@ -197,14 +205,24 @@ export function Slider({ value, max, onSeek, onDrag, label = '播放进度', cla
     return Math.min(1, Math.max(0, (x - r.left) / r.width)) * max;
   };
   const set = (v: number | null): void => { dragRef.current = v; setDrag(v); onDrag?.(v); };
-  const shown = drag ?? value;
+  const release = (v: number): void => {
+    dragRef.current = null; setDrag(null);
+    setHold(v); onDrag?.(v);
+    window.clearTimeout(holdTm.current);
+    holdTm.current = window.setTimeout(() => { setHold(null); onDrag?.(null); }, 1500);
+  };
+  useEffect(() => {
+    if (hold !== null && Math.abs(value - hold) < 1.2) { window.clearTimeout(holdTm.current); setHold(null); onDrag?.(null); }
+  }, [value, hold]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => window.clearTimeout(holdTm.current), []);
+  const shown = drag ?? hold ?? value;
   const pct = max > 0 ? Math.min(100, (shown / max) * 100) : 0;
   return (
     <div ref={box} className={`mu-sl ${className || ''}${drag !== null ? ' drag' : ''}`} role="slider" tabIndex={0} aria-label={label} aria-valuemin={0} aria-valuemax={Math.round(max)} aria-valuenow={Math.round(shown)}
-      onPointerDown={(e) => { if (max <= 0) return; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); set(calc(e.clientX)); }}
+      onPointerDown={(e) => { if (max <= 0) return; window.clearTimeout(holdTm.current); setHold(null); (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); set(calc(e.clientX)); }}
       onPointerMove={(e) => { if (dragRef.current !== null) set(calc(e.clientX)); }}
-      onPointerUp={(e) => { const v = dragRef.current; if (v !== null) { set(null); onSeek(calc(e.clientX)); } }}
-      onPointerCancel={() => set(null)}
+      onPointerUp={(e) => { const v = dragRef.current; if (v !== null) { const t = calc(e.clientX); release(t); onSeek(t); } }}
+      onPointerCancel={() => { set(null); }}
       onKeyDown={(e) => {
         if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); e.stopPropagation(); onSeek(Math.min(max, Math.max(0, value + (e.key === 'ArrowRight' ? 5 : -5)))); }
       }}>

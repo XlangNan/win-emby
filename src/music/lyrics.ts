@@ -1,13 +1,34 @@
 // 歌词：本机覆盖 > 服务器歌词。播放页和底部播放条共用一份缓存。
 import { useEffect, useState } from 'react';
 import { nd, parseLrc, type Song } from './navidrome';
-import { getLrcOverride, useOverrideVer } from './overrides';
+import { getLrcOverride, setLrcOverride, useOverrideVer } from './overrides';
+import { fetchLyric, onlineConfigured, searchOnline } from './online';
+import { loadOpts } from './prefs';
 
 export type Lyr = { synced: boolean; lines: { t: number; text: string }[] };
 const cache = new Map<string, Lyr>();
 const pending = new Map<string, Promise<Lyr>>();
 
 export function invalidateLyrics(id: string): void { cache.delete(id); pending.delete(id); }
+
+const tried = new Set<string>();
+const norm = (t: string): string => t.toLowerCase().replace(/[\s·.\-_()（）\[\]【】'"]/g, '');
+/** 自动匹配：取搜索结果里歌名对得上的第一条，成功后存为本机歌词；每首歌每次运行只试一次 */
+async function autoOnline(s: Song): Promise<Lyr | null> {
+  if (!loadOpts().autoLyric || !onlineConfigured() || tried.has(s.id)) return null;
+  tried.add(s.id);
+  try {
+    const hits = await searchOnline(`${s.title} ${s.artist}`.trim());
+    const t = norm(s.title);
+    const h = hits.find((x) => norm(x.title) === t) || hits.find((x) => norm(x.title).includes(t) || t.includes(norm(x.title)));
+    if (!h) return null;
+    const text = await fetchLyric(h);
+    const r = parseLrc(text);
+    if (!r.lines.length) return null;
+    setLrcOverride(s.id, text);
+    return r;
+  } catch { return null; }
+}
 
 function load(s: Song): Promise<Lyr> {
   const hit = cache.get(s.id);
@@ -16,7 +37,11 @@ function load(s: Song): Promise<Lyr> {
   if (ov) { const r = parseLrc(ov); cache.set(s.id, r); return Promise.resolve(r); }
   let p = pending.get(s.id);
   if (!p) {
-    p = nd.lyrics(s).then((r) => { cache.set(s.id, r); return r; }).finally(() => pending.delete(s.id));
+    p = nd.lyrics(s).then(async (r) => {
+      if (!r.lines.length) r = (await autoOnline(s)) || r;   // 服务器没有歌词：自动去在线来源找
+      cache.set(s.id, r);
+      return r;
+    }).finally(() => pending.delete(s.id));
     pending.set(s.id, p);
   }
   return p;

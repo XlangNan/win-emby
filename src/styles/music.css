@@ -526,3 +526,30 @@
   .mu-filter::-webkit-scrollbar { display: none; }
   .mu-filter .mu-tag, .mu-filter > * { flex: none; white-space: nowrap; }
 }
+
+/* ───────── 第三批：播放页顶栏 / 横幅 / 按钮 ───────── */
+/* Windows 无边框窗口：顶部是可拖动区域，盖在它上面的播放页按钮会被当成拖动，导致「收起」有时点不动 */
+.mu-np { -webkit-app-region: no-drag; }
+.mu-np * { -webkit-app-region: no-drag; }
+.mu-np-top { grid-template-columns: 44px minmax(0, 1fr) 44px 44px 44px !important; }
+.mu-np-top .mu-ib:last-child { grid-column: auto !important; }
+.mu-dhead-btns { flex-wrap: wrap; }
+.mu-dhead-btns button { white-space: nowrap; flex: none; }
+@media (max-width: 899px) {
+  .mu-bn2-txt { top: 14px; bottom: 34px; justify-content: flex-start; gap: 4px; }
+  .mu-bn2-txt b { font-size: 20px; -webkit-line-clamp: 2; }
+  .mu-bn2-play { margin-top: auto; padding: 6px 14px; font-size: 13px; }
+  .mu-mini.inline .mu-ib { flex: none; }
+}
+/* 设置：右上角小齿轮 */
+.we-gear { -webkit-app-region: no-drag; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; color: inherit; opacity: .72; text-decoration: none; transition: opacity .2s, transform .5s, background .2s; flex: none; }
+.we-gear:hover { opacity: 1; background: rgba(255, 255, 255, .1); transform: rotate(60deg); }
+.we-gear.active { opacity: 1; color: #f0414b; }
+.we-gear svg { width: 20px; height: 20px; }
+/* 设置页：按标题折叠 */
+.cfg-fold .we-set h3 { cursor: pointer; user-select: none; display: flex; align-items: center; gap: 8px; }
+.cfg-fold .we-set h3::after { content: ''; width: 8px; height: 8px; margin-left: auto; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translateY(-2px); opacity: .55; transition: transform .2s; flex: none; }
+.cfg-fold .we-set.fold h3::after { transform: rotate(-45deg); }
+.cfg-fold .we-set.fold > :not(h3):not(:has(h3)) { display: none; }
+.cfg-fold .we-set.fold h3 { margin-bottom: 0; }
+.mu-np .mu-np-top .mu-np-top-t { -webkit-app-region: drag; }

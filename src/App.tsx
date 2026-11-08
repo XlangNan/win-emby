@@ -90,6 +90,18 @@ function useSession() {
   return s;
 }
 
+/** 右上角小齿轮：进入设置（放在搜索框旁边） */
+function GearLink() {
+  return (
+    <NavLink to="/config" className={({ isActive }) => 'we-gear' + (isActive ? ' active' : '')} title="设置" aria-label="设置">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+      </svg>
+    </NavLink>
+  );
+}
+
 export default function App() {
   const session = useSession();
   // 不显示浏览器自带的右键菜单（输入框里保留，方便复制粘贴）；影片卡片有自己的菜单
@@ -137,6 +149,7 @@ function AppShell() {
     { to: '/config', label: '设置', ico: '⚙' },
   ];
   const allNav = [...mainNav, ...myNav];
+  const tabNav = allNav.filter((n) => n.to !== '/config');   // 设置改放右上角齿轮，导航里不再重复
 
   const isPlayer = loc.pathname.startsWith('/player/') || loc.pathname === '/live/play';
   const pageTitle = useMemo(() => {
@@ -216,7 +229,7 @@ function AppShell() {
       n.to === '/' ? <ApIcon k="home" /> : n.to === '/favorites' ? <ApIcon k="star" /> : n.to === '/history' ? <ApIcon k="clock" /> : n.to === '/config' ? <ApIcon k="gear" /> : <ApIcon k="lib" />;
     const groups = [
       { label: '媒体', items: mainNav },
-      { label: '我的', items: myNav },
+      { label: '我的', items: myNav.filter((n) => n.to !== '/config') },
     ];
     return (
       <div className="app ap-app">
@@ -231,6 +244,7 @@ function AppShell() {
           <span className="ap-toolbar-title">{pageTitle}</span>
           <span className="ap-spacer" />
           <SearchPanel />
+          <GearLink />
         </header>
         <div className="ap-body">
           <aside className="ap-sidebar">
@@ -270,12 +284,13 @@ function AppShell() {
               WEAVE
             </span>
             <SearchPanel bar />
+            <GearLink />
             <span className="bb-spacer" />
             <ServerChip />
             <TitleBar />
           </div>
           <nav className="bb-tabs">
-            {allNav.map((n) => (
+            {tabNav.map((n) => (
               <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => 'bb-tab' + (isActive ? ' active' : '')}>
                 {n.label}
               </NavLink>
@@ -300,12 +315,13 @@ function AppShell() {
             </span>
             <span className="db-title">{pageTitle}</span>
             <SearchPanel bar />
+            <GearLink />
             <span className="db-spacer" />
             <ServerChip />
             <TitleBar />
           </div>
           <nav className="db-nav">
-            {allNav.map((n) => (
+            {tabNav.map((n) => (
               <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => 'db-chip' + (isActive ? ' active' : '')}>
                 {n.label}
               </NavLink>
@@ -325,7 +341,7 @@ function AppShell() {
         <nav className="nf-nav">
           <span className="nf-logo" title="回到首页" role="button" tabIndex={0} style={{ cursor: 'pointer' }} onClick={() => nav('/')} onKeyDown={(e) => e.key === 'Enter' && nav('/')}>WEAVE</span>
           <div className="we-navlinks" onWheel={(e) => { e.currentTarget.scrollLeft += e.deltaY; }}>
-            {[{ to: '/', label: '首页', end: true }, { to: '/media', label: '媒体' }, { to: '/live', label: '直播' }, { to: '/music', label: '音乐' }, { to: '/config', label: '设置' }].map((n) => (
+            {[{ to: '/', label: '首页', end: true }, { to: '/media', label: '媒体' }, { to: '/live', label: '直播' }, { to: '/music', label: '音乐' }].map((n) => (
               <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => 'nf-link' + (isActive || (n.to === '/media' && loc.pathname.startsWith('/lib/')) ? ' active' : '')}>
                 {n.label}
               </NavLink>
@@ -333,6 +349,7 @@ function AppShell() {
           </div>
           <span className="nf-spacer" />
           <SearchPanel />
+          <GearLink />
           <ServerChip />
           <TitleBar />
         </nav>
