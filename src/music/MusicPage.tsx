@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCachedAsync } from '../lib/useAsync';
 import { askText, toast } from './Dialog';
 import { Cover, Ic, PlayCover, SongRow } from './MusicUi';
+import { useOpts } from './prefs';
 import { coverUrl, loadNd, nd, ndConfigured, type Album, type AlbumListType, type Playlist, type Song } from './navidrome';
 import { playQueue, useMusic } from './player';
 
@@ -124,10 +125,11 @@ function GuessPanel({ k, pls }: { k: string; pls: Playlist[] | null }) {
 }
 
 function Shortcuts({ go }: { go: (t: Tab) => void }) {
+  const opts = useOpts();
   const play = (f: () => Promise<Song[]>): void => { f().then((l) => { if (l.length) playQueue(l, 0); else toast('没有取到歌曲'); }).catch((err: Error) => toast(`播放失败：${err.message}`)); };
   const items: [string, string, () => void][] = [
-    ['cal', '随机推荐', () => play(() => nd.randomSongs(30))],
-    ['radio', '随心听', () => play(() => nd.randomSongs(60))],
+    ['cal', '随机推荐', () => play(() => nd.randomSongs(opts.randomN))],
+    ['radio', '随心听', () => play(() => nd.randomSongs(opts.radioN))],
     ['list', '歌单', () => go('lists')],
     ['chart', '排行榜', () => go('charts')],
     ['heart', '我喜欢', () => go('fav')],
@@ -137,11 +139,12 @@ function Shortcuts({ go }: { go: (t: Tab) => void }) {
 
 /** 精选推荐：功能入口卡（仅电脑版） */
 function Picks({ go }: { go: (t: Tab) => void }) {
+  const opts = useOpts();
   const play = (f: () => Promise<Song[]>): void => { f().then((l) => { if (l.length) playQueue(l, 0); else toast('没有取到歌曲'); }).catch((err: Error) => toast(`播放失败：${err.message}`)); };
   const items: [string, string, string, string, () => void][] = [
-    ['随机推荐', '从曲库里随机抽 30 首，现在就听', 'linear-gradient(160deg,#f2a4ae,#c2566b 60%,#7a2a3a)', 'cal', () => play(() => nd.randomSongs(30))],
+    ['随机推荐', `从曲库里随机抽 ${opts.randomN} 首，现在就听`, 'linear-gradient(160deg,#f2a4ae,#c2566b 60%,#7a2a3a)', 'cal', () => play(() => nd.randomSongs(opts.randomN))],
     ['热听榜', '听得最多的专辑，实时更新', 'linear-gradient(160deg,#e8465a,#c42a55)', 'chart', () => go('charts')],
-    ['随心听', '打开随机播放，一路听下去', 'linear-gradient(160deg,#6a8fb8,#34506f 60%,#1c2b44)', 'radio', () => play(() => nd.randomSongs(60))],
+    ['随心听', '打开随机播放，一路听下去', 'linear-gradient(160deg,#6a8fb8,#34506f 60%,#1c2b44)', 'radio', () => play(() => nd.randomSongs(opts.radioN))],
     ['最近播放', '接着上次听的继续', 'linear-gradient(160deg,#4a3a6b,#2a1d4a 70%)', 'clock', () => go('recent')],
     ['新碟上架', '最近入库的专辑', 'linear-gradient(160deg,#3a6b5a,#1d4a40 70%)', 'disc', () => go('albums')],
   ];

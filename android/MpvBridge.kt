@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.pm.ActivityInfo
 import android.media.AudioManager
+import android.provider.Settings
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.ViewGroup
@@ -199,6 +200,10 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
                 act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
             } else {
                 c.show(WindowInsetsCompat.Type.systemBars())
+                // 离开播放页：还原手势改过的窗口亮度，回到系统亮度
+                val lp = act.window.attributes
+                lp.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+                act.window.attributes = lp
                 act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
             }
             ViewCompat.requestApplyInsets(act.findViewById(android.R.id.content))
@@ -230,7 +235,11 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
     @JavascriptInterface
     fun getBrightness(): Float {
         val b = act.window.attributes.screenBrightness
-        return if (b < 0f) 0.5f else b
+        if (b >= 0f) return b
+        // 没被手势改过：取系统当前亮度，第一次手势就不会突然跳变
+        return try {
+            Settings.System.getInt(act.contentResolver, Settings.System.SCREEN_BRIGHTNESS, 128) / 255f
+        } catch (e: Exception) { 0.5f }
     }
 
     /** 状态栏 / 刘海高度（CSS px）；播放全屏时为 0 */

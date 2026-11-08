@@ -5,6 +5,7 @@ import BackButton from '../components/BackButton';
 import MediaCard from '../components/MediaCard';
 import { emby } from '../emby/client';
 import type { EmbyItem } from '../emby/types';
+import { useBackClose } from '../music/useBackClose';
 import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
 import { useAsync } from '../lib/useAsync';
 import { categoryOf, classifyMissing, UNKNOWN } from '../lib/category';
@@ -49,6 +50,7 @@ export default function LibraryPage() {
   const [genre, setGenre] = useState(hit0?.genre || '');
   const [size, setSize] = useState(loadPlayPrefs().posterSize);
   const [sizeOpen, setSizeOpen] = useState(false);
+  useBackClose(sizeOpen, () => setSizeOpen(false));
   const [items, setItems] = useState<EmbyItem[]>(hit0?.items || []);
   const [total, setTotal] = useState(hit0?.total || 0);
   const [loading, setLoading] = useState(!hit0?.items.length);

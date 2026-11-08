@@ -163,6 +163,8 @@ export default function Html5Player({ notice }: { notice?: string }) {
               enableWorker: true,
             });
             hlsRef.current = hls;
+            hlsFix.current = { net: 0, media: 0 };
+            hls.on(Hls.Events.FRAG_LOADED, () => { hlsFix.current = { net: 0, media: 0 }; });   // 能正常取到分片就说明恢复成功，计数清零
             hls.on(Hls.Events.ERROR, (_e, data) => {
               if (!data.fatal) return;
               // 先尝试恢复：网络错误重新拉流，媒体错误重新解码；恢复不了再报错

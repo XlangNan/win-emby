@@ -1,5 +1,5 @@
 // 专辑 / 歌单 / 艺术家详情
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import BackButton from '../components/BackButton';
 import { useCachedAsync } from '../lib/useAsync';
@@ -8,6 +8,8 @@ import { AlbumCard } from './MusicPage';
 import { loadNd, nd, type Album, type Song } from './navidrome';
 import { askConfirm, toast } from './Dialog';
 import { enqueue, playQueue, shuffled } from './player';
+
+const topCache = new Map<string, Song[]>();
 
 function Head({ cover, title, sub, meta, songs, extra }: { cover: string; title: string; sub?: React.ReactNode; meta: string; songs: Song[]; extra?: React.ReactNode }) {
   const go = (shuffle: boolean): void => {
@@ -38,7 +40,7 @@ export default function MusicDetail() {
   const { kind, id } = useParams();
   const nav = useNavigate();
   const k = loadNd().server;
-  const d = useCachedAsync<{ title: string; cover: string; sub?: string; subTo?: string; songs: Song[]; albums: Album[]; top?: Song[]; year?: number; fmt?: string }>(
+  const d = useCachedAsync<{ title: string; cover: string; sub?: string; subTo?: string; songs: Song[]; albums: Album[]; year?: number; fmt?: string }>(
     `nd:${k}:${kind}:${id}`,
     async () => {
       if (kind === 'album') {
@@ -51,11 +53,23 @@ export default function MusicDetail() {
         return { title: r.playlist.name, cover: r.playlist.coverArt, songs: r.songs, albums: [] };
       }
       const r = await nd.artist(id || '');
-      const top = await nd.topSongs(r.artist.name, 15).catch(() => [] as Song[]);
-      return { title: r.artist.name, cover: r.artist.coverArt, songs: [], albums: r.albums, top };
+      return { title: r.artist.name, cover: r.artist.coverArt, songs: [], albums: r.albums };
     },
     60 * 1000,
   );
+  // 热门歌曲：Navidrome 要去 Last.fm 之类的外部服务查，可能很慢甚至超时 —— 放后台加载，不挡住专辑列表
+  const [top, setTop] = useState<Song[] | null>(null);
+  const artistName = kind === 'artist' ? d.data?.title : undefined;
+  useEffect(() => {
+    setTop(null);
+    if (!artistName) return;
+    const hit = topCache.get(artistName);
+    if (hit) { setTop(hit); return; }
+    let dead = false;
+    const t = new Promise<Song[]>((res) => window.setTimeout(() => res([]), 8000));
+    Promise.race([nd.topSongs(artistName, 15).catch(() => [] as Song[]), t]).then((l) => { if (l.length) topCache.set(artistName, l); if (!dead) setTop(l); });
+    return () => { dead = true; };
+  }, [artistName]);
   useEffect(() => { if (kind !== 'playlist') return; const f = (): void => d.reload(); window.addEventListener('wemby-nd-playlists', f); return () => window.removeEventListener('wemby-nd-playlists', f); }, [kind, d]);
   const x = d.data;
   return (
@@ -83,10 +97,10 @@ export default function MusicDetail() {
             <Cover id={x.cover} size={400} radius="50%" className="mu-dhead-cv" label={x.title} />
             <div className="mu-dhead-info"><div className="mu-dhead-t">{x.title}</div><div className="mu-dhead-meta">艺术家 · {x.albums.length} 张专辑</div></div>
           </div>
-          {x.top && x.top.length > 0 && (
+          {top && top.length > 0 && (
             <section className="mu-sec">
-              <div className="mu-sec-head"><h3>热门歌曲</h3><button type="button" className="primary" onClick={() => playQueue(x.top as Song[], 0)}><Ic n="play" size={16} /> 播放热门</button></div>
-              <div className="mu-songs">{x.top.slice(0, 10).map((s, i) => <SongRow key={s.id} s={s} i={i} list={x.top as Song[]} showCover />)}</div>
+              <div className="mu-sec-head"><h3>热门歌曲</h3><button type="button" className="primary" onClick={() => playQueue(top, 0)}><Ic n="play" size={16} /> 播放热门</button></div>
+              <div className="mu-songs">{top.slice(0, 10).map((s, i) => <SongRow key={s.id} s={s} i={i} list={top} showCover />)}</div>
             </section>
           )}
           <section className="mu-sec"><h3>专辑 · {x.albums.length}</h3><div className="mu-grid">{x.albums.map((a) => <AlbumCard key={a.id} a={a} />)}</div></section>

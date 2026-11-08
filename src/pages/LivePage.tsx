@@ -80,9 +80,15 @@ export default function LivePage() {
 
   const importFile = async (f: File | undefined): Promise<void> => {
     if (!f) return;
-    const text = await f.text();
+    let text = '';
+    try { text = await f.text(); } catch { setMsg('文件读取失败'); return; }
     const s: LiveSource = { id: newId(), name: name.trim() || f.name.replace(/\.[^.]+$/, ''), url: '' };
-    const n = cacheSource(s.id, text);
+    let n = 0;
+    try { n = cacheSource(s.id, text); } catch (e) {
+      removeCache(s.id);
+      setMsg(`导入失败：${e instanceof Error ? e.message : '本机存储空间不够'}`);
+      return;
+    }
     if (!n) {
       removeCache(s.id);
       setMsg('文件里没有解析出频道');

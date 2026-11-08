@@ -10,6 +10,8 @@ import { loadDanmaku, saveDanmaku, testDanmaku } from '../lib/danmaku';
 import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
 import { kg, loadKg, saveKg } from '../lib/kg';
 import { loadNd, nd, saveNd } from '../music/navidrome';
+import { saveOpts, useOpts } from '../music/prefs';
+import { searchOnline } from '../music/online';
 import { loadMp, mp, saveMp } from '../lib/mp';
 import { BUILD_ID } from '../lib/version';
 import { HOSTS_TEMPLATE, loadHostsText, saveHostsText } from '../lib/net';
@@ -394,6 +396,51 @@ function NavidromeSettings() {
   );
 }
 
+function MusicOptionsSettings() {
+  const o = useOpts();
+  const [a, setA] = useState(String(o.randomN));
+  const [b, setB] = useState(String(o.radioN));
+  const [n, setN] = useState(o.neteaseApi);
+  const [mt, setMt] = useState(o.metingApi);
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  const saveAll = (): void => {
+    const r = saveOpts({ randomN: Number(a), radioN: Number(b), neteaseApi: n, metingApi: mt });
+    setA(String(r.randomN)); setB(String(r.radioN)); setN(r.neteaseApi); setMt(r.metingApi);
+  };
+  const test = async (): Promise<void> => {
+    saveAll();
+    setBusy(true); setMsg('');
+    try {
+      const r = await searchOnline('周杰伦');
+      setMsg(r.length ? `在线来源可用（搜到 ${r.length} 条）` : '接口通了，但没有搜到结果');
+    } catch (e) { setMsg(`失败：${e instanceof Error ? e.message : String(e)}`); } finally { setBusy(false); }
+  };
+  return (
+    <div className="card we-set" style={{ marginBottom: 14 }}>
+      <h3>音乐选项</h3>
+      <div style={{ display: 'grid', gap: 10 }}>
+        <label className="row" style={{ gap: 10, alignItems: 'center' }}>随机推荐歌曲数
+          <input type="number" min={5} max={300} value={a} onChange={(e) => setA(e.target.value)} onBlur={saveAll} style={{ width: 90 }} />
+        </label>
+        <label className="row" style={{ gap: 10, alignItems: 'center' }}>随心听歌曲数
+          <input type="number" min={10} max={300} value={b} onChange={(e) => setB(e.target.value)} onBlur={saveAll} style={{ width: 90 }} />
+        </label>
+        <label className="row" style={{ gap: 10, alignItems: 'center' }}>
+          <input type="checkbox" checked={o.barLyric} onChange={(e) => saveOpts({ barLyric: e.target.checked })} />在底部播放条显示当前歌词
+        </label>
+        <div className="muted" style={{ fontSize: 12 }}>在线歌词 / 封面来源（用于歌曲「···」菜单里的「匹配 / 编辑 歌词与封面」，二选一，都填时优先 netease-api；只改本机显示，不会改动 Navidrome）。</div>
+        <input value={n} onChange={(e) => setN(e.target.value)} onBlur={saveAll} placeholder="NeteaseCloudMusicApi 地址，如 http://192.168.1.10:3000" spellCheck={false} autoCapitalize="off" />
+        <input value={mt} onChange={(e) => setMt(e.target.value)} onBlur={saveAll} placeholder="Meting API 地址，如 https://api.example.com/meting/" spellCheck={false} autoCapitalize="off" />
+        <div className="row" style={{ gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button type="button" className="primary" disabled={busy || (!n.trim() && !mt.trim())} onClick={() => void test()}>{busy ? '测试中…' : '保存并测试'}</button>
+          {msg && <span className={msg.startsWith('失败') ? 'err' : 'muted'} style={{ fontSize: 12.5 }}>{msg}</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ConfigPage() {
   const [prefs, setPrefs] = useState(loadPlayPrefs);
   const [introOn, setIntroOn] = useState(introDbOn);
@@ -407,6 +454,7 @@ export default function ConfigPage() {
         <HeroSettings prefs={prefs} set={set} />
         <HomeLibs prefs={prefs} set={set} />
         <NavidromeSettings />
+        <MusicOptionsSettings />
         <TmdbSettings />
         <KgSettings />
         <MpSettings />

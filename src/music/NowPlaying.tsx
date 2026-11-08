@@ -1,27 +1,12 @@
 // 完整播放页：封面 + 滚动歌词 + 进度 + 控制
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Cover, fmtTime, Ic, Slider } from './MusicUi';
+import { Cover, fmtTime, Ic, Slider, VolumeBox } from './MusicUi';
 import { leaveOverlaysThen, useBackClose } from './useBackClose';
-import { coverUrl, nd, type Song } from './navidrome';
-import { cycleRepeat, next, playIndex, prev, removeAt, seek, setOpen, setShuffle, setSleep, setStarred, setVolume, stopMusic, togglePlay, useMusic, musicState } from './player';
-
-type Lyr = { synced: boolean; lines: { t: number; text: string }[] };
-const cache = new Map<string, Lyr>();
-
-function useLyrics(s: Song | null): Lyr | null {
-  const [l, setL] = useState<Lyr | null>(null);
-  useEffect(() => {
-    if (!s) { setL(null); return; }
-    const hit = cache.get(s.id);
-    if (hit) { setL(hit); return; }
-    setL(null);
-    let dead = false;
-    nd.lyrics(s).then((r) => { cache.set(s.id, r); if (!dead) setL(r); }).catch(() => !dead && setL({ synced: false, lines: [] }));
-    return () => { dead = true; };
-  }, [s?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  return l;
-}
+import { coverUrl, nd } from './navidrome';
+import { activeLine, useLyrics } from './lyrics';
+import { openMatch } from './MatchDialog';
+import { cycleRepeat, next, playIndex, prev, removeAt, seek, setOpen, setShuffle, setSleep, setStarred, notifyStarred, setVolume, stopMusic, togglePlay, useMusic, musicState } from './player';
 
 const musicPos = (): number => musicState().pos;
 const SLEEPS = [15, 30, 45, 60, 90];
@@ -39,14 +24,14 @@ export default function NowPlaying() {
   const userTs = useRef(0);      // 手指 / 滚轮碰过歌词的时间：之后几秒不自动滚动
   const anim = useRef(0);
   const g0 = useRef<{ x: number; y: number } | null>(null);
+  useEffect(() => { if (!m.open) { setQueueOpen(false); setSleepOpen(false); setLyrMode(false); } }, [m.open]);
   useBackClose(m.open, () => setOpen(false));
   useBackClose(m.open && queueOpen, () => setQueueOpen(false));
   useBackClose(m.open && sleepOpen, () => setSleepOpen(false));
   const cur = m.cur;
   useEffect(() => setStar(!!cur?.starred), [cur?.id, cur?.starred]);
 
-  let active = -1;
-  if (lyr?.synced) for (let i = 0; i < lyr.lines.length; i++) { if (lyr.lines[i].t <= m.pos + 0.25) active = i; else break; }
+  const active = activeLine(lyr, m.pos);
   useEffect(() => {
     if (!m.open || active < 0) return;
     const sc = box.current;
@@ -92,7 +77,7 @@ export default function NowPlaying() {
     const v = !star;
     setStar(v);
     setStarred(cur.id, v);
-    nd.star(cur.id, v).catch(() => setStar(!v));
+    nd.star(cur.id, v).catch(() => setStar(!v)).finally(notifyStarred);
   };
   const quality = [cur.suffix.toUpperCase(), cur.bitDepth ? `${cur.bitDepth}bit` : '', cur.samplingRate ? `${(cur.samplingRate / 1000).toFixed(cur.samplingRate % 1000 ? 1 : 0)}kHz` : '', cur.bitRate ? `${cur.bitRate}kbps` : ''].filter(Boolean).join(' · ');
 
@@ -143,13 +128,14 @@ export default function NowPlaying() {
               ))}
             </div>
           ) : !lyr ? <div className="mu-np-nolyr">歌词加载中…</div>
-            : !lyr.lines.length ? <div className="mu-np-nolyr">纯音乐，请欣赏 · 或这首歌没有歌词</div>
+            : !lyr.lines.length ? <div className="mu-np-nolyr">纯音乐，请欣赏 · 或这首歌没有歌词<br /><button type="button" className="mu-np-fix" onClick={() => cur && openMatch(cur)}>歌词不对？点此匹配</button></div>
             : (
               <div className="mu-lyr">
                 {lyr.lines.map((l, i) => (
                   <div key={i} data-active={i === active ? '1' : undefined} className={`mu-lyr-l${i === active ? ' on' : ''}${lyr.synced ? '' : ' plain'}`}
                     onClick={() => { if (lyr.synced) seek(l.t); }}>{l.text || ' '}</div>
                 ))}
+                <button type="button" className="mu-np-fix" onClick={() => cur && openMatch(cur)}>歌词不对？点此匹配</button>
               </div>
             )}
         </div>
@@ -170,7 +156,7 @@ export default function NowPlaying() {
         <div className="mu-np-foot">
           <button type="button" className={`mu-ib${star ? ' on' : ''}`} aria-label="收藏" onClick={toggleStar}><Ic n="heart" size={20} fill={star} /></button>
           <span className="mu-np-st">{m.error || (m.sleepAt ? `${Math.max(1, Math.ceil((m.sleepAt - Date.now()) / 60000))} 分钟后停止` : m.queue.length ? `队列 ${m.index + 1} / ${m.queue.length}` : '')}</span>
-          <span className="mu-np-vol"><Ic n={m.volume > 0 ? 'vol' : 'mute'} size={18} /><input type="range" min={0} max={100} value={Math.round(m.volume * 100)} aria-label="音量" onChange={(e) => setVolume(Number(e.target.value) / 100)} style={{ ['--p' as string]: `${m.volume * 100}%` }} /></span>
+          <VolumeBox className="mu-np-vol"><Ic n={m.volume > 0 ? 'vol' : 'mute'} size={18} /><input type="range" min={0} max={100} value={Math.round(m.volume * 100)} aria-label="音量" onChange={(e) => setVolume(Number(e.target.value) / 100)} style={{ ['--p' as string]: `${m.volume * 100}%` }} /></VolumeBox>
           <span className="mu-sleep-w">
             <button type="button" className={`mu-ib${m.sleepAt ? ' on' : ''}`} aria-label="定时关闭" onClick={() => setSleepOpen((v) => !v)}><Ic n="moon" size={20} /></button>
             {sleepOpen && (

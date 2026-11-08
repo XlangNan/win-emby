@@ -7,6 +7,7 @@ import PlayOptions, { type PlayChoice } from './PlayOptions';
 import { backdropUrl, logoUrl, personUrl, thumbUrl } from '../emby/client';
 import { fmtDuration, fmtRuntime, progressPct } from '../emby/format';
 import type { EmbyItem } from '../emby/types';
+import { useBackClose } from '../music/useBackClose';
 
 export interface NfSeason { id: string; name: string; eps: EmbyItem[] }
 
@@ -42,6 +43,7 @@ const resBadge = (it: EmbyItem): string => {
 export default function NfDetail(p: NfDetailProps) {
   const { it } = p;
   const [more, setMore] = useState(false);
+  useBackClose(more, () => setMore(false));
   const tp = !!p.target?.UserData?.Played;
   const nav = useNavigate();
   const bg = backdropUrl(it, 1920);

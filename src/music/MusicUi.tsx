@@ -2,10 +2,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import { openMatch } from './MatchDialog';
+import { useOverrideVer } from './overrides';
 import { coverUrl, nd, type Playlist, type Song } from './navidrome';
 import { askText, toast } from './Dialog';
 import { leaveOverlaysThen, useBackClose } from './useBackClose';
-import { enqueue, playNext, playQueue, setStarred, useMusic } from './player';
+import { enqueue, musicState, playNext, playQueue, notifyStarred, setStarred, setVolume, useMusic } from './player';
 
 const P: Record<string, string> = {
   play: 'M7 4.5v15l13-7.5z',
@@ -54,6 +56,7 @@ export function Ic({ n, size = 22, fill }: { n: string; size?: number; fill?: bo
 const GRAD = ['#f0414b,#7a1c52', '#2f6f73,#0f2f3a', '#d9a441,#6b3a1f', '#4a5fc1,#1b1f4b', '#3fa66b,#124032', '#c2566b,#4a1830', '#7b5fc9,#2a1b5c', '#e0883e,#7a2d1c'];
 export function Cover({ id, size = 300, radius, label, className }: { id?: string; size?: number; radius?: number | string; label?: string; className?: string }) {
   const [bad, setBad] = useState(false);
+  useOverrideVer();
   const url0 = id ? coverUrl(id, size) : '';
   useEffect(() => setBad(false), [url0]);
   const g = GRAD[(id || label || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) % GRAD.length];
@@ -102,8 +105,8 @@ export function SongMenu({ s, anchor, onClose, ctx }: { s: Song; anchor: DOMRect
   };
   return createPortal(
     <>
-      <div className="mu-menu-mask mu-scope" onClick={onClose} onContextMenu={(e) => { e.preventDefault(); onClose(); }} />
-      <div className="mu-menu mu-scope" style={{ left, top, width: W }} role="menu">
+      <div className="mu-menu-mask mu-scope" onClick={(e) => { e.stopPropagation(); onClose(); }} onDoubleClick={(e) => e.stopPropagation()} onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onClose(); }} />
+      <div className="mu-menu mu-scope" style={{ left, top, width: W }} role="menu" onClick={(e) => e.stopPropagation()} onContextMenu={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
         {msg ? <div className="mu-menu-msg">{msg}</div> : sub === 'pl' ? (
           <>
             {item('返回', () => setSub(''), 'back')}
@@ -115,7 +118,8 @@ export function SongMenu({ s, anchor, onClose, ctx }: { s: Song; anchor: DOMRect
             {item('下一首播放', () => { playNext([s]); flash('已加入下一首'); }, 'next')}
             {item('添加到播放队列', () => { enqueue([s]); flash('已加入队列'); }, 'list')}
             {item('添加到歌单', () => setSub('pl'), 'plus')}
-            {item(s.starred ? '取消收藏' : '收藏', () => { nd.star(s.id, !s.starred).then(() => { setStarred(s.id, !s.starred); s.starred = !s.starred; flash(s.starred ? '已收藏' : '已取消'); }, () => flash('操作失败')); }, 'heart')}
+            {item(s.starred ? '取消收藏' : '收藏', () => { nd.star(s.id, !s.starred).then(() => { notifyStarred(); setStarred(s.id, !s.starred); s.starred = !s.starred; flash(s.starred ? '已收藏' : '已取消'); }, () => flash('操作失败')); }, 'heart')}
+            {item('匹配 / 编辑 歌词与封面', () => { onClose(); openMatch(s); }, 'note')}
             {s.albumId && item('查看专辑', () => leaveOverlaysThen(() => nav(`/music/album/${s.albumId}`)), 'disc')}
             {s.artistId && item('查看艺术家', () => leaveOverlaysThen(() => nav(`/music/artist/${s.artistId}`)), 'user')}
             {ctx?.onRemove && item('从歌单中删除', () => { ctx.onRemove?.(); onClose(); }, 'trash')}
@@ -147,7 +151,7 @@ export function SongRow({ s, i, list, showCover, ctx, showAlbum = true }: { s: S
     setStar(v);
     setStarred(s.id, v);
     s.starred = v;
-    nd.star(s.id, v).catch(() => setStar(!v));
+    nd.star(s.id, v).catch(() => setStar(!v)).finally(notifyStarred);
   };
   return (
     <div className={`mu-song${active ? ' active' : ''}`} role="button" tabIndex={0} onClick={() => playQueue(list, i)}
@@ -208,4 +212,29 @@ export function Slider({ value, max, onSeek, onDrag, label = '播放进度', cla
       <div className="mu-sl-th" style={{ left: `${pct}%` }} />
     </div>
   );
+}
+
+/** 音量区域：鼠标滚轮在上面滚动即可调音量（每格 5%）。必须用原生非被动监听，才能阻止页面跟着滚。 */
+export function VolumeBox({ className, children }: { className?: string; children: React.ReactNode }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [tip, setTip] = useState('');
+  const tm = useRef(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const on = (e: WheelEvent): void => {
+      e.preventDefault();
+      e.stopPropagation();
+      const d = e.deltaY === 0 ? -e.deltaX : e.deltaY;
+      if (!d) return;
+      const v = Math.min(1, Math.max(0, Math.round((musicState().volume + (d < 0 ? 0.05 : -0.05)) * 100) / 100));
+      setVolume(v);
+      setTip(`${Math.round(v * 100)}%`);
+      window.clearTimeout(tm.current);
+      tm.current = window.setTimeout(() => setTip(''), 900);
+    };
+    el.addEventListener('wheel', on, { passive: false });
+    return () => { el.removeEventListener('wheel', on); window.clearTimeout(tm.current); };
+  }, []);
+  return <span ref={ref} className={`mu-volbox ${className || ''}`}>{children}{tip && <i className="mu-voltip">{tip}</i>}</span>;
 }

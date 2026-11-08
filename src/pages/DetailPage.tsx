@@ -1,6 +1,6 @@
 // 详情页：电影 / 剧集（季 + 单集列表）/ 合集。
 // 外壳类名沿用原项目：网飝 = nf-detail-*（影院背景）、大果 = ap-detail-*（玻璃）、大豆 = db-hero-*（左海报右信息）。
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import BackButton from '../components/BackButton';
 import HeroBackdrop from '../components/HeroBackdrop';
@@ -77,8 +77,13 @@ export default function DetailPage() {
   const seasons = useMemo(() => groupSeasons(eps.data || []), [eps.data]);
   const resumeEp = useMemo(() => pickResume(eps.data || []), [eps.data]);
   const [seasonId, setSeasonId] = useState('');
+  const seasonKey = useRef('');
   useEffect(() => {
     if (!seasons.length) return;
+    // 只在换了剧集 / 地址里的集·季参数变化时重新选季；「标记已看」刷新数据不要把用户手动选的季拉回去
+    const key = `${id}|${sp.get('ep') || ''}|${sp.get('season') || ''}`;
+    if (seasonKey.current === key) return;
+    seasonKey.current = key;
     const wantEp = sp.get('ep');
     const wantSeason = sp.get('season');
     const byEp = wantEp ? eps.data?.find((e) => e.Id === wantEp)?.SeasonId : undefined;

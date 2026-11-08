@@ -92,6 +92,14 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const [menu, setMenu] = useState<'' | 'audio' | 'sub' | 'speed' | 'eps' | 'substyle' | 'sleep' | 'danmu' | 'intro'>('');
   const seekRef = useRef<HTMLDivElement | null>(null);
   const [scrub, setScrub] = useState<number | null>(null);
+  const scrubDrag = useRef(false);
+  const scrubHold = useRef(0);
+  // 松手后先保持在目标位置，等 mpv 的进度追上来（或 1.5 秒超时）再放开，避免滑块弹回旧位置
+  const holdScrub = (t: number): void => {
+    setScrub(t);
+    window.clearTimeout(scrubHold.current);
+    scrubHold.current = window.setTimeout(() => setScrub(null), 1500);
+  };
   const [subStyle, setSubStyleState] = useState<SubStyle>(loadSubStyle);
   const [fps, setFps] = useState(0);
   const [dmCfg, setDmCfg] = useState(loadDanmaku);
@@ -545,6 +553,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     if (dbl) {
       if (x < w / 3) { seekBy(-10); showHud('« 10 秒'); }
       else if (x > (w * 2) / 3) { seekBy(10); showHud('10 秒 »'); }
+      else toggle();   // 中间区域双击：播放 / 暂停
       poke();
       return;
     }
@@ -571,7 +580,8 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       } else return;
     }
     if (g.mode === 'seek') {
-      g.val = Math.max(0, Math.min(total || 0, g.base + (dx / g.w) * 150));
+      g.val = Math.max(0, g.base + (dx / g.w) * 150);
+      if (total > 0) g.val = Math.min(total, g.val);   // 时长未知时不设上限，免得松手跳回 0
       showHud(`${fmtDuration(g.val)} / ${fmtDuration(total)}`);
     } else if (g.mode === 'vol') {
       g.val = Math.max(0, Math.min(100, g.base - (dy / g.h) * 130));
@@ -588,11 +598,12 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     const g = tg.current;
     tg.current = null;
     if (!g) return;
-    if (g.mode === 'seek') { seekTo(g.val); return; }
+    if (g.mode === 'seek') { seekTo(g.val); holdScrub(g.val); return; }
     if (g.mode) return;
     const now = Date.now();
     if (now - lastTap.current < 300) {
-      lastTap.current = 0;
+      // 左右两侧连续点：第三下起每下继续 ±10 秒；中间区域双击后重新计时
+      lastTap.current = g.x < g.w / 3 || g.x > (g.w * 2) / 3 ? now : 0;
       if (tapTimer.current) window.clearTimeout(tapTimer.current);
       tapAct.current(g.x, g.w, true);
     } else {
@@ -635,6 +646,9 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     else void sessRef.current?.cmd('seek', [String(Math.max(0, total - 0.5)), 'absolute']);
   };
 
+  useEffect(() => {
+    if (scrub !== null && !scrubDrag.current && Math.abs(cur - scrub) < 1.2) setScrub(null);
+  }, [cur, scrub]);
   const shownCur = scrub ?? cur;
   const pct = total > 0 ? Math.max(0, Math.min(100, (shownCur / total) * 100)) : 0;
   const scrubAt = (clientX: number): number => {
@@ -755,17 +769,21 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
               if (total <= 0) return;
               e.currentTarget.setPointerCapture(e.pointerId);
               hoverUi.current = true;
+              scrubDrag.current = true;
+              window.clearTimeout(scrubHold.current);
               setScrub(scrubAt(e.clientX));
             }}
             onPointerMove={(e) => { if (scrub !== null) setScrub(scrubAt(e.clientX)); }}
             onPointerUp={(e) => {
               if (scrub === null) return;
-              seekTo(scrubAt(e.clientX));
-              setScrub(null);
+              scrubDrag.current = false;
+              const tt = scrubAt(e.clientX);
+              seekTo(tt);
+              holdScrub(tt);
               hoverUi.current = false;
               poke();
             }}
-            onPointerCancel={() => { setScrub(null); hoverUi.current = false; }}
+            onPointerCancel={() => { scrubDrag.current = false; setScrub(null); hoverUi.current = false; }}
           >
             {scrub !== null && <div className="we-scrubtip" style={{ left: `${pct}%` }}>{fmtDuration(scrub)}</div>}
             <div className="we-seek-buf" style={{ width: `${bufPct}%` }} />

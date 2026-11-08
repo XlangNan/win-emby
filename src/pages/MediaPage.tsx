@@ -4,6 +4,7 @@ import { isAndroid } from '../lib/platform';
 import { emby, posterUrl, thumbUrl } from '../emby/client';
 import type { EmbyItem } from '../emby/types';
 import { loadPlayPrefs } from '../lib/prefs';
+import { getSession } from '../emby/session';
 import { useCachedAsync } from '../lib/useAsync';
 
 const SKIP = new Set(['playlists', 'livetv', 'music', 'books', 'photos', 'musicvideos', 'trailers', 'folders']);
@@ -22,9 +23,16 @@ async function load(): Promise<{ v: EmbyItem; n: number }[]> {
   }));
 }
 
+/** 缓存键：区分账号 / 服务器，也区分隐藏、排序设置 */
+function mediaKey(): string {
+  const s = getSession();
+  const p = loadPlayPrefs();
+  return `media-libs:${s?.server || ''}:${s?.userId || ''}:${JSON.stringify([p.hiddenLibs, p.libOrder])}`;
+}
+
 export default function MediaPage() {
   const nav = useNavigate();
-  const { data, loading, error, reload } = useCachedAsync('media-libs', load);
+  const { data, loading, error, reload } = useCachedAsync(mediaKey(), load, 60 * 1000);
   return (
     <div className="content m-media">
       <div className="m-media-title">媒体</div>

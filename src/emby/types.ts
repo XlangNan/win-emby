@@ -1,6 +1,7 @@
 // Emby API 里本项目用到的字段子集（其余字段忽略）
 
 export interface UserData {
+  LastPlayedDate?: string;
   PlaybackPositionTicks?: number;
   PlayedPercentage?: number;
   Played?: boolean;

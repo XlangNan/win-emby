@@ -1,4 +1,5 @@
 // 全局音乐播放器：一个 <audio>，队列 / 随机 / 循环 / 系统媒体控制（锁屏、耳机按键）
+import { initThumb, thumbPlaying } from './thumb';
 import { useSyncExternalStore } from 'react';
 import { coverUrl, nd, streamUrl, type Song } from './navidrome';
 
@@ -36,6 +37,7 @@ function keepAwake(on: boolean): void {
 
 function emit(p: Partial<MusicState>): void {
   st = { ...st, ...p };
+  if (p.playing !== undefined) thumbPlaying(st.playing);
   if (p.playing !== undefined || st.playing) keepAwake(st.playing);
   if (p.playing !== undefined) { try { navigator.mediaSession.playbackState = st.playing ? 'playing' : 'paused'; } catch { /* ignore */ } }
   st.cur = st.queue[st.index] || null;
@@ -93,6 +95,7 @@ function load(i: number): void {
 
 export function playQueue(songs: Song[], start = 0): void {
   if (!songs.length) return;
+  initThumb({ prev: () => prev(), toggle: () => togglePlay(), next: () => next() });
   history = [];
   emit({ queue: songs, open: st.open });
   load(Math.min(Math.max(start, 0), songs.length - 1));
@@ -165,8 +168,9 @@ export function setSleep(minutes: number): void {
 }
 export function setOpen(v: boolean): void { emit({ open: v }); }
 export function playIndex(i: number): void { if (st.queue[i]) { history.push(st.index); load(i); } }
+/** 服务器收藏请求完成后再通知收藏页刷新，免得它抢在写入之前拿到旧数据 */
+export const notifyStarred = (): void => { window.dispatchEvent(new Event('wemby-nd-starred')); };
 export function setStarred(id: string, on: boolean): void {
-  window.dispatchEvent(new Event('wemby-nd-starred'));
   emit({ queue: st.queue.map((x) => (x.id === id ? { ...x, starred: on } : x)) });
 }
 export function stopMusic(): void {

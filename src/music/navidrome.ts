@@ -1,5 +1,6 @@
 // Navidrome（Subsonic / OpenSubsonic API）客户端：专辑、艺术家、歌单、收藏、搜索、歌词、播放地址
 import { httpFetch } from '../emby/http';
+import { getCoverOverride } from './overrides';
 import { md5 } from './md5';
 
 export interface NdConfig { server: string; user: string; pass: string; proxy: string }
@@ -195,6 +196,8 @@ export function parseLrc(text: string): { synced: boolean; lines: { t: number; t
 }
 
 export function coverUrl(id: string, size = 300): string {
+  const ov = getCoverOverride(id);
+  if (ov) return ov;
   const c = loadNd();
   if (!id || !c.server) return '';
   return `${c.server}/rest/getCoverArt.view?${authQs(c)}&id=${encodeURIComponent(id)}&size=${size}`;

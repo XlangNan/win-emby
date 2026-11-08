@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { emby } from '../emby/client';
 import type { EmbyItem } from '../emby/types';
+import { useBackClose } from '../music/useBackClose';
 
 export interface MenuState {
   x: number;
@@ -22,6 +23,7 @@ export default function ItemMenu({
   onChanged: (info?: { id: string; remove?: boolean }) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  useBackClose(true, onClose);
   const [pos, setPos] = useState({ x: state.x, y: state.y });
   const it = state.it;
   const played = !!it.UserData?.Played;
@@ -65,7 +67,11 @@ export default function ItemMenu({
     </div>
   );
 
+  const eat = (e: { stopPropagation: () => void; preventDefault: () => void }): void => { e.stopPropagation(); e.preventDefault(); };
   return createPortal(
+    <>
+    {/* 全屏透明遮罩：点空白处只关菜单，不会穿透到下面的海报 */}
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }} onMouseDown={(e) => { e.stopPropagation(); onClose(); }} onClick={(e) => { eat(e); onClose(); }} onTouchStart={(e) => e.stopPropagation()} onTouchEnd={(e) => { eat(e); onClose(); }} onContextMenu={(e) => { eat(e); onClose(); }} />
     <div
       ref={ref}
       className="we-ctx"
@@ -83,7 +89,8 @@ export default function ItemMenu({
       {row(fav ? '★ 取消收藏' : '☆ 加入收藏', () => emby.setFavorite(it.Id, !fav))}
       {row(it.Type === 'Episode' ? '▤ 查看剧集（标记已看 / 未看）' : 'ⓘ 查看详情', () => onOpen(it))}
       {inResume && row('✕ 从继续观看中移除', () => emby.clearResume(it.Id), true, true)}
-    </div>,
+    </div>
+    </>,
     document.body,
   );
 }
