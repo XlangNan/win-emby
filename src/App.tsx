@@ -145,7 +145,7 @@ function AppShell() {
     if (p.startsWith('/lib/')) return views.find((v) => p.endsWith(v.Id))?.Name || '媒体库';
     if (p.startsWith('/detail')) return '影片详情';
     if (p.startsWith('/search')) return '搜索';
-    return allNav.find((n) => p.startsWith(n.to))?.label || '织影';
+    return allNav.find((n) => (n.to === '/' ? p === '/' : p.startsWith(n.to)))?.label || '织影';
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loc.pathname, views]);
 

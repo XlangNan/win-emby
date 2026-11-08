@@ -1,12 +1,14 @@
 // 应用内对话框 / 提示：不依赖浏览器自带的 prompt / confirm / alert（安卓 WebView 里不一定会弹）
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { useBackClose } from './useBackClose';
 
 interface Opts { title: string; text?: boolean; placeholder?: string; ok?: string; danger?: boolean }
 
 function Box({ o, done }: { o: Opts; done: (v: string | null) => void }) {
   const [v, setV] = useState('');
   const inp = useRef<HTMLInputElement>(null);
+  useBackClose(true, () => done(null));
   useEffect(() => { inp.current?.focus(); }, []);
   useEffect(() => {
     const k = (e: KeyboardEvent): void => { if (e.key === 'Escape') done(null); };
@@ -15,7 +17,7 @@ function Box({ o, done }: { o: Opts; done: (v: string | null) => void }) {
   }, [done]);
   const submit = (): void => { if (o.text) { if (v.trim()) done(v.trim()); } else done('1'); };
   return (
-    <div className="mu-dlg-mask" onClick={() => done(null)}>
+    <div className="mu-dlg-mask mu-scope" onClick={() => done(null)}>
       <div className="mu-dlg" role="dialog" aria-label={o.title} onClick={(e) => e.stopPropagation()}>
         <div className="mu-dlg-t">{o.title}</div>
         {o.text && <input ref={inp} className="mu-dlg-in" value={v} placeholder={o.placeholder} maxLength={60} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') submit(); }} />}

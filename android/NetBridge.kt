@@ -54,7 +54,7 @@ class NetBridge(private val web: WebView) {
 
     private fun doRequest(r: JSONObject): JSONObject {
         val url = URL(r.getString("url"))
-        val host = url.host
+        val host = url.host.lowercase()   // JS 端的 hosts 表是小写的，这里也统一成小写再查
         val proxy = parseProxy(r.optString("proxy", ""))
         val ips = ArrayList<String>()
         if (proxy == null) r.optJSONObject("hosts")?.optJSONArray(host)?.let { a -> for (i in 0 until a.length()) ips.add(a.getString(i)) }

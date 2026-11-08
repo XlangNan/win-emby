@@ -9,7 +9,7 @@
 //   `fit="contain"`（发现页 Hero 满屏时用）：图上**保持比例完整显示**（contain），
 //   比例之外的空白由**同一张图放大模糊**填充（两层：`.nf-hero-fill` 模糊铺底 + `.nf-hero-fg` 清晰居中），
 //   因而无论窗口多宽多高都不会裁掉人物；`cover`（默认，详情页）维持原行为。
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 
 export default function HeroBackdrop({
   urls,
@@ -30,7 +30,11 @@ export default function HeroBackdrop({
     const t = setInterval(() => setIdx((i) => (i + 1) % urls.length), intervalMs);
     return () => clearInterval(t);
   }, [key, urls.length, intervalMs]);
-  const shown = Math.min(urls.length, idx + 2);
+  // 已经挂载过的图不再卸载（否则绕回第一张时，最后一张会瞬间消失、没有淡出）
+  const hw = useRef({ key: '', n: 0 });
+  if (hw.current.key !== key) hw.current = { key, n: 0 };
+  hw.current.n = Math.max(hw.current.n, idx + 2);
+  const shown = Math.min(urls.length, hw.current.n);
   const contain = fit === 'contain';
   return (
     <>

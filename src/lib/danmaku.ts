@@ -76,18 +76,26 @@ function hex(n: number): string {
 }
 
 /** anime：片名 / 剧名；episode：第几集（电影不传） */
-export async function fetchDanmaku(cfg: DanmakuCfg, anime: string, episode?: number): Promise<Dm[]> {
-  const key = `${base(cfg)}|${anime}|${episode ?? ''}`;
+const CN = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+/** 第 N 季的常见写法：第二季 / 第2季 / Season 2 / S2 / 2nd Season */
+const seasonRe = (n: number): RegExp => new RegExp(`第\\s*(${CN[n] || n}|${n})\\s*[季期部]|season\\s*${n}\\b|\\bs0?${n}\\b|${n}(st|nd|rd|th)\\s*season`, 'i');
+
+export async function fetchDanmaku(cfg: DanmakuCfg, anime: string, episode?: number, season?: number): Promise<Dm[]> {
+  const sn = season && season > 1 ? season : 1;
+  const key = `${base(cfg)}|${anime}|${sn}|${episode ?? ''}`;
   const hit = cache.get(key);
   if (hit) return hit;
   let epId = 0;
   try {
     const q = `/api/v2/search/episodes?anime=${encodeURIComponent(anime)}${episode ? `&episode=${episode}` : ''}`;
-    const r = await api<{ animes?: { episodes?: { episodeId: number }[] }[] }>(cfg, q);
-    epId = r.animes?.find((a) => a.episodes?.length)?.episodes?.[0]?.episodeId || 0;
+    const r = await api<{ animes?: { animeTitle?: string; episodes?: { episodeId: number }[] }[] }>(cfg, q);
+    const withEp = (r.animes || []).filter((a) => a.episodes?.length);
+    // 第 2 季以后：只认标题里写着季数的条目，找不到就走下面按 S02E.. 匹配，不能拿第 1 季的弹幕顶替
+    const pick = sn > 1 ? withEp.find((a) => seasonRe(sn).test(a.animeTitle || '')) : withEp[0];
+    epId = pick?.episodes?.[0]?.episodeId || 0;
   } catch { /* 走 match */ }
   if (!epId) {
-    const name = episode ? `${anime} S01E${String(episode).padStart(2, '0')}` : anime;
+    const name = episode ? `${anime} S${String(sn).padStart(2, '0')}E${String(episode).padStart(2, '0')}` : anime;
     const r = await api<{ matches?: { episodeId: number }[] }>(cfg, '/api/v2/match', { method: 'POST', body: { fileName: name, matchMode: 'fileNameOnly' } });
     epId = r.matches?.[0]?.episodeId || 0;
   }

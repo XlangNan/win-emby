@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Cover, fmtTime, Ic, Slider } from './MusicUi';
-import { useBackClose } from './useBackClose';
+import { leaveOverlaysThen, useBackClose } from './useBackClose';
 import { coverUrl, nd, type Song } from './navidrome';
 import { cycleRepeat, next, playIndex, prev, removeAt, seek, setOpen, setShuffle, setSleep, setStarred, setVolume, stopMusic, togglePlay, useMusic, musicState } from './player';
 
@@ -64,7 +64,7 @@ export default function NowPlaying() {
       const p = Math.min(1, (now - t0) / dur);
       const e = 1 - Math.pow(1 - p, 3); // easeOutCubic
       sc.scrollTop = from + dist * e;
-      if (p < 1) raf = requestAnimationFrame(step);
+      if (p < 1) { raf = requestAnimationFrame(step); anim.current = raf; }
     };
     raf = requestAnimationFrame(step);
     anim.current = raf;
@@ -74,7 +74,8 @@ export default function NowPlaying() {
     if (!m.open) return;
     const k = (e: KeyboardEvent): void => {
       const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'BUTTON' || t.getAttribute('role') === 'slider')) { if (e.key === 'Escape') setOpen(false); return; }
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.getAttribute('role') === 'slider')) { if (e.key === 'Escape') setOpen(false); return; }
+      if (t && t.tagName === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;   // 按钮自己处理空格 / 回车，其余快捷键照常
       if (e.key === 'Escape') setOpen(false);
       else if (e.key === ' ') { e.preventDefault(); togglePlay(); }
       else if (e.key === 'ArrowRight' && e.ctrlKey) next();
@@ -96,7 +97,7 @@ export default function NowPlaying() {
   const quality = [cur.suffix.toUpperCase(), cur.bitDepth ? `${cur.bitDepth}bit` : '', cur.samplingRate ? `${(cur.samplingRate / 1000).toFixed(cur.samplingRate % 1000 ? 1 : 0)}kHz` : '', cur.bitRate ? `${cur.bitRate}kbps` : ''].filter(Boolean).join(' · ');
 
   return (
-    <div className="mu-np" role="dialog" aria-label="正在播放"
+    <div className="mu-np mu-scope" role="dialog" aria-label="正在播放"
       onTouchStart={(e) => { const t = e.target as HTMLElement; g0.current = t.closest('.mu-np-right, .mu-sl, .mu-np-btns, .mu-np-foot') ? null : { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
       onTouchEnd={(e) => {
         const g = g0.current; g0.current = null;
@@ -114,7 +115,7 @@ export default function NowPlaying() {
       </div>
       <div className={`mu-np-body${lyrMode || queueOpen ? ' lyr-mode' : ''}`}>
         <div className="mu-np-left">
-          <div className="mu-disc-wrap" role="button" tabIndex={0} aria-label="切换歌词" onClick={() => setLyrMode((v) => !v)} onKeyDown={(e) => { if (e.key === 'Enter') setLyrMode((v) => !v); }}>
+          <div className="mu-disc-wrap" role="button" tabIndex={0} aria-label="切换歌词" onClick={() => { if (window.matchMedia('(max-width: 899px)').matches) setLyrMode((v) => !v); }} onKeyDown={(e) => { if (e.key === 'Enter') setLyrMode((v) => !v); }}>
             <div className={`mu-needle${m.playing ? ' on' : ''}`} />
             <div className={`mu-disc${m.playing ? ' spin' : ''}`}>
               <Cover id={cur.coverArt} size={600} className="mu-disc-cv" label={cur.title} />
@@ -123,8 +124,8 @@ export default function NowPlaying() {
           <div className="mu-np-info">
             <div className="mu-np-title">{cur.title}</div>
             <div className="mu-np-artist">
-              <a href="#a" onClick={(e) => { e.preventDefault(); if (cur.artistId) { setOpen(false); nav(`/music/artist/${cur.artistId}`); } }}>{cur.artist}</a>
-              {cur.album && <> · <a href="#b" onClick={(e) => { e.preventDefault(); if (cur.albumId) { setOpen(false); nav(`/music/album/${cur.albumId}`); } }}>{cur.album}</a></>}
+              <a href="#a" onClick={(e) => { e.preventDefault(); if (cur.artistId) leaveOverlaysThen(() => nav(`/music/artist/${cur.artistId}`)); }}>{cur.artist}</a>
+              {cur.album && <> · <a href="#b" onClick={(e) => { e.preventDefault(); if (cur.albumId) leaveOverlaysThen(() => nav(`/music/album/${cur.albumId}`)); }}>{cur.album}</a></>}
             </div>
             <div className="mu-np-q">{quality}</div>
             {!lyrMode && <div className="mu-np-hint">点唱片或右上角「词」查看歌词 · 左右滑动切歌 · 下滑收起</div>}

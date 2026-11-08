@@ -13,7 +13,9 @@ export function normalizeNdServer(input: string): string {
   s = s.replace(/\/+$/, '').replace(/\/rest$/i, '');
   try {
     const u = new URL(s);
-    if (!u.port && u.protocol === 'http:') u.port = '4533';
+    // 用原始输入判断是否写了端口：new URL('http://h:80').port 是空串（默认端口会被吞掉）
+    const hasPort = /^https?:\/\/[^/?#]*:\d+(?:[/?#]|$)/i.test(s);
+    if (!hasPort && !u.port && u.protocol === 'http:') u.port = '4533';
     return u.toString().replace(/\/+$/, '');
   } catch { return s; }
 }
@@ -42,9 +44,10 @@ function authQs(c = loadNd()): string {
 }
 
 type Obj = Record<string, unknown>;
-async function call<T = Obj>(endpoint: string, params: Record<string, string | number | boolean | undefined> = {}, cfg = loadNd()): Promise<T> {
+type Param = string | number | boolean | undefined | string[];
+async function call<T = Obj>(endpoint: string, params: Record<string, Param> = {}, cfg = loadNd()): Promise<T> {
   if (!cfg.server || !cfg.user) throw new Error('还没有设置 Navidrome');
-  const extra = Object.entries(params).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&');
+  const extra = Object.entries(params).filter(([, v]) => v !== undefined && v !== '').flatMap(([k, v]) => (Array.isArray(v) ? v : [v]).map((x) => `${k}=${encodeURIComponent(String(x))}`)).join('&');
   const url = `${cfg.server}/rest/${endpoint}.view?${authQs(cfg)}&f=json${extra ? `&${extra}` : ''}`;
   const res = await httpFetch(url, { headers: { Accept: 'application/json' } }, cfg.proxy ? { proxy: cfg.proxy } : undefined);
   if (!res.ok) throw new Error(`Navidrome 返回 ${res.status}`);
@@ -131,22 +134,14 @@ export const nd = {
     return arr(r.topSongs?.song).map(song);
   },
   async createPlaylist(name: string, songIds: string[] = []): Promise<string> {
-    const cfg = loadNd();
-    const extra = songIds.map((i) => `&songId=${encodeURIComponent(i)}`).join('');
-    const url = `${cfg.server}/rest/createPlaylist.view?${authQs(cfg)}&f=json&name=${encodeURIComponent(name)}${extra}`;
-    const res = await httpFetch(url, { headers: { Accept: 'application/json' } }, cfg.proxy ? { proxy: cfg.proxy } : undefined);
-    const j = (await res.json()) as { 'subsonic-response'?: { status: string; error?: { message: string }; playlist?: { id?: string } } };
-    const r = j['subsonic-response'];
-    if (!r || r.status !== 'ok') throw new Error(r?.error?.message || '创建歌单失败');
-    return s(r.playlist?.id);
+    const first = songIds.slice(0, 100);
+    const r = await call<{ playlist?: { id?: string } }>('createPlaylist', { name, songId: first });
+    const id = s(r.playlist?.id);
+    if (id && songIds.length > first.length) await this.addToPlaylist(id, songIds.slice(first.length));
+    return id;
   },
   async addToPlaylist(id: string, songIds: string[]): Promise<void> {
-    const cfg = loadNd();
-    const extra = songIds.map((i) => `&songIdToAdd=${encodeURIComponent(i)}`).join('');
-    const url = `${cfg.server}/rest/updatePlaylist.view?${authQs(cfg)}&f=json&playlistId=${encodeURIComponent(id)}${extra}`;
-    const res = await httpFetch(url, { headers: { Accept: 'application/json' } }, cfg.proxy ? { proxy: cfg.proxy } : undefined);
-    const j = (await res.json()) as { 'subsonic-response'?: { status: string; error?: { message: string } } };
-    if (j['subsonic-response']?.status !== 'ok') throw new Error(j['subsonic-response']?.error?.message || '添加失败');
+    for (let i = 0; i < songIds.length; i += 100) await call('updatePlaylist', { playlistId: id, songIdToAdd: songIds.slice(i, i + 100) });
   },
   async removeFromPlaylist(id: string, index: number): Promise<void> {
     await call('updatePlaylist', { playlistId: id, songIndexToRemove: index });
@@ -162,19 +157,24 @@ export const nd = {
   },
   /** 歌词：先取 OpenSubsonic 的带时间轴歌词，没有再取普通歌词（含 LRC 文本也能解析） */
   async lyrics(sg: Song): Promise<{ synced: boolean; lines: { t: number; text: string }[] }> {
+    let answered = false;   // 至少有一个接口正常回答（哪怕是「没有歌词」）才算确定没有
+    let lastErr: unknown = null;
     try {
       const r = await call<{ lyricsList?: { structuredLyrics?: { synced?: boolean; line?: { start?: number; value?: string }[] }[] } }>('getLyricsBySongId', { id: sg.id });
+      answered = true;
       const list = r.lyricsList?.structuredLyrics || [];
       const best = list.find((l) => l.synced) || list[0];
       if (best?.line?.length) {
         return { synced: !!best.synced, lines: best.line.map((l) => ({ t: (l.start || 0) / 1000, text: s(l.value) })) };
       }
-    } catch { /* 服务端不支持就走下面 */ }
+    } catch (e) { lastErr = e; /* 服务端不支持就走下面 */ }
     try {
       const r = await call<{ lyrics?: { value?: string } }>('getLyrics', { artist: sg.artist, title: sg.title });
+      answered = true;
       const text = s(r.lyrics?.value);
       if (text) return parseLrc(text);
-    } catch { /* 没有歌词 */ }
+    } catch (e) { lastErr = e; }
+    if (!answered) throw lastErr instanceof Error ? lastErr : new Error('歌词加载失败');
     return { synced: false, lines: [] };
   },
 };
@@ -188,7 +188,7 @@ export function parseLrc(text: string): { synced: boolean; lines: { t: number; t
     if (tags.length) {
       synced = true;
       for (const t of tags) out.push({ t: Number(t[1]) * 60 + Number(t[2]), text: body });
-    } else if (body && !/^\[?(ar|ti|al|by|offset)/i.test(raw)) out.push({ t: 0, text: body });
+    } else if (body && !/^\[(ar|ti|al|by|offset):/i.test(raw)) out.push({ t: 0, text: body });
   }
   if (synced) out.sort((a, b) => a.t - b.t);
   return { synced, lines: out };

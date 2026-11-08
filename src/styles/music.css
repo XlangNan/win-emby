@@ -105,7 +105,7 @@
 .mu-np-btns { display: flex; justify-content: center; align-items: center; gap: 22px; margin-top: 8px; }
 .mu-ib-big { width: 64px; height: 64px; background: #fff; color: #0e0e10 !important; }
 .mu-np-foot { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; color: #d9c3cc; margin-top: 2px; }
-@media (max-width: 900px) {
+@media (max-width: 899px) {
   .mu-np-body { flex-direction: column; gap: 14px; padding: 6px 24px 0; align-items: stretch; }
   .mu-np-left { width: auto; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
   .mu-np-cv { width: 72px !important; border-radius: 8px; }
@@ -278,7 +278,7 @@
 .mu-sleep-i:hover { background: #35353c; }
 .mu-sleep-i.off { color: #f0414b; }
 .mu-sleep-w .mu-pop-mask { z-index: 205; }
-@media (max-width: 900px) {
+@media (max-width: 899px) {
   .mu-side { display: none; }
   .mu-main { padding: 8px 14px 24px; }
   .mu-head { margin-bottom: 6px; }
@@ -310,7 +310,7 @@
   .mu-np-title { font-size: 20px; }
   .mu-queue { width: auto; left: 8px; right: 8px; }
 }
-@media (max-width: 900px) { .mu-np-cv { display: none; } }
+@media (max-width: 899px) { .mu-np-cv { display: none; } }
 
 .mu-np-right { position: relative; }
 .mu-lyr { padding-left: 4px; padding-right: 12%; }
@@ -340,7 +340,7 @@
 .mu-afilter { max-width: 320px; margin-bottom: 14px; }
 .mu-np-hint { margin-top: 10px; font-size: 11.5px; color: rgba(217, 195, 204, .7); display: none; }
 .mu-np-lyrbtn { display: none; }
-@media (max-width: 900px) {
+@media (max-width: 899px) {
   .mu-np-hint { display: block; }
   .mu-np-lyrbtn { display: flex; }
   /* 歌曲菜单：手机上改成底部抽屉 */
@@ -384,7 +384,7 @@
 .mu-dots { display: flex; justify-content: center; gap: 6px; margin-top: 10px; }
 .mu-dot { all: unset; cursor: pointer; width: 6px; height: 6px; border-radius: 3px; background: #3a3a40; transition: width .3s, background .3s; }
 .mu-dot.on { background: #f0414b; width: 18px; }
-@media (max-width: 900px) { .mu-bn-stage { --bw: 160px; --step: 168px; height: 196px; } }
+@media (max-width: 899px) { .mu-bn-stage { --bw: 160px; --step: 168px; height: 196px; } }
 
 /* ═════════ 新版布局（对照效果图） ═════════ */
 .mu-main { padding: 8px 28px 24px; }
@@ -425,11 +425,11 @@
 .mu-pk b { display: flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 800; text-shadow: 0 1px 8px rgba(0, 0, 0, .35); }
 .mu-pk span { font-size: 12.5px; line-height: 1.35; font-weight: 600; text-shadow: 0 1px 6px rgba(0, 0, 0, .4); }
 .mu-short { display: none; }
-@media (min-width: 901px) { .mu-main .mu-hcell { flex: 0 0 calc((100% - 64px) / 5); } .mu-utabs { display: none; } }
+@media (min-width: 900px) { .mu-main .mu-hcell { flex: 0 0 calc((100% - 64px) / 5); } .mu-utabs { display: none; } }
 .mu-mini { background: #1d1d23; }
 .mu-mini-btns .mu-ib-main { background: #f0414b; color: #fff !important; }
 .mu-qtag { font-size: 11px; font-weight: 700; color: #f0414b; background: rgba(240, 65, 75, .15); padding: 2px 7px; border-radius: 4px; margin: 0 4px; }
-@media (max-width: 900px) {
+@media (max-width: 899px) {
   .mu-hero { display: block; }
   .mu-guess, .mu-picks { display: none; }
   .mu-bn2 { height: 150px; border-radius: 14px; }
@@ -440,3 +440,49 @@
   .mu-short { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; margin: 16px 0 6px; }
   .mu-qtag { display: none; }
 }
+
+/* ═════════ 按钮基线：.mu-scope 内的按钮不吃应用皮肤，只用这里的样式 ═════════ */
+:where(.mu-scope) button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; border-radius: 0; box-shadow: none; text-shadow: none; cursor: pointer; transition: background .15s, color .15s, opacity .15s; -webkit-tap-highlight-color: transparent; }
+:where(.mu-scope) button:focus-visible { outline: 2px solid rgba(240, 65, 75, .8); outline-offset: 2px; }
+:where(.mu-scope) button:disabled { opacity: .45; cursor: default; }
+/* 页面里没带类名的普通按钮：胶囊，主要 = 红色实心，次要 = 深灰实心 */
+.mu-scope button:not([class*='mu-']) { height: 36px; padding: 0 18px; border-radius: 18px; background: #2a2a30; color: #e4e4e7; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.mu-scope button:not([class*='mu-']):hover:not(:disabled) { background: #34343c; }
+.mu-scope button.primary:not([class*='mu-']) { background: #f0414b; color: #fff; }
+.mu-scope button.primary:not([class*='mu-']):hover:not(:disabled) { background: #f4525b; }
+.mu-dhead-btns button { height: 42px; padding: 0 22px; border-radius: 21px; }
+.mu-ib { transition: background .15s, color .15s; }
+.mu-ib:hover { background: rgba(255, 255, 255, .08); }
+.mu-ib-main:hover { background: #f4525b !important; }
+.mu-mini.inline .mu-ib-main:hover { background: transparent !important; }
+
+/* ═════════ 电脑版（横屏）：播放条 ═════════ */
+@media (min-width: 900px) {
+  .mu-mini { display: grid; grid-template-columns: 300px minmax(0, 1fr) 330px; gap: 16px; padding: 0 24px; align-items: center; }
+  .mu-mini-left { min-width: 0; }
+  .mu-mini-mid { min-width: 0; justify-self: center; width: 100%; max-width: 560px; }
+  .mu-mini-btns { gap: 18px; }
+  .mu-mini-right { min-width: 0; justify-content: flex-end; gap: 2px; }
+  .mu-mini-right .mu-vol { width: 84px; margin: 0 6px; }
+}
+@media (max-width: 1180px) and (min-width: 900px) { .mu-mini { grid-template-columns: 240px minmax(0, 1fr) 260px; } .mu-mini-right .mu-vol { display: none; } }
+@media (max-width: 1020px) and (min-width: 900px) { .mu-mini { grid-template-columns: 200px minmax(0, 1fr) 190px; } .mu-qtag { display: none; } }
+
+/* ═════════ 手机版（竖屏）：不横向滑动，触控区 44px+ ═════════ */
+@media (max-width: 899px) {
+  .mu-page { overflow-x: hidden; }
+  .mu-main { min-width: 0; max-width: 100%; }
+  .mu-short { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .mu-sc { min-width: 0; }
+  .mu-sc span { white-space: nowrap; }
+  .mu-np-top { grid-template-columns: 44px minmax(0, 1fr) 44px 44px; }
+  .mu-np-btns .mu-ib { width: 48px; height: 48px; }
+  .mu-np-btns .mu-ib-big { width: 64px; height: 64px; }
+  .mu-np-foot { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px auto; align-items: center; gap: 6px; }
+  .mu-np-foot .mu-np-st { text-align: center; }
+  .mu-np-foot .mu-np-vol { display: none; }
+  .mu-ut { white-space: nowrap; }
+  .mu-mini.inline .mu-mini-txt { min-width: 0; flex: 1; }
+}
+
+.mu-mini.inline .mu-ib-stop { margin-left: 10px; }

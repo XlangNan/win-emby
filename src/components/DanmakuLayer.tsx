@@ -18,7 +18,8 @@ export default function DanmakuLayer({
     let W = 0, H = 0;
     let layoutKey = '';
     let lanes: { x0: number; w: number; lane: number; kind: number }[] = [];
-    const widths = new WeakMap<Dm, number>();
+    let widths = new WeakMap<Dm, number>();
+    let widthFont = 0;
 
     const resize = (): void => {
       const r = c.getBoundingClientRect();
@@ -37,6 +38,7 @@ export default function DanmakuLayer({
       if (key === layoutKey) return;
       layoutKey = key;
       ctx.font = `700 ${S}px sans-serif`;
+      if (widthFont !== S) { widths = new WeakMap(); widthFont = S; }   // 字号变了：旧宽度作废
       const lineH = S * 1.35;
       const n = Math.max(1, Math.floor(Math.min(H * A, H * (1 - O) - lineH) / lineH));
       const free = new Array<number>(n).fill(-1e9);

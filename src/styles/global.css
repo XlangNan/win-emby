@@ -107,17 +107,17 @@ body {
   -webkit-user-select: none; user-select: none;
 }
 a { color: var(--accent); text-decoration: none; }
-button {
+button:where(:not(.mu-scope *)) {
   font: inherit; cursor: pointer; color: var(--text);
   background: linear-gradient(180deg, var(--surface-3), var(--surface-2));
   border: 1px solid var(--border); border-radius: var(--radius-sm);
   padding: 6px 13px; transition: border-color var(--dur-quick) var(--ease-standard), transform var(--dur-instant) var(--ease-spring), box-shadow var(--dur-state) var(--ease-standard), color var(--dur-quick) var(--ease-standard);
 }
-button:hover { border-color: var(--accent); color: #fff; box-shadow: 0 0 0 3px var(--accent-soft); }
-button:active { transform: translateY(1px); }
-button.primary { background: linear-gradient(135deg, #4f86ff, #6a5cff); border-color: transparent; color: #fff; }
-button.primary:hover { box-shadow: 0 4px 16px rgba(90, 110, 255, .35); }
-button:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+button:where(:not(.mu-scope *)):hover { border-color: var(--accent); color: #fff; box-shadow: 0 0 0 3px var(--accent-soft); }
+button:where(:not(.mu-scope *)):active { transform: translateY(1px); }
+button:where(:not(.mu-scope *)).primary { background: linear-gradient(135deg, #4f86ff, #6a5cff); border-color: transparent; color: #fff; }
+button:where(:not(.mu-scope *)).primary:hover { box-shadow: 0 4px 16px rgba(90, 110, 255, .35); }
+button:where(:not(.mu-scope *)):disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
 .linkbtn { background: none; border: none; color: var(--accent); padding: 1px 5px; font-size: 11px; border-radius: 4px; }
 .linkbtn:hover { background: var(--accent-soft); color: var(--accent); box-shadow: none; }
 .linkbtn.danger { color: var(--danger); }
@@ -1172,7 +1172,7 @@ tr.active-row { background: var(--accent-soft) !important; outline: 1px solid rg
 :root[data-theme][data-theme] .list-item:active,
 :root[data-theme][data-theme] .srcpick-item:active,
 :root[data-theme][data-theme] .sp-item:active { transform: scale(.97); }
-button:active { transition-duration: var(--dur-instant); }
+button:where(:not(.mu-scope *)):active { transition-duration: var(--dur-instant); }
 
 /* ⑥ 载入态 / 空态：通用转圈 + 空态居中淡入（原先只有一行灰字，等半天不知道在不在动） */
 .spinner {
@@ -1401,19 +1401,19 @@ body { font-family: var(--font-ui); }
 :root[data-shell='topbar'] .topbar button.primary { background: rgba(255, 255, 255, .07); color: #c9c9c9; display: none; }
 
 /* ---- 按钮：白底主行动 / 半透明次要 / 红色 CTA；统一弹性过渡 + 按压回弹 ---- */
-:root[data-shell='topbar'] button:not([class^='mu-']):not([class*=' mu-']) {
+:root[data-shell='topbar'] button:where(:not(.mu-scope *)) {
   background: rgba(109, 109, 110, .55); border: none; color: var(--text);
   border-radius: var(--radius-sm); font-weight: 500; padding: 6px 14px;
   transition: background var(--dur-state) var(--ease-standard), color var(--dur-quick) var(--ease-standard),
     box-shadow var(--dur-state) var(--ease-standard), transform var(--dur-instant) var(--ease-spring);
 }
-:root[data-shell='topbar'] button:not([class^='mu-']):not([class*=' mu-']):hover { background: rgba(109, 109, 110, .38); color: var(--text); box-shadow: none; }
-:root[data-shell='topbar'] button:not([class^='mu-']):not([class*=' mu-']):active { transform: scale(.96); }
+:root[data-shell='topbar'] button:where(:not(.mu-scope *)):hover { background: rgba(109, 109, 110, .38); color: var(--text); box-shadow: none; }
+:root[data-shell='topbar'] button:where(:not(.mu-scope *)):active { transform: scale(.96); }
 /* 中央大播放键是 translate(-50%,-50%) 定位，按压缩放必须带上位移（否则按下时跳走半个身位） */
 :root[data-shell='topbar'] .vp-big:active { transform: translate(-50%, -50%) scale(.95); }
 /* 红色只留给真正的品牌行动（详情页播放键悬停等），普通 primary 不作大红块 */
-:root[data-shell='topbar'] button.primary { background: rgba(255, 255, 255, .14); color: var(--text); font-weight: 600; }
-:root[data-shell='topbar'] button.primary:hover { background: rgba(255, 255, 255, .24); box-shadow: none; }
+:root[data-shell='topbar'] button:where(:not(.mu-scope *)).primary { background: rgba(255, 255, 255, .14); color: var(--text); font-weight: 600; }
+:root[data-shell='topbar'] button:where(:not(.mu-scope *)).primary:hover { background: rgba(255, 255, 255, .24); box-shadow: none; }
 /* 详情页「▶ 播放选中」= Netflix 的白色播放键 */
 :root[data-detail='cinema'] .nf-play-btn { background: #fff !important; color: var(--on-accent) !important; font-weight: 700; box-shadow: 0 4px 18px rgba(0, 0, 0, .45); }
 :root[data-detail='cinema'] .nf-play-btn:hover { background: rgba(255, 255, 255, .82) !important; }
@@ -1816,18 +1816,18 @@ body { font-family: var(--font-ui); }
 /* 配置页的标签卡采用方角（不用弧形半球/药丸）——
    此前把通用 `button` 改成 `border-radius: 999px` 药丸，在配置页这种**高密度表单**里确实难看。
    现回归全局基座的 `--radius-sm`（=4px，见 global.css 的 button 基类）；药丸仅保留给首屏 CTA（.spot-go）。 */
-:root[data-shell='topbar'] button {
+:root[data-shell='topbar'] button:where(:not(.mu-scope *)) {
   border-radius: var(--radius-sm); padding: 6px 16px;
   background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .1); color: var(--text); font-weight: 500;
 }
-:root[data-shell='topbar'] button:hover {
+:root[data-shell='topbar'] button:where(:not(.mu-scope *)):hover {
   background: rgba(255, 255, 255, .15); border-color: rgba(255, 255, 255, .24); color: var(--text);
 }
-:root[data-shell='topbar'] button.primary {
+:root[data-shell='topbar'] button:where(:not(.mu-scope *)).primary {
   background: #fff; border-color: transparent; color: var(--on-accent); font-weight: 700; padding: 7px 20px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, .45);
 }
-:root[data-shell='topbar'] button.primary:hover { background: #f1f1f1; box-shadow: 0 10px 28px -10px color-mix(in srgb, var(--accent) 70%, transparent); }
+:root[data-shell='topbar'] button:where(:not(.mu-scope *)).primary:hover { background: #f1f1f1; box-shadow: 0 10px 28px -10px color-mix(in srgb, var(--accent) 70%, transparent); }
 /* 首屏 CTA 保留药丸（唯一的「弧形」例外：大的行动按钮） */
 :root[data-shell='topbar'] .spot-go,
 :root[data-shell='topbar'] .spot-next { border-radius: 999px; }
@@ -2012,19 +2012,19 @@ body { font-family: var(--font-ui); }
 :root[data-shell='dualbar'] .no-cover { background: var(--surface-0); color: var(--text-faint); border-radius: var(--radius); }
 
 /* ---- 按钮：主蓝 / 次白描边 / 粉（强调）；统一弹性过渡 + 按压回弹 ---- */
-:root[data-shell='dualbar'] button {
+:root[data-shell='dualbar'] button:where(:not(.mu-scope *)) {
   background: #fff; border: 1px solid var(--border); color: var(--text-dim); border-radius: var(--radius-sm); font-weight: 500;
   transition: background var(--dur-state) var(--ease-standard), border-color var(--dur-state) var(--ease-standard), color var(--dur-quick) var(--ease-standard),
     box-shadow var(--dur-state) var(--ease-standard), transform var(--dur-instant) var(--ease-spring);
 }
-:root[data-shell='dualbar'] button:hover { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); box-shadow: none; }
-:root[data-shell='dualbar'] button:active { transform: scale(.96); }
+:root[data-shell='dualbar'] button:where(:not(.mu-scope *)):hover { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); box-shadow: none; }
+:root[data-shell='dualbar'] button:where(:not(.mu-scope *)):active { transform: scale(.96); }
 :root[data-shell='dualbar'] .vp-big:active { transform: translate(-50%, -50%) scale(.95); }
-:root[data-shell='dualbar'] button.primary {
+:root[data-shell='dualbar'] button:where(:not(.mu-scope *)).primary {
   background: linear-gradient(135deg, #00b4f0, #00a1e0); border-color: transparent; color: var(--on-accent); font-weight: 600;
   box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--accent) 50%, transparent);
 }
-:root[data-shell='dualbar'] button.primary:hover { background: linear-gradient(135deg, #00a9e6, var(--accent-strong)); color: var(--on-accent); box-shadow: 0 6px 16px -4px color-mix(in srgb, var(--accent) 55%, transparent); }
+:root[data-shell='dualbar'] button:where(:not(.mu-scope *)).primary:hover { background: linear-gradient(135deg, #00a9e6, var(--accent-strong)); color: var(--on-accent); box-shadow: 0 6px 16px -4px color-mix(in srgb, var(--accent) 55%, transparent); }
 :root[data-shell='dualbar'] .linkbtn { border: none; background: none; color: var(--accent); }
 :root[data-shell='dualbar'] .tag {
   background: #fff; border: 1px solid var(--border); color: var(--text-dim); border-radius: var(--radius-sm); padding: 4px 12px;
@@ -2340,18 +2340,18 @@ body { font-family: var(--font-ui); }
    本块不重写 `button:active`：文件上方 `(0,3,1) button:active { transform: scale(.96) }`
      与其后 `(0,3,1) .vp-big:active { transform: translate(-50%,-50%) scale(.95) }` 守卫仍在，
      且本块 `button` 只 (0,2,1) —— 按压态与中央播放键位移不受影响。 */
-:root[data-shell='dualbar'] button {
+:root[data-shell='dualbar'] button:where(:not(.mu-scope *)) {
   border-radius: 999px; padding: 6px 16px;
   background: rgba(255, 255, 255, .82); border: 1px solid var(--border); color: var(--text-dim); font-weight: 500;
 }
-:root[data-shell='dualbar'] button:hover {
+:root[data-shell='dualbar'] button:where(:not(.mu-scope *)):hover {
   background: color-mix(in srgb, var(--accent) 9%, transparent); border-color: color-mix(in srgb, var(--accent) 50%, transparent); color: var(--accent); box-shadow: none;
 }
-:root[data-shell='dualbar'] button.primary {
+:root[data-shell='dualbar'] button:where(:not(.mu-scope *)).primary {
   background: linear-gradient(180deg, #2fc4f5, #00a1e0); border-color: transparent; color: var(--on-accent); font-weight: 700; padding: 7px 20px;
   box-shadow: 0 4px 16px -6px color-mix(in srgb, var(--accent) 70%, transparent);
 }
-:root[data-shell='dualbar'] button.primary:hover {
+:root[data-shell='dualbar'] button:where(:not(.mu-scope *)).primary:hover {
   background: linear-gradient(180deg, #28b8ea, var(--accent-strong)); color: var(--on-accent); box-shadow: 0 10px 28px -10px color-mix(in srgb, var(--accent) 80%, transparent);
 }
 
@@ -2658,27 +2658,27 @@ body { font-family: var(--font-ui); }
 
 /* ================= 通用控件（Liquid Glass 观感） ================= */
 /* 次要按钮：灰色填充胶囊/圆角块（macOS 推拉按钮） */
-:root[data-shell='sidebar'] button {
+:root[data-shell='sidebar'] button:where(:not(.mu-scope *)) {
   background: rgba(120, 120, 128, .12); border: 1px solid transparent; color: var(--text);
   border-radius: 8px; font-weight: 500; padding: 6px 14px;
   transition: background var(--dur-state) var(--ease-standard), color var(--dur-quick) var(--ease-standard),
     box-shadow var(--dur-state) var(--ease-standard), transform var(--dur-instant) var(--ease-spring);
   box-shadow: inset 0 .5px 0 rgba(255, 255, 255, .5);
 }
-:root[data-shell='sidebar'] button:hover { background: rgba(120, 120, 128, .2); color: var(--text); box-shadow: inset 0 .5px 0 rgba(255, 255, 255, .5); }
-:root[data-shell='sidebar'] button:active { transform: scale(.96); opacity: .92; }
+:root[data-shell='sidebar'] button:where(:not(.mu-scope *)):hover { background: rgba(120, 120, 128, .2); color: var(--text); box-shadow: inset 0 .5px 0 rgba(255, 255, 255, .5); }
+:root[data-shell='sidebar'] button:where(:not(.mu-scope *)):active { transform: scale(.96); opacity: .92; }
 /* 中央大播放键是 translate(-50%,-50%) 定位，按压缩放必须带上位移（否则按下时跳走半个身位） */
 :root[data-shell='sidebar'] .vp-big:active { transform: translate(-50%, -50%) scale(.94); }
 /* 主行动：系统蓝胶囊（Apple 的主按钮） */
-:root[data-shell='sidebar'] button.primary {
+:root[data-shell='sidebar'] button:where(:not(.mu-scope *)).primary {
   background: var(--accent); border-color: transparent; color: var(--on-accent); font-weight: 600;
   border-radius: 999px; padding: 7px 20px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, .1), inset 0 .5px 0 rgba(255, 255, 255, .28);
 }
-:root[data-shell='sidebar'] button.primary:hover {
+:root[data-shell='sidebar'] button:where(:not(.mu-scope *)).primary:hover {
   background: var(--accent-strong); color: var(--on-accent); box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 28%, transparent), inset 0 .5px 0 rgba(255, 255, 255, .28);
 }
-:root[data-shell='sidebar'] button:disabled { opacity: .4; box-shadow: none; }
+:root[data-shell='sidebar'] button:where(:not(.mu-scope *)):disabled { opacity: .4; box-shadow: none; }
 :root[data-shell='sidebar'] .linkbtn { background: none; border: none; box-shadow: none; color: var(--accent); padding: 1px 6px; }
 :root[data-shell='sidebar'] .linkbtn:hover { background: var(--accent-soft); color: var(--accent); box-shadow: none; }
 :root[data-shell='sidebar'] .linkbtn.danger { color: var(--danger); }
@@ -3194,23 +3194,23 @@ body { font-family: var(--font-ui); }
 }
 
 /* ---- ⑦ 按钮：次要按钮玻璃胶囊（增量收敛）+ 主行动系统蓝胶囊（既有，仅强化光泽） ---- */
-:root[data-shell='sidebar'] button {
+:root[data-shell='sidebar'] button:where(:not(.mu-scope *)) {
   border-radius: 999px; padding: 6px 15px;
   background: rgba(120, 120, 128, .12); border: 1px solid var(--border-soft); color: var(--text); font-weight: 500;
   box-shadow: inset 0 .5px 0 rgba(255, 255, 255, .55);
 }
-:root[data-shell='sidebar'] button:hover {
+:root[data-shell='sidebar'] button:where(:not(.mu-scope *)):hover {
   background: rgba(120, 120, 128, .2); border-color: color-mix(in srgb, var(--accent) 28%, transparent); color: var(--text);
   box-shadow: inset 0 .5px 0 rgba(255, 255, 255, .55);
 }
-:root[data-shell='sidebar'] button:active { transform: scale(.96); opacity: .92; }
+:root[data-shell='sidebar'] button:where(:not(.mu-scope *)):active { transform: scale(.96); opacity: .92; }
 /* 中央大播放键是 translate(-50%,-50%) 定位：任何通用 button 规则之后都必须重申位移，否则按下会跳半个身位 */
 :root[data-shell='sidebar'] .vp-big:active { transform: translate(-50%, -50%) scale(.94); }
-:root[data-shell='sidebar'] button.primary {
+:root[data-shell='sidebar'] button:where(:not(.mu-scope *)).primary {
   background: var(--accent); border-color: transparent; color: var(--on-accent); font-weight: 600;
   box-shadow: 0 1px 2px rgba(31, 41, 55, .12), inset 0 .5px 0 rgba(255, 255, 255, .3);
 }
-:root[data-shell='sidebar'] button.primary:hover {
+:root[data-shell='sidebar'] button:where(:not(.mu-scope *)).primary:hover {
   background: var(--accent-strong); color: var(--on-accent);
   box-shadow: 0 6px 18px -4px color-mix(in srgb, var(--accent) 50%, transparent), inset 0 .5px 0 rgba(255, 255, 255, .3);
 }
@@ -3663,21 +3663,21 @@ body { font-family: var(--font-ui); }
 :root[data-shell='pillbar'][data-mpv] .app.pwin.pvwin .tb-btn { color: #C9C6D2; }
 
 /* ================== 通用控件：按钮 / 白卡 / chips / 输入 ================== */
-:root[data-shell='pillbar'] button {
+:root[data-shell='pillbar'] button:where(:not(.mu-scope *)) {
   background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
   border-radius: var(--radius-sm); padding: 6px 14px; font-size: 13px; font-weight: 600;
 }
 /* 基础样式的 hover 是「白字 + 蓝色光晕」（深色底设计），浅色底必须换字色 */
-:root[data-shell='pillbar'] button:hover { border-color: color-mix(in srgb, var(--accent) 50%, transparent); color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-:root[data-shell='pillbar'] button:active { transform: scale(.98); opacity: .92; }
+:root[data-shell='pillbar'] button:where(:not(.mu-scope *)):hover { border-color: color-mix(in srgb, var(--accent) 50%, transparent); color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+:root[data-shell='pillbar'] button:where(:not(.mu-scope *)):active { transform: scale(.98); opacity: .92; }
 /* 中央大播放键是 translate(-50%,-50%) 定位，按压缩放必须带上位移（否则按下时跳走半个身位） */
 :root[data-shell='pillbar'] .vp-big:active { transform: translate(-50%, -50%) scale(.95); }
-:root[data-shell='pillbar'] button.primary {
+:root[data-shell='pillbar'] button:where(:not(.mu-scope *)).primary {
   background: linear-gradient(135deg, #38A932, var(--accent-strong)); border-color: transparent; color: var(--on-accent); font-weight: 650;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2);
 }
-:root[data-shell='pillbar'] button.primary:hover { background: linear-gradient(135deg, #33A02D, #1B7018); color: var(--on-accent); box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--accent) 55%, transparent); }
-:root[data-shell='pillbar'] button:disabled { opacity: .45; box-shadow: none; }
+:root[data-shell='pillbar'] button:where(:not(.mu-scope *)).primary:hover { background: linear-gradient(135deg, #33A02D, #1B7018); color: var(--on-accent); box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--accent) 55%, transparent); }
+:root[data-shell='pillbar'] button:where(:not(.mu-scope *)):disabled { opacity: .45; box-shadow: none; }
 :root[data-shell='pillbar'] .linkbtn { background: none; border: none; box-shadow: none; color: var(--accent); padding: 1px 6px; }
 :root[data-shell='pillbar'] .linkbtn:hover { background: var(--accent-soft); color: var(--accent); box-shadow: none; }
 :root[data-shell='pillbar'] .linkbtn.danger { color: var(--danger); }
@@ -4032,7 +4032,7 @@ body { font-family: var(--font-ui); }
 
 /* ---- ⑥ 通用运动打磨：卡片悬停、chips 状态切换都走 M3 曲线 ---- */
 :root[data-shell='pillbar'] .tag { transition: background var(--dur-state) var(--ease-standard), color var(--dur-state) var(--ease-standard), border-color var(--dur-state) var(--ease-standard), box-shadow var(--dur-state) var(--ease-standard), transform var(--dur-state) var(--ease-spring); }
-:root[data-shell='pillbar'] button { transition: background var(--dur-state) var(--ease-standard), border-color var(--dur-state) var(--ease-standard), color var(--dur-state) var(--ease-standard), box-shadow var(--dur-state) var(--ease-standard), transform var(--dur-quick) var(--ease-standard); }
+:root[data-shell='pillbar'] button:where(:not(.mu-scope *)) { transition: background var(--dur-state) var(--ease-standard), border-color var(--dur-state) var(--ease-standard), color var(--dur-state) var(--ease-standard), box-shadow var(--dur-state) var(--ease-standard), transform var(--dur-quick) var(--ease-standard); }
 :root[data-shell='pillbar'] .ep { transition: background var(--dur-state) var(--ease-standard), color var(--dur-state) var(--ease-standard), border-color var(--dur-state) var(--ease-standard), box-shadow var(--dur-state) var(--ease-standard); }
 :root[data-shell='pillbar'] .list-item { transition: box-shadow var(--dur-state) var(--ease-standard), border-color var(--dur-state) var(--ease-standard), transform var(--dur-state) var(--ease-spring); }
 :root[data-shell='pillbar'] .list-item:hover { transform: translateY(-1px); }
@@ -4247,12 +4247,12 @@ body { font-family: var(--font-ui); }
 }
 
 /* ---- ⑦ 按钮：豆绿渐变主行动 + 次要按钮胶囊化（增量收敛） ---- */
-:root[data-shell='pillbar'] button.primary {
+:root[data-shell='pillbar'] button:where(:not(.mu-scope *)).primary {
   padding: 8px 22px; font-weight: 700; color: var(--on-accent); border-color: transparent;
   background: linear-gradient(135deg, #3AAE33, var(--accent-strong));
   box-shadow: 0 3px 12px -3px color-mix(in srgb, var(--accent) 50%, transparent), inset 0 1px 0 rgba(255, 255, 255, .24);
 }
-:root[data-shell='pillbar'] button.primary:hover {
+:root[data-shell='pillbar'] button:where(:not(.mu-scope *)).primary:hover {
   background: linear-gradient(135deg, #36A430, #1B7018); color: var(--on-accent);
   box-shadow: 0 8px 22px -8px color-mix(in srgb, var(--accent) 65%, transparent);
 }

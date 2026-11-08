@@ -176,7 +176,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     const c = loadDanmaku();
     if (c.url.trim()) {
       setDmMsg('弹幕加载中…');
-      fetchDanmaku(c, ep ? item.SeriesName || item.Name : item.Name, ep ? item.IndexNumber : undefined)
+      fetchDanmaku(c, ep ? item.SeriesName || item.Name : item.Name, ep ? item.IndexNumber : undefined, ep ? item.ParentIndexNumber : undefined)
         .then((l) => { if (!dead) { setDmList(l); setDmMsg(`${l.length} 条`); } })
         .catch((e: unknown) => { if (!dead) setDmMsg(e instanceof Error ? e.message : '弹幕加载失败'); });
     }

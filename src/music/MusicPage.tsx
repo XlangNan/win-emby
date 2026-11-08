@@ -5,11 +5,11 @@ import { useCachedAsync } from '../lib/useAsync';
 import { askText, toast } from './Dialog';
 import { Cover, Ic, PlayCover, SongRow } from './MusicUi';
 import { coverUrl, loadNd, nd, ndConfigured, type Album, type AlbumListType, type Playlist, type Song } from './navidrome';
-import { playQueue, setShuffle, useMusic } from './player';
+import { playQueue, useMusic } from './player';
 
 const TAB_KEY = 'wemby-music-tab2';
-const TABS = [['rec', '推荐'], ['albums', '专辑'], ['artists', '艺术家'], ['charts', '排行榜'], ['lists', '歌单'], ['fav', '我喜欢']] as const;
-type Tab = (typeof TABS)[number][0] | 'recent';
+const TABS = [['rec', '推荐'], ['albums', '专辑'], ['artists', '艺术家'], ['charts', '排行榜'], ['lists', '歌单'], ['fav', '我喜欢'], ['recent', '最近播放']] as const;
+type Tab = (typeof TABS)[number][0];
 const SORTS: [AlbumListType, string][] = [['newest', '最近添加'], ['alphabeticalByName', '名称'], ['alphabeticalByArtist', '艺术家'], ['frequent', '常听'], ['random', '随机']];
 
 function useNdKey(): string {
@@ -88,7 +88,7 @@ function Banner({ k }: { k: string }) {
           <div className="mu-bn2-txt">
             <b>{a.name}</b>
             <span>{a.artist}{a.year ? ` · ${a.year}` : ''}{a.songCount ? ` · ${a.songCount} 首` : ''}</span>
-            <button type="button" className="mu-bn2-play" onClick={(e) => { e.stopPropagation(); albumSongs(a.id)().then((l) => playQueue(l, 0)).catch(() => undefined); }}><Ic n="play" size={16} />播放</button>
+            <button type="button" className="mu-bn2-play" onClick={(e) => { e.stopPropagation(); albumSongs(a.id)().then((l) => { if (l.length) playQueue(l, 0); else toast('这张专辑没有歌曲'); }).catch((err: Error) => toast(`播放失败：${err.message}`)); }}><Ic n="play" size={16} />播放</button>
           </div>
           <div className="mu-bn2-cv"><Cover id={a.coverArt} size={400} label={a.name} /></div>
         </div>
@@ -124,10 +124,10 @@ function GuessPanel({ k, pls }: { k: string; pls: Playlist[] | null }) {
 }
 
 function Shortcuts({ go }: { go: (t: Tab) => void }) {
-  const play = (f: () => Promise<Song[]>): void => { f().then((l) => { if (l.length) playQueue(l, 0); }).catch(() => undefined); };
+  const play = (f: () => Promise<Song[]>): void => { f().then((l) => { if (l.length) playQueue(l, 0); else toast('没有取到歌曲'); }).catch((err: Error) => toast(`播放失败：${err.message}`)); };
   const items: [string, string, () => void][] = [
     ['cal', '随机推荐', () => play(() => nd.randomSongs(30))],
-    ['radio', '随心听', () => { setShuffle(true); play(() => nd.randomSongs(60)); }],
+    ['radio', '随心听', () => play(() => nd.randomSongs(60))],
     ['list', '歌单', () => go('lists')],
     ['chart', '排行榜', () => go('charts')],
     ['heart', '我喜欢', () => go('fav')],
@@ -137,11 +137,11 @@ function Shortcuts({ go }: { go: (t: Tab) => void }) {
 
 /** 精选推荐：功能入口卡（仅电脑版） */
 function Picks({ go }: { go: (t: Tab) => void }) {
-  const play = (f: () => Promise<Song[]>): void => { f().then((l) => { if (l.length) playQueue(l, 0); }).catch(() => undefined); };
+  const play = (f: () => Promise<Song[]>): void => { f().then((l) => { if (l.length) playQueue(l, 0); else toast('没有取到歌曲'); }).catch((err: Error) => toast(`播放失败：${err.message}`)); };
   const items: [string, string, string, string, () => void][] = [
     ['随机推荐', '从曲库里随机抽 30 首，现在就听', 'linear-gradient(160deg,#f2a4ae,#c2566b 60%,#7a2a3a)', 'cal', () => play(() => nd.randomSongs(30))],
     ['热听榜', '听得最多的专辑，实时更新', 'linear-gradient(160deg,#e8465a,#c42a55)', 'chart', () => go('charts')],
-    ['随心听', '打开随机播放，一路听下去', 'linear-gradient(160deg,#6a8fb8,#34506f 60%,#1c2b44)', 'radio', () => { setShuffle(true); play(() => nd.randomSongs(60)); }],
+    ['随心听', '打开随机播放，一路听下去', 'linear-gradient(160deg,#6a8fb8,#34506f 60%,#1c2b44)', 'radio', () => play(() => nd.randomSongs(60))],
     ['最近播放', '接着上次听的继续', 'linear-gradient(160deg,#4a3a6b,#2a1d4a 70%)', 'clock', () => go('recent')],
     ['新碟上架', '最近入库的专辑', 'linear-gradient(160deg,#3a6b5a,#1d4a40 70%)', 'disc', () => go('albums')],
   ];
@@ -302,6 +302,8 @@ function Lists({ k }: { k: string }) {
 
 function Fav({ k }: { k: string }) {
   const d = useCachedAsync(`nd:${k}:fav`, () => nd.starred(), 20 * 1000);
+  const reload = d.reload;
+  useEffect(() => { window.addEventListener('wemby-nd-starred', reload); return () => window.removeEventListener('wemby-nd-starred', reload); }, [reload]);
   if (!d.data) return <div className="empty">{d.error || <><span className="spinner" aria-hidden="true" />加载中…</>}</div>;
   const { songs, albums } = d.data;
   if (!songs.length && !albums.length) return <div className="empty">还没有收藏，点歌曲后面的心形就会出现在这里</div>;
@@ -326,6 +328,7 @@ function SearchResults({ q }: { q: string }) {
   const [err, setErr] = useState('');
   useEffect(() => {
     let dead = false;
+    setR(null); setErr('');
     const t = setTimeout(() => nd.search(q).then((x) => { if (!dead) { setR(x); setErr(''); } }).catch((e: Error) => !dead && setErr(e.message)), 300);
     return () => { dead = true; clearTimeout(t); };
   }, [q]);
@@ -351,7 +354,7 @@ export default function MusicPage() {
   const nav = useNavigate();
   const k = useNdKey();
   const m = useMusic();
-  const [tab, setTab] = useState<Tab>(() => { const v = localStorage.getItem(TAB_KEY); return (v === 'recent' ? 'recent' : TABS.find((t) => t[0] === v)?.[0]) || 'rec'; });
+  const [tab, setTab] = useState<Tab>(() => { const v = localStorage.getItem(TAB_KEY); return TABS.find((t) => t[0] === v)?.[0] || 'rec'; });
   const [q, setQ] = useState('');
   const ok = useMemo(() => ndConfigured(), [k]);
   const pl = usePlaylists(ok ? k : '');
@@ -359,7 +362,7 @@ export default function MusicPage() {
 
   if (!ok) {
     return (
-      <div className="content mu-page">
+      <div className="content mu-page mu-scope">
         <div className="mu-title">音乐</div>
         <div className="card" style={{ padding: 20, maxWidth: 520 }}>
           <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>还没有连接 Navidrome</div>
@@ -373,7 +376,7 @@ export default function MusicPage() {
     <button key={t} type="button" className={`mu-side-i${!q && tab === t ? ' on' : ''}`} onClick={() => pick(t)}><Ic n={ic} size={18} /><span>{n}</span></button>
   );
   return (
-    <div className="content mu-page mu-wy">
+    <div className="content mu-page mu-wy mu-scope">
       <aside className="mu-side">
         {side('rec', '推荐', 'note')}
         {side('albums', '专辑', 'disc')}

@@ -107,7 +107,9 @@ export function normalizeServer(input: string): string {
   s = s.replace(/\/+$/, '').replace(/\/emby$/i, '');
   try {
     const u = new URL(s);
-    if (!u.port && u.protocol === 'http:') u.port = '8096';
+    // 用原始输入判断是否写了端口：new URL('http://h:80').port 是空串（默认端口会被吞掉），不能据此补 8096
+    const hasPort = /^https?:\/\/[^/?#]*:\d+(?:[/?#]|$)/i.test(s);
+    if (!hasPort && !u.port && u.protocol === 'http:') u.port = '8096';
     return u.toString().replace(/\/+$/, '');
   } catch {
     return s;

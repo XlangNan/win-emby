@@ -121,7 +121,7 @@ export async function fetchSource(s: LiveSource): Promise<string> {
 /** 缓存解析后的原始频道，避免每次进页面都重新下载 */
 export function cacheSource(id: string, text: string): number {
   const ch = parseM3U(text);
-  writeJson(CKEY + id, ch);
+  if (!writeJson(CKEY + id, ch)) throw new Error('频道列表太大，浏览器本地存储放不下（可以删掉一些不用的直播源再试）');
   // 订阅头里带了节目单地址（x-tvg-url）且还没设置过 → 自动填上
   const g = /(?:x-tvg-url|url-tvg)="([^"]+)"/i.exec(text.slice(0, 2000))?.[1]?.split(',')[0];
   try { if (g && !localStorage.getItem('wemby-epg-url')) localStorage.setItem('wemby-epg-url', g.trim()); } catch { /* ignore */ }

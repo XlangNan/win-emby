@@ -26,7 +26,9 @@ class MainActivity : TauriActivity() {
                             wake = pm.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "weave:music")
                             wake?.setReferenceCounted(false)
                         }
-                        if (wake?.isHeld != true) wake?.acquire(4 * 60 * 60 * 1000L)
+                        // 每次调用都先释放再重新申请：JS 端播放中会定期续期，不会 4 小时后悄悄失效
+                        if (wake?.isHeld == true) wake?.release()
+                        wake?.acquire(4 * 60 * 60 * 1000L)
                     } else if (wake?.isHeld == true) {
                         wake?.release()
                     }

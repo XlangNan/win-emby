@@ -148,7 +148,7 @@ export type SortId = 'default' | 'date' | 'pop' | 'rating';
 /** 榜单行：load(page, sort)。server = true 的行由 TMDB 服务端按 sort 排序（整库有序）；否则前端只排每一页内部 */
 export interface RowDef { id: string; title: string; server?: boolean; load: (page: number, sort?: SortId) => Promise<Page> }
 
-const today = (): string => new Date().toISOString().slice(0, 10);
+const today = (): string => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);   // 本地日期（东八区凌晨不会少算一天）
 
 /** 发现接口的排序参数（date 只取已上映 / 已播出的，rating 要求有足够票数避免冷门高分） */
 function sortParams(kind: 'movie' | 'tv', sort: SortId = 'default'): Record<string, string | number> {

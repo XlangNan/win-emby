@@ -41,6 +41,7 @@ export default function Html5Player({ notice }: { notice?: string }) {
   const nav = useNavigate();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
+  const hlsFix = useRef({ net: 0, media: 0 });
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const blobUrls = useRef<string[]>([]);
   const decisionRef = useRef<Decision | null>(null);
@@ -163,7 +164,11 @@ export default function Html5Player({ notice }: { notice?: string }) {
             });
             hlsRef.current = hls;
             hls.on(Hls.Events.ERROR, (_e, data) => {
-              if (data.fatal) setErr(`播放出错：${data.details}`);
+              if (!data.fatal) return;
+              // 先尝试恢复：网络错误重新拉流，媒体错误重新解码；恢复不了再报错
+              if (data.type === Hls.ErrorTypes.NETWORK_ERROR && hlsFix.current.net++ < 3) { hls.startLoad(); return; }
+              if (data.type === Hls.ErrorTypes.MEDIA_ERROR && hlsFix.current.media++ < 3) { hls.recoverMediaError(); return; }
+              setErr(`播放出错：${data.details}`);
             });
             hls.loadSource(d.url);
             hls.attachMedia(v);

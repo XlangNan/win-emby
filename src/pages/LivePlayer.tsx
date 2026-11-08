@@ -130,6 +130,7 @@ export default function LivePlayer() {
     void readyRef.current?.then(async (s) => {
       if (!s || dead) return;
       await s.loadfile(url);
+      if (dead) return;   // 快速换台：旧频道的超时不能误伤新频道
       failTimer.current = window.setTimeout(() => nextLine('这条线路 15 秒内没有出画面'), 15000);
     });
     return () => {

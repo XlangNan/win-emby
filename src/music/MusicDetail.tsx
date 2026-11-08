@@ -1,4 +1,5 @@
 // 专辑 / 歌单 / 艺术家详情
+import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import BackButton from '../components/BackButton';
 import { useCachedAsync } from '../lib/useAsync';
@@ -6,12 +7,12 @@ import { Cover, fmtTime, Ic, SongRow } from './MusicUi';
 import { AlbumCard } from './MusicPage';
 import { loadNd, nd, type Album, type Song } from './navidrome';
 import { askConfirm, toast } from './Dialog';
-import { enqueue, playQueue, setShuffle } from './player';
+import { enqueue, playQueue, shuffled } from './player';
 
 function Head({ cover, title, sub, meta, songs, extra }: { cover: string; title: string; sub?: React.ReactNode; meta: string; songs: Song[]; extra?: React.ReactNode }) {
   const go = (shuffle: boolean): void => {
-    setShuffle(shuffle);
-    playQueue(songs, shuffle ? Math.floor(Math.random() * songs.length) : 0);
+    // 「随机」只打乱这一次的播放顺序，不改全局随机模式
+    playQueue(shuffle ? shuffled(songs) : songs, 0);
   };
   return (
     <div className="mu-dhead">
@@ -55,9 +56,10 @@ export default function MusicDetail() {
     },
     60 * 1000,
   );
+  useEffect(() => { if (kind !== 'playlist') return; const f = (): void => d.reload(); window.addEventListener('wemby-nd-playlists', f); return () => window.removeEventListener('wemby-nd-playlists', f); }, [kind, d]);
   const x = d.data;
   return (
-    <div className="content mu-page">
+    <div className="content mu-page mu-scope">
       <div style={{ padding: '4px 0 10px' }}><BackButton fallback="/music" /></div>
       {d.error && <div className="err">{d.error}<button style={{ marginLeft: 10 }} onClick={d.reload}>重试</button></div>}
       {!x && !d.error && <div className="empty"><span className="spinner" aria-hidden="true" />加载中…</div>}
