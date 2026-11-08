@@ -385,3 +385,58 @@
 .mu-dot { all: unset; cursor: pointer; width: 6px; height: 6px; border-radius: 3px; background: #3a3a40; transition: width .3s, background .3s; }
 .mu-dot.on { background: #f0414b; width: 18px; }
 @media (max-width: 900px) { .mu-bn-stage { --bw: 160px; --step: 168px; height: 196px; } }
+
+/* ═════════ 新版布局（对照效果图） ═════════ */
+.mu-main { padding: 8px 28px 24px; }
+.mu-side { width: 214px; padding: 14px 14px; }
+.mu-side-i { height: 42px; border-radius: 21px; padding: 0 16px; gap: 12px; font-size: 14.5px; margin-bottom: 2px; }
+.mu-side-i.on { background: #f0414b; color: #fff; font-weight: 700; }
+.mu-side-i.on svg { color: #fff; }
+.mu-side-i:hover:not(.on) { background: #1d1d22; }
+.mu-side-g { padding: 18px 10px 8px; letter-spacing: 0; font-size: 12.5px; }
+.mu-side-p { height: 48px; border-radius: 10px; padding: 0 8px; gap: 10px; font-size: 13.5px; }
+.mu-side-p.on { background: #22222a; }
+.mu-side-cv { width: 34px !important; border-radius: 6px !important; flex: none; }
+.mu-hero { display: flex; gap: 20px; }
+.mu-bn2 { position: relative; flex: 1.7; min-width: 0; height: 190px; border-radius: 14px; overflow: hidden; background: #1c1c20; touch-action: pan-y; }
+.mu-bn2-ph { background: #1c1c20; }
+.mu-bn2-s { position: absolute; inset: 0; opacity: 0; transition: opacity .6s ease; cursor: pointer; pointer-events: none; }
+.mu-bn2-s.cur { opacity: 1; pointer-events: auto; }
+.mu-bn2-bg { position: absolute; inset: -30px; background-size: cover; background-position: center; filter: blur(34px) saturate(1.4) brightness(.6); }
+.mu-bn2-s::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(0, 0, 0, .35), transparent 70%); }
+.mu-bn2-txt { position: absolute; z-index: 2; left: 30px; top: 0; bottom: 0; right: 40%; display: flex; flex-direction: column; justify-content: center; gap: 6px; min-width: 0; }
+.mu-bn2-txt b { font-size: 30px; line-height: 1.15; font-weight: 800; letter-spacing: 1px; color: #fff; text-shadow: 0 2px 14px rgba(0, 0, 0, .35); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.mu-bn2-txt span { font-size: 13px; color: rgba(255, 255, 255, .85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mu-bn2-play { all: unset; cursor: pointer; margin-top: 8px; align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 18px; background: #f0414b; color: #fff; font-size: 14px; font-weight: 700; }
+.mu-bn2-cv { position: absolute; z-index: 1; right: 28px; top: 50%; width: 150px; transform: translateY(-50%); border-radius: 10px; overflow: hidden; box-shadow: 0 12px 34px rgba(0, 0, 0, .5); }
+.mu-bn2-dots { position: absolute; z-index: 3; left: 30px; bottom: 12px; display: flex; gap: 6px; }
+.mu-bn2 .mu-dot { background: rgba(255, 255, 255, .45); }
+.mu-bn2 .mu-dot.on { background: #fff; }
+.mu-guess { flex: 1; min-width: 0; height: 190px; border-radius: 14px; background: #1f1f26; padding: 16px 18px; display: flex; flex-direction: column; }
+.mu-guess h3 { margin: 0; font-size: 17px; font-weight: 800; }
+.mu-guess h3 span { margin-left: 8px; font-size: 13px; font-weight: 500; color: #c9c9d0; }
+.mu-guess-g { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 12px; align-items: center; }
+.mu-guess-i { position: relative; border-radius: 8px; overflow: hidden; cursor: pointer; }
+.mu-guess-i em { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 6px 5px; font-style: normal; font-size: 11.5px; font-weight: 600; line-height: 1.2; background: linear-gradient(transparent, rgba(0, 0, 0, .65)); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.mu-picks { margin-top: 4px; }
+.mu-pk-g { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
+.mu-pk { position: relative; aspect-ratio: 1 / 1.12; border-radius: 12px; overflow: hidden; cursor: pointer; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; transition: transform .2s; }
+.mu-pk:hover { transform: translateY(-3px); }
+.mu-pk b { display: flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 800; text-shadow: 0 1px 8px rgba(0, 0, 0, .35); }
+.mu-pk span { font-size: 12.5px; line-height: 1.35; font-weight: 600; text-shadow: 0 1px 6px rgba(0, 0, 0, .4); }
+.mu-short { display: none; }
+@media (min-width: 901px) { .mu-main .mu-hcell { flex: 0 0 calc((100% - 64px) / 5); } .mu-utabs { display: none; } }
+.mu-mini { background: #1d1d23; }
+.mu-mini-btns .mu-ib-main { background: #f0414b; color: #fff !important; }
+.mu-qtag { font-size: 11px; font-weight: 700; color: #f0414b; background: rgba(240, 65, 75, .15); padding: 2px 7px; border-radius: 4px; margin: 0 4px; }
+@media (max-width: 900px) {
+  .mu-hero { display: block; }
+  .mu-guess, .mu-picks { display: none; }
+  .mu-bn2 { height: 150px; border-radius: 14px; }
+  .mu-bn2-txt { left: 20px; right: 36%; }
+  .mu-bn2-txt b { font-size: 24px; }
+  .mu-bn2-cv { width: 100px; right: 16px; }
+  .mu-bn2-dots { left: 20px; }
+  .mu-short { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; margin: 16px 0 6px; }
+  .mu-qtag { display: none; }
+}

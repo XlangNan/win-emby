@@ -2,8 +2,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Cover, fmtTime, Ic, Slider } from './MusicUi';
+import { nd } from './navidrome';
 import { useBackClose } from './useBackClose';
-import { cycleRepeat, next, pause, playIndex, prev, removeAt, seek, setOpen, setShuffle, setVolume, stopMusic, togglePlay, useMusic } from './player';
+import { setStarred, cycleRepeat, next, pause, playIndex, prev, removeAt, seek, setOpen, setShuffle, setVolume, stopMusic, togglePlay, useMusic } from './player';
 
 function Queue({ onClose }: { onClose: () => void }) {
   const m = useMusic();
@@ -84,6 +85,8 @@ export default function MiniPlayer({ inline }: { inline?: boolean }) {
         </div>
       </div>
       <div className="mu-mini-right">
+        <button type="button" className={`mu-ib${c.starred ? ' on' : ''}`} aria-label="收藏" onClick={() => { const v = !c.starred; setStarred(c.id, v); nd.star(c.id, v).catch(() => setStarred(c.id, !v)); }}><Ic n="heart" size={19} fill={c.starred} /></button>
+        {c.suffix && <span className="mu-qtag">{c.suffix.toUpperCase()}</span>}
         <button type="button" className="mu-ib" aria-label="歌词" onClick={() => setOpen(true)}><span className="mu-ci">词</span></button>
         <button type="button" className="mu-ib" aria-label={m.volume > 0 ? '静音' : '取消静音'} onClick={() => setVolume(m.volume > 0 ? 0 : 0.8)}><Ic n={m.volume > 0 ? 'vol' : 'mute'} size={19} /></button>
         <input type="range" className="mu-vol" min={0} max={100} value={Math.round(m.volume * 100)} aria-label="音量" onChange={(e) => setVolume(Number(e.target.value) / 100)} style={{ ['--p' as string]: `${m.volume * 100}%` }} />

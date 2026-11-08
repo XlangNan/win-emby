@@ -9,7 +9,7 @@ import { playQueue, setShuffle, useMusic } from './player';
 
 const TAB_KEY = 'wemby-music-tab2';
 const TABS = [['rec', '推荐'], ['albums', '专辑'], ['artists', '艺术家'], ['charts', '排行榜'], ['lists', '歌单'], ['fav', '我喜欢']] as const;
-type Tab = (typeof TABS)[number][0];
+type Tab = (typeof TABS)[number][0] | 'recent';
 const SORTS: [AlbumListType, string][] = [['newest', '最近添加'], ['alphabeticalByName', '名称'], ['alphabeticalByArtist', '艺术家'], ['frequent', '常听'], ['random', '随机']];
 
 function useNdKey(): string {
@@ -62,7 +62,7 @@ function SecHead({ title, more, onMore }: { title: string; more?: string; onMore
   return <div className="mu-sec-head"><h3>{title}</h3>{onMore && <button type="button" className="mu-link" onClick={onMore}>{more || '更多'} <Ic n="fwd" size={14} /></button>}</div>;
 }
 
-/** 顶部轮播：滑动切换、循环、背景取当前封面的模糊色 */
+/** 顶部轮播：宽幅横幅，淡入淡出；手机支持滑动 */
 function Banner({ k }: { k: string }) {
   const nav = useNavigate();
   const d = useCachedAsync(`nd:${k}:banner`, () => nd.albumList('random', 7), 5 * 60 * 1000);
@@ -72,47 +72,58 @@ function Banner({ k }: { k: string }) {
   const n = d.data?.length || 0;
   useEffect(() => {
     if (n < 2) return;
-    const t = window.setInterval(() => { if (!hold.current && !document.hidden) setI((x) => (x + 1) % n); }, 4500);
+    const t = window.setInterval(() => { if (!hold.current && !document.hidden) setI((x) => (x + 1) % n); }, 5000);
     return () => window.clearInterval(t);
   }, [n, i]);
-  if (!d.data || !n) return <div className="mu-bn-stage" />;
+  if (!d.data || !n) return <div className="mu-bn2 mu-bn2-ph" />;
   const list = d.data;
-  const cur = list[i % n];
   return (
-    <div className="mu-banner">
-      <div className="mu-bn-stage" onPointerEnter={(e) => { if (e.pointerType === 'mouse') hold.current = true; }} onPointerLeave={() => { hold.current = false; }}
-        onTouchStart={(e) => { sx.current = e.touches[0].clientX; hold.current = true; }}
-        onTouchEnd={(e) => { hold.current = false; const dx = e.changedTouches[0].clientX - sx.current; if (Math.abs(dx) > 40) setI((x) => (dx < 0 ? x + 1 : x - 1 + n) % n); }}>
-        <div className="mu-bn-bg" style={{ backgroundImage: `url("${coverUrl(cur.coverArt, 120)}")` }} />
-        {list.map((a, idx) => {
-          let o = idx - i;
-          o = ((o + n + n / 2) % n) - n / 2;      // 取最短方向：循环时不会整排倒着飞回去
-          const ab = Math.abs(o);
-          const style: React.CSSProperties = {
-            transform: `translateX(calc(${o} * var(--step))) scale(${ab < 0.5 ? 1 : ab < 1.5 ? 0.78 : 0.6})`,
-            opacity: ab < 0.5 ? 1 : ab < 1.5 ? 0.55 : ab < 2.5 ? 0.25 : 0,
-            zIndex: 10 - Math.round(ab),
-            pointerEvents: ab < 2.5 ? 'auto' : 'none',
-          };
-          const isCur = ab < 0.5;
-          return (
-            <div key={a.id} className={`mu-bn-slide${isCur ? ' cur' : ''}`} style={style} role="button" tabIndex={isCur ? 0 : -1} aria-label={a.name}
-              onClick={() => { if (isCur) nav(`/music/album/${a.id}`); else setI(idx); }}
-              onKeyDown={(e) => { if (e.key === 'Enter' && isCur) nav(`/music/album/${a.id}`); }}>
-              <Cover id={a.coverArt} size={500} label={a.name} />
-              <div className="mu-bn-cap"><b>{a.name}</b><span>{a.artist}{a.year ? ` · ${a.year}` : ''}</span></div>
-              <button type="button" className="mu-bn-play" aria-label="播放" onClick={(e) => { e.stopPropagation(); albumSongs(a.id)().then((l) => playQueue(l, 0)).catch(() => undefined); }}><Ic n="play" size={20} /></button>
-            </div>
-          );
-        })}
+    <div className="mu-bn2" onPointerEnter={(e) => { if (e.pointerType === 'mouse') hold.current = true; }} onPointerLeave={() => { hold.current = false; }}
+      onTouchStart={(e) => { sx.current = e.touches[0].clientX; hold.current = true; }}
+      onTouchEnd={(e) => { hold.current = false; const dx = e.changedTouches[0].clientX - sx.current; if (Math.abs(dx) > 40) setI((x) => (dx < 0 ? x + 1 : x - 1 + n) % n); }}>
+      {list.map((a, idx) => (
+        <div key={a.id} className={`mu-bn2-s${idx === i ? ' cur' : ''}`} role="button" tabIndex={idx === i ? 0 : -1} aria-label={a.name}
+          onClick={() => nav(`/music/album/${a.id}`)} onKeyDown={(e) => { if (e.key === 'Enter') nav(`/music/album/${a.id}`); }}>
+          <div className="mu-bn2-bg" style={{ backgroundImage: `url("${coverUrl(a.coverArt, 160)}")` }} />
+          <div className="mu-bn2-txt">
+            <b>{a.name}</b>
+            <span>{a.artist}{a.year ? ` · ${a.year}` : ''}{a.songCount ? ` · ${a.songCount} 首` : ''}</span>
+            <button type="button" className="mu-bn2-play" onClick={(e) => { e.stopPropagation(); albumSongs(a.id)().then((l) => playQueue(l, 0)).catch(() => undefined); }}><Ic n="play" size={16} />播放</button>
+          </div>
+          <div className="mu-bn2-cv"><Cover id={a.coverArt} size={400} label={a.name} /></div>
+        </div>
+      ))}
+      <div className="mu-bn2-dots">{list.map((_, x) => <button key={x} type="button" aria-label={`第 ${x + 1} 张`} className={`mu-dot${x === i ? ' on' : ''}`} onClick={(e) => { e.stopPropagation(); setI(x); }} />)}</div>
+    </div>
+  );
+}
+
+const greeting = (): string => { const h = new Date().getHours(); return h < 6 ? '夜深了' : h < 12 ? '上午好' : h < 14 ? '中午好' : h < 18 ? '下午好' : '晚上好'; };
+
+/** 右侧「猜你最近喜欢」小面板（仅电脑版） */
+function GuessPanel({ k, pls }: { k: string; pls: Playlist[] | null }) {
+  const nav = useNavigate();
+  const rec = useCachedAsync(`nd:${k}:row:recent`, () => nd.albumList('recent', 18), 2 * 60 * 1000);
+  const items: { id: string; name: string; cover: string; to: string }[] = [
+    ...(pls || []).map((p) => ({ id: `p${p.id}`, name: p.name, cover: p.coverArt, to: `/music/playlist/${p.id}` })),
+    ...(rec.data || []).map((a) => ({ id: `a${a.id}`, name: a.name, cover: a.coverArt, to: `/music/album/${a.id}` })),
+  ].slice(0, 4);
+  return (
+    <div className="mu-guess">
+      <h3>{greeting()}<span>猜你最近喜欢</span></h3>
+      <div className="mu-guess-g">
+        {items.map((x) => (
+          <div key={x.id} className="mu-guess-i" role="button" tabIndex={0} onClick={() => nav(x.to)} onKeyDown={(e) => { if (e.key === 'Enter') nav(x.to); }}>
+            <Cover id={x.cover} size={240} label={x.name} />
+            <em>{x.name}</em>
+          </div>
+        ))}
       </div>
-      <div className="mu-dots">{list.map((_, x) => <button key={x} type="button" aria-label={`第 ${x + 1} 张`} className={`mu-dot${x === i ? ' on' : ''}`} onClick={() => setI(x)} />)}</div>
     </div>
   );
 }
 
 function Shortcuts({ go }: { go: (t: Tab) => void }) {
-  const nav = useNavigate();
   const play = (f: () => Promise<Song[]>): void => { f().then((l) => { if (l.length) playQueue(l, 0); }).catch(() => undefined); };
   const items: [string, string, () => void][] = [
     ['cal', '随机推荐', () => play(() => nd.randomSongs(30))],
@@ -120,10 +131,30 @@ function Shortcuts({ go }: { go: (t: Tab) => void }) {
     ['list', '歌单', () => go('lists')],
     ['chart', '排行榜', () => go('charts')],
     ['heart', '我喜欢', () => go('fav')],
-    ['disc', '专辑', () => go('albums')],
   ];
-  void nav;
   return <div className="mu-short">{items.map(([ic, t, f]) => <button key={t} type="button" className="mu-sc" onClick={f}><i><Ic n={ic} size={24} /></i><span>{t}</span></button>)}</div>;
+}
+
+/** 精选推荐：功能入口卡（仅电脑版） */
+function Picks({ go }: { go: (t: Tab) => void }) {
+  const play = (f: () => Promise<Song[]>): void => { f().then((l) => { if (l.length) playQueue(l, 0); }).catch(() => undefined); };
+  const items: [string, string, string, string, () => void][] = [
+    ['随机推荐', '从曲库里随机抽 30 首，现在就听', 'linear-gradient(160deg,#f2a4ae,#c2566b 60%,#7a2a3a)', 'cal', () => play(() => nd.randomSongs(30))],
+    ['热听榜', '听得最多的专辑，实时更新', 'linear-gradient(160deg,#e8465a,#c42a55)', 'chart', () => go('charts')],
+    ['随心听', '打开随机播放，一路听下去', 'linear-gradient(160deg,#6a8fb8,#34506f 60%,#1c2b44)', 'radio', () => { setShuffle(true); play(() => nd.randomSongs(60)); }],
+    ['最近播放', '接着上次听的继续', 'linear-gradient(160deg,#4a3a6b,#2a1d4a 70%)', 'clock', () => go('recent')],
+    ['新碟上架', '最近入库的专辑', 'linear-gradient(160deg,#3a6b5a,#1d4a40 70%)', 'disc', () => go('albums')],
+  ];
+  return (
+    <section className="mu-sec mu-picks">
+      <SecHead title="精选推荐" />
+      <div className="mu-pk-g">{items.map(([t, d, bg, ic, f]) => (
+        <div key={t} className="mu-pk" role="button" tabIndex={0} style={{ background: bg }} onClick={f} onKeyDown={(e) => { if (e.key === 'Enter') f(); }}>
+          <b><Ic n={ic} size={16} />{t}</b><span>{d}</span>
+        </div>
+      ))}</div>
+    </section>
+  );
 }
 
 function HRow({ title, type, k, go, more }: { title: string; type: AlbumListType; k: string; go?: () => void; more?: string }) {
@@ -143,8 +174,9 @@ function Recommend({ k, go }: { k: string; go: (t: Tab) => void }) {
   const pl = usePlaylists(k);
   return (
     <>
-      <Banner k={k} />
+      <div className="mu-hero"><Banner k={k} /><GuessPanel k={k} pls={pl.list} /></div>
       <Shortcuts go={go} />
+      <Picks go={go} />
       {pl.list && pl.list.length > 0 && (
         <section className="mu-sec">
           <SecHead title="推荐歌单" onMore={() => go('lists')} />
@@ -152,11 +184,17 @@ function Recommend({ k, go }: { k: string; go: (t: Tab) => void }) {
         </section>
       )}
       <HRow title="新碟上架" type="newest" k={k} go={() => go('albums')} />
-      <HRow title="最近播放" type="recent" k={k} />
       <HRow title="常听专辑" type="frequent" k={k} go={() => go('charts')} more="排行榜" />
       <HRow title="随机发现" type="random" k={k} />
     </>
   );
+}
+
+function Recent({ k }: { k: string }) {
+  const d = useCachedAsync(`nd:${k}:recentall`, () => nd.albumList('recent', 60), 60 * 1000);
+  if (!d.data) return <div className="empty">{d.error || <><span className="spinner" aria-hidden="true" />加载中…</>}</div>;
+  if (!d.data.length) return <div className="empty">还没有播放记录</div>;
+  return <div className="mu-grid">{d.data.map((a) => <AlbumCard key={a.id} a={a} />)}</div>;
 }
 
 function Charts({ k }: { k: string }) {
@@ -313,7 +351,7 @@ export default function MusicPage() {
   const nav = useNavigate();
   const k = useNdKey();
   const m = useMusic();
-  const [tab, setTab] = useState<Tab>(() => { const v = localStorage.getItem(TAB_KEY); return (TABS.find((t) => t[0] === v)?.[0]) || 'rec'; });
+  const [tab, setTab] = useState<Tab>(() => { const v = localStorage.getItem(TAB_KEY); return (v === 'recent' ? 'recent' : TABS.find((t) => t[0] === v)?.[0]) || 'rec'; });
   const [q, setQ] = useState('');
   const ok = useMemo(() => ndConfigured(), [k]);
   const pl = usePlaylists(ok ? k : '');
@@ -337,16 +375,16 @@ export default function MusicPage() {
   return (
     <div className="content mu-page mu-wy">
       <aside className="mu-side">
-        <div className="mu-side-g">发现音乐</div>
         {side('rec', '推荐', 'note')}
         {side('albums', '专辑', 'disc')}
         {side('artists', '艺术家', 'user')}
         {side('charts', '排行榜', 'chart')}
-        <div className="mu-side-g">我的音乐</div>
+        <div className="mu-side-g">我的</div>
         {side('fav', '我喜欢的音乐', 'heart')}
-        <div className="mu-side-g">创建的歌单<button type="button" className="mu-side-add" aria-label="新建歌单" onClick={() => createPlaylistPrompt()}><Ic n="plus" size={16} /></button></div>
+        {side('recent', '最近播放', 'clock')}
+        <div className="mu-side-g"><span>创建的歌单 · {pl.list?.length ?? 0}</span><button type="button" className="mu-side-add" aria-label="新建歌单" onClick={() => createPlaylistPrompt()}><Ic n="plus" size={16} /></button></div>
         <div className="mu-side-pl">
-          {(pl.list || []).map((p) => <button key={p.id} type="button" className="mu-side-i" onClick={() => nav(`/music/playlist/${p.id}`)}><Ic n="list" size={18} /><span>{p.name}</span></button>)}
+          {(pl.list || []).map((p) => <button key={p.id} type="button" className="mu-side-i mu-side-p" onClick={() => nav(`/music/playlist/${p.id}`)}><Cover id={p.coverArt} size={80} className="mu-side-cv" label={p.name} /><span>{p.name}</span></button>)}
           {pl.list && !pl.list.length && <div className="muted" style={{ padding: '4px 12px', fontSize: 12.5 }}>还没有歌单</div>}
         </div>
       </aside>
@@ -355,7 +393,7 @@ export default function MusicPage() {
           <label className="mu-search"><Ic n="search" size={16} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder={m.cur ? `搜索 · 正在播放 ${m.cur.title}` : '搜索歌曲、专辑、艺术家'} spellCheck={false} />{q && <button type="button" className="mu-search-x" aria-label="清除" onClick={() => setQ('')}><Ic n="close" size={14} /></button>}</label>
         </div>
         <div className="mu-utabs">{TABS.map(([t, n]) => <button key={t} type="button" className={`mu-ut${!q && tab === t ? ' on' : ''}`} onClick={() => pick(t)}>{n}</button>)}</div>
-        {q.trim() ? <SearchResults q={q.trim()} /> : tab === 'rec' ? <Recommend k={k} go={pick} /> : tab === 'albums' ? <Albums k={k} />
+        {q.trim() ? <SearchResults q={q.trim()} /> : tab === 'rec' ? <Recommend k={k} go={pick} /> : tab === 'recent' ? <Recent k={k} /> : tab === 'albums' ? <Albums k={k} />
           : tab === 'artists' ? <Artists k={k} /> : tab === 'charts' ? <Charts k={k} /> : tab === 'lists' ? <Lists k={k} /> : <Fav k={k} />}
       </div>
     </div>
