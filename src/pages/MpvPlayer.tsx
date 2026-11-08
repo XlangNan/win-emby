@@ -247,9 +247,9 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           endedRef.current = true;
           void report('stop');
           const n = nextRef.current;
-          if (sleepEndRef.current) void exitRef.current();
-          else if (loadPlayPrefs().autoNext && n) nav(`/player/${n.Id}`, { replace: true });
-          else setUiShown(true);
+          // 有下一集且开了自动连播 → 接着播；否则播完直接退出播放页（同时解除常亮，不会一直停在片尾）
+          if (!sleepEndRef.current && loadPlayPrefs().autoNext && n) nav(`/player/${n.Id}`, { replace: true });
+          else void exitRef.current();
         }
         break;
       default: break;

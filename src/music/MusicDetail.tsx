@@ -5,6 +5,7 @@ import { useCachedAsync } from '../lib/useAsync';
 import { Cover, fmtTime, Ic, SongRow } from './MusicUi';
 import { AlbumCard } from './MusicPage';
 import { loadNd, nd, type Album, type Song } from './navidrome';
+import { askConfirm, toast } from './Dialog';
 import { enqueue, playQueue, setShuffle } from './player';
 
 function Head({ cover, title, sub, meta, songs, extra }: { cover: string; title: string; sub?: React.ReactNode; meta: string; songs: Song[]; extra?: React.ReactNode }) {
@@ -65,10 +66,10 @@ export default function MusicDetail() {
           <Head cover={x.cover} title={x.title} songs={x.songs}
             sub={x.sub ? (x.subTo ? <a href={`#${x.subTo}`} onClick={(e) => { e.preventDefault(); nav(x.subTo as string); }}>{x.sub}</a> : x.sub) : undefined}
             meta={[kind === 'album' ? '专辑' : '歌单', x.year || '', total(x.songs), x.fmt || ''].filter(Boolean).join(' · ')}
-            extra={kind === 'playlist' ? <button type="button" className="mu-danger" onClick={() => { if (window.confirm(`删除歌单「${x.title}」？`)) nd.deletePlaylist(id || '').then(() => { window.dispatchEvent(new Event('wemby-nd-playlists')); nav('/music', { replace: true }); }, (e: Error) => window.alert(e.message)); }}><Ic n="trash" size={18} /> 删除歌单</button> : undefined} />
+            extra={kind === 'playlist' ? <button type="button" className="mu-danger" onClick={() => { askConfirm(`删除歌单「${x.title}」？`).then((ok) => { if (ok) nd.deletePlaylist(id || '').then(() => { window.dispatchEvent(new Event('wemby-nd-playlists')); nav('/music', { replace: true }); }, (e: Error) => toast(e.message)); }); }}><Ic n="trash" size={18} /> 删除歌单</button> : undefined} />
           <div className="mu-songs">
             {x.songs.map((s, i) => <SongRow key={`${s.id}-${i}`} s={s} i={i} list={x.songs} showArtist={kind === 'playlist'} showCover={kind === 'playlist'}
-              ctx={kind === 'playlist' ? { onRemove: () => { nd.removeFromPlaylist(id || '', i).then(() => { window.dispatchEvent(new Event('wemby-nd-playlists')); d.reload(); }, (e: Error) => window.alert(e.message)); } } : undefined} />)}
+              ctx={kind === 'playlist' ? { onRemove: () => { nd.removeFromPlaylist(id || '', i).then(() => { window.dispatchEvent(new Event('wemby-nd-playlists')); d.reload(); }, (e: Error) => toast(e.message)); } } : undefined} />)}
           </div>
           {x.songs.length === 0 && <div className="empty">这里还没有歌曲</div>}
           {kind === 'album' && x.songs.length > 0 && <div className="muted" style={{ padding: '14px 4px', fontSize: 12 }}>总时长 {fmtTime(x.songs.reduce((a, s) => a + s.duration, 0))}</div>}

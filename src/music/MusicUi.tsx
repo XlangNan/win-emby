@@ -1,8 +1,10 @@
 // 音乐页面共用的小组件：图标、封面、歌曲行
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { coverUrl, nd, type Playlist, type Song } from './navidrome';
+import { askText, toast } from './Dialog';
+import { useBackClose } from './useBackClose';
 import { enqueue, playNext, playQueue, setStarred, useMusic } from './player';
 
 const P: Record<string, string> = {
@@ -74,6 +76,7 @@ export function SongMenu({ s, anchor, onClose, ctx }: { s: Song; anchor: DOMRect
   const [sub, setSub] = useState<'' | 'pl'>('');
   const [pls, setPls] = useState<Playlist[] | null>(null);
   const [msg, setMsg] = useState('');
+  useBackClose(true, onClose);
   useEffect(() => {
     const k = (e: KeyboardEvent): void => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', k);
@@ -90,9 +93,10 @@ export function SongMenu({ s, anchor, onClose, ctx }: { s: Song; anchor: DOMRect
   );
   const addTo = (id: string): void => { nd.addToPlaylist(id, [s.id]).then(() => flash('已添加到歌单'), (e: Error) => flash(e.message)); };
   const create = (): void => {
-    const name = window.prompt('新建歌单名称');
-    if (!name?.trim()) return;
-    nd.createPlaylist(name.trim(), [s.id]).then(() => { window.dispatchEvent(new Event('wemby-nd-playlists')); flash('已创建并添加'); }, (e: Error) => flash(e.message));
+    askText('新建歌单', '歌单名称').then((name) => {
+      if (!name) return;
+      nd.createPlaylist(name, [s.id]).then(() => { window.dispatchEvent(new Event('wemby-nd-playlists')); toast('已创建并添加'); onClose(); }, (e: Error) => toast(e.message));
+    });
   };
   return createPortal(
     <>
@@ -172,6 +176,34 @@ export function PlayCover({ id, size, label, onPlay, round, badge }: { id: strin
         onClick={(e) => { e.stopPropagation(); setBusy(true); onPlay().then((l) => playQueue(l, 0)).catch(() => undefined).finally(() => setBusy(false)); }}>
         <Ic n="play" size={18} />
       </button>
+    </div>
+  );
+}
+
+/** 进度条：触屏友好（28px 触控区、拖动时不被播放进度拉回、松手才跳转） */
+export function Slider({ value, max, onSeek, onDrag, label = '播放进度', className }: { value: number; max: number; onSeek: (v: number) => void; onDrag?: (v: number | null) => void; label?: string; className?: string }) {
+  const [drag, setDrag] = useState<number | null>(null);
+  const box = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<number | null>(null);
+  const calc = (x: number): number => {
+    const r = box.current?.getBoundingClientRect();
+    if (!r || r.width <= 0) return 0;
+    return Math.min(1, Math.max(0, (x - r.left) / r.width)) * max;
+  };
+  const set = (v: number | null): void => { dragRef.current = v; setDrag(v); onDrag?.(v); };
+  const shown = drag ?? value;
+  const pct = max > 0 ? Math.min(100, (shown / max) * 100) : 0;
+  return (
+    <div ref={box} className={`mu-sl ${className || ''}${drag !== null ? ' drag' : ''}`} role="slider" tabIndex={0} aria-label={label} aria-valuemin={0} aria-valuemax={Math.round(max)} aria-valuenow={Math.round(shown)}
+      onPointerDown={(e) => { if (max <= 0) return; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); set(calc(e.clientX)); }}
+      onPointerMove={(e) => { if (dragRef.current !== null) set(calc(e.clientX)); }}
+      onPointerUp={(e) => { const v = dragRef.current; if (v !== null) { set(null); onSeek(calc(e.clientX)); } }}
+      onPointerCancel={() => set(null)}
+      onKeyDown={(e) => {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); e.stopPropagation(); onSeek(Math.min(max, Math.max(0, value + (e.key === 'ArrowRight' ? 5 : -5)))); }
+      }}>
+      <div className="mu-sl-tr"><div className="mu-sl-fill" style={{ width: `${pct}%` }} /></div>
+      <div className="mu-sl-th" style={{ left: `${pct}%` }} />
     </div>
   );
 }

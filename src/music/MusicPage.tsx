@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCachedAsync } from '../lib/useAsync';
+import { askText, toast } from './Dialog';
 import { Cover, Ic, PlayCover, SongRow } from './MusicUi';
 import { loadNd, nd, ndConfigured, type Album, type AlbumListType, type Playlist, type Song } from './navidrome';
 import { playQueue, setShuffle, useMusic } from './player';
@@ -67,6 +68,7 @@ function Banner({ k }: { k: string }) {
   const d = useCachedAsync(`nd:${k}:banner`, () => nd.albumList('random', 6), 5 * 60 * 1000);
   const [i, setI] = useState(0);
   const hold = useRef(false);
+  const sx = useRef(0);
   const n = d.data?.length || 0;
   useEffect(() => {
     if (n < 2) return;
@@ -78,7 +80,9 @@ function Banner({ k }: { k: string }) {
   const at = (o: number): Album => list[(i + o + n) % n];
   const cur = at(0);
   return (
-    <div className="mu-banner" onMouseEnter={() => { hold.current = true; }} onMouseLeave={() => { hold.current = false; }}>
+    <div className="mu-banner" onPointerEnter={(e) => { if (e.pointerType === 'mouse') hold.current = true; }} onPointerLeave={() => { hold.current = false; }}
+      onTouchStart={(e) => { sx.current = e.touches[0].clientX; }}
+      onTouchEnd={(e) => { const dx = e.changedTouches[0].clientX - sx.current; if (Math.abs(dx) > 40) setI((x) => (dx < 0 ? x + 1 : x - 1 + n) % n); }}>
       <div className="mu-banner-stage">
         {n > 1 && <div className="mu-banner-side l" role="button" aria-label="上一张" onClick={() => setI((x) => (x - 1 + n) % n)}><Cover id={at(-1).coverArt} size={400} label={at(-1).name} /></div>}
         <div className="mu-banner-main" role="button" tabIndex={0} onClick={() => nav(`/music/album/${cur.id}`)} onKeyDown={(e) => { if (e.key === 'Enter') nav(`/music/album/${cur.id}`); }}>
@@ -97,8 +101,8 @@ function Shortcuts({ go }: { go: (t: Tab) => void }) {
   const nav = useNavigate();
   const play = (f: () => Promise<Song[]>): void => { f().then((l) => { if (l.length) playQueue(l, 0); }).catch(() => undefined); };
   const items: [string, string, () => void][] = [
-    ['cal', '每日推荐', () => play(() => nd.randomSongs(30))],
-    ['radio', '私人漫游', () => { setShuffle(true); play(() => nd.randomSongs(60)); }],
+    ['cal', '随机推荐', () => play(() => nd.randomSongs(30))],
+    ['radio', '随心听', () => { setShuffle(true); play(() => nd.randomSongs(60)); }],
     ['list', '歌单', () => go('lists')],
     ['chart', '排行榜', () => go('charts')],
     ['heart', '我喜欢', () => go('fav')],
@@ -201,24 +205,35 @@ function Albums({ k }: { k: string }) {
 function Artists({ k }: { k: string }) {
   const nav = useNavigate();
   const d = useCachedAsync(`nd:${k}:artists`, () => nd.artists(), 5 * 60 * 1000);
+  const [f, setF] = useState('');
+  const [cap, setCap] = useState(120);
   if (!d.data) return <div className="empty">{d.error || <><span className="spinner" aria-hidden="true" />加载中…</>}</div>;
+  const q = f.trim().toLowerCase();
+  const all = q ? d.data.filter((a) => a.name.toLowerCase().includes(q)) : d.data;
+  const list = all.slice(0, cap);
   return (
-    <div className="mu-grid mu-artists">
-      {d.data.map((a) => (
-        <div key={a.id} className="mu-card mu-artist" role="button" tabIndex={0} onClick={() => nav(`/music/artist/${a.id}`)} onKeyDown={(e) => { if (e.key === 'Enter') nav(`/music/artist/${a.id}`); }}>
-          <Cover id={a.coverArt} size={300} radius="50%" label={a.name} />
-          <div className="mu-card-t" style={{ textAlign: 'center' }}>{a.name}</div>
-          <div className="mu-card-s" style={{ textAlign: 'center' }}>{a.albumCount} 张专辑</div>
-        </div>
-      ))}
-    </div>
+    <>
+      <label className="mu-search mu-afilter"><Ic n="search" size={16} /><input value={f} onChange={(e) => { setF(e.target.value); setCap(120); }} placeholder={`在 ${d.data.length} 位艺术家中查找`} spellCheck={false} /></label>
+      <div className="mu-grid mu-artists">
+        {list.map((a) => (
+          <div key={a.id} className="mu-card mu-artist" role="button" tabIndex={0} onClick={() => nav(`/music/artist/${a.id}`)} onKeyDown={(e) => { if (e.key === 'Enter') nav(`/music/artist/${a.id}`); }}>
+            <Cover id={a.coverArt} size={300} radius="50%" label={a.name} />
+            <div className="mu-card-t" style={{ textAlign: 'center' }}>{a.name}</div>
+            <div className="mu-card-s" style={{ textAlign: 'center' }}>{a.albumCount} 张专辑</div>
+          </div>
+        ))}
+      </div>
+      {all.length === 0 && <div className="empty">没有找到「{f}」</div>}
+      {all.length > cap && <div style={{ textAlign: 'center', padding: 16 }}><button type="button" onClick={() => setCap((c) => c + 120)}>显示更多（还有 {all.length - cap} 位）</button></div>}
+    </>
   );
 }
 
-export function createPlaylistPrompt(k?: () => void): void {
-  const name = window.prompt('新建歌单名称');
-  if (!name?.trim()) return;
-  nd.createPlaylist(name.trim()).then(() => { window.dispatchEvent(new Event('wemby-nd-playlists')); k?.(); }, (e: Error) => window.alert(e.message));
+export function createPlaylistPrompt(): void {
+  askText('新建歌单', '歌单名称').then((name) => {
+    if (!name) return;
+    nd.createPlaylist(name).then(() => { window.dispatchEvent(new Event('wemby-nd-playlists')); toast('已创建歌单'); }, (e: Error) => toast(e.message));
+  });
 }
 
 function Lists({ k }: { k: string }) {

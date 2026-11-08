@@ -9,6 +9,31 @@ import androidx.core.view.WindowInsetsCompat
 
 class MainActivity : TauriActivity() {
     private var bridge: MpvBridge? = null
+    private var web: WebView? = null
+    private var musicOn = false
+    private var wake: android.os.PowerManager.WakeLock? = null
+
+    /** 网页里的音乐在播放时：保持 CPU 唤醒，切到后台 / 息屏后继续出声 */
+    inner class MusicKeep {
+        @android.webkit.JavascriptInterface
+        fun playing(on: Boolean) {
+            runOnUiThread {
+                musicOn = on
+                try {
+                    if (on) {
+                        if (wake == null) {
+                            val pm = getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
+                            wake = pm.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "weave:music")
+                            wake?.setReferenceCounted(false)
+                        }
+                        if (wake?.isHeld != true) wake?.acquire(4 * 60 * 60 * 1000L)
+                    } else if (wake?.isHeld == true) {
+                        wake?.release()
+                    }
+                } catch (_: Exception) { }
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,14 +67,19 @@ class MainActivity : TauriActivity() {
         bridge = b
         webView.addJavascriptInterface(b, "AndroidMpv")
         webView.addJavascriptInterface(NetBridge(webView), "AndroidNet")
+        web = webView
+        webView.addJavascriptInterface(MusicKeep(), "AndroidMusic")
     }
 
     override fun onPause() {
         bridge?.pauseForBackground()
         super.onPause()
+        // 音乐在播放：不让 WebView 跟着暂停，后台继续播
+        if (musicOn) web?.onResume()
     }
 
     override fun onDestroy() {
+        try { if (wake?.isHeld == true) wake?.release() } catch (_: Exception) { }
         bridge?.release()
         super.onDestroy()
     }

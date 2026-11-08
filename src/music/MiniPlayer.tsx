@@ -1,11 +1,13 @@
 // 底部播放条（网易云风格）：桌面三段式 + 音量 / 模式 / 歌词 / 队列；手机为旋转封面小条
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Cover, fmtTime, Ic } from './MusicUi';
+import { Cover, fmtTime, Ic, Slider } from './MusicUi';
+import { useBackClose } from './useBackClose';
 import { cycleRepeat, next, pause, playIndex, prev, removeAt, seek, setOpen, setShuffle, setVolume, stopMusic, togglePlay, useMusic } from './player';
 
 function Queue({ onClose }: { onClose: () => void }) {
   const m = useMusic();
+  useBackClose(true, onClose);
   useEffect(() => {
     const k = (e: KeyboardEvent): void => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', k);
@@ -34,6 +36,7 @@ export default function MiniPlayer({ inline }: { inline?: boolean }) {
   const m = useMusic();
   const p = useLocation().pathname;
   const [q, setQ] = useState(false);
+  const sy = useRef(0);
   const video = p.startsWith('/player/') || p === '/live/play';
   useEffect(() => { if (video) pause(); }, [video]);
   const show = !!m.cur && !m.open && !video;
@@ -47,7 +50,7 @@ export default function MiniPlayer({ inline }: { inline?: boolean }) {
   const pct = m.dur > 0 ? Math.min(100, (m.pos / m.dur) * 100) : 0;
   if (inline) {
     return (
-      <div className="mu-mini inline">
+      <div className="mu-mini inline" onTouchStart={(e) => { sy.current = e.touches[0].clientY; }} onTouchEnd={(e) => { if (sy.current - e.changedTouches[0].clientY > 36) setOpen(true); }}>
         <div className="mu-mini-main" role="button" tabIndex={0} onClick={() => setOpen(true)} onKeyDown={(e) => { if (e.key === 'Enter') setOpen(true); }}>
           <Cover id={c.coverArt} size={120} className={`mu-mini-cv mu-spin${m.playing ? '' : ' paused'}`} label={c.title} />
           <div className="mu-mini-txt"><b>{c.title}</b><span>{m.error || c.artist}</span></div>
@@ -76,7 +79,7 @@ export default function MiniPlayer({ inline }: { inline?: boolean }) {
         </div>
         <div className="mu-mini-prog">
           <span>{fmtTime(m.pos)}</span>
-          <input type="range" min={0} max={Math.max(1, Math.floor(m.dur))} value={Math.floor(m.pos)} aria-label="播放进度" onChange={(e) => seek(Number(e.target.value))} style={{ ['--p' as string]: `${pct}%` }} />
+          <Slider value={m.pos} max={m.dur} onSeek={seek} />
           <span>{fmtTime(m.dur)}</span>
         </div>
       </div>

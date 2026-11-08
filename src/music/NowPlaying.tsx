@@ -1,7 +1,8 @@
 // 完整播放页：封面 + 滚动歌词 + 进度 + 控制
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Cover, fmtTime, Ic } from './MusicUi';
+import { Cover, fmtTime, Ic, Slider } from './MusicUi';
+import { useBackClose } from './useBackClose';
 import { coverUrl, nd, type Song } from './navidrome';
 import { cycleRepeat, next, playIndex, prev, removeAt, seek, setOpen, setShuffle, setSleep, setStarred, setVolume, stopMusic, togglePlay, useMusic, musicState } from './player';
 
@@ -34,6 +35,13 @@ export default function NowPlaying() {
   const [star, setStar] = useState(false);
   const [lyrMode, setLyrMode] = useState(false); // 手机：点碟片切换歌词
   const [sleepOpen, setSleepOpen] = useState(false);
+  const [dragPos, setDragPos] = useState<number | null>(null);
+  const userTs = useRef(0);      // 手指 / 滚轮碰过歌词的时间：之后几秒不自动滚动
+  const anim = useRef(0);
+  const g0 = useRef<{ x: number; y: number } | null>(null);
+  useBackClose(m.open, () => setOpen(false));
+  useBackClose(m.open && queueOpen, () => setQueueOpen(false));
+  useBackClose(m.open && sleepOpen, () => setSleepOpen(false));
   const cur = m.cur;
   useEffect(() => setStar(!!cur?.starred), [cur?.id, cur?.starred]);
 
@@ -41,13 +49,32 @@ export default function NowPlaying() {
   if (lyr?.synced) for (let i = 0; i < lyr.lines.length; i++) { if (lyr.lines[i].t <= m.pos + 0.25) active = i; else break; }
   useEffect(() => {
     if (!m.open || active < 0) return;
-    box.current?.querySelector<HTMLElement>('[data-active="1"]')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-  }, [active, m.open]);
+    const sc = box.current;
+    const row = sc?.querySelector<HTMLElement>('[data-active="1"]');
+    if (!sc || !row) return;
+    if (Date.now() - userTs.current < 3500) return;
+    const target = Math.max(0, row.offsetTop + row.offsetHeight / 2 - sc.clientHeight / 2);
+    const from = sc.scrollTop;
+    const dist = target - from;
+    if (Math.abs(dist) < 1) return;
+    const t0 = performance.now();
+    const dur = Math.min(700, 300 + Math.abs(dist) * 0.6);
+    let raf = 0;
+    const step = (now: number): void => {
+      const p = Math.min(1, (now - t0) / dur);
+      const e = 1 - Math.pow(1 - p, 3); // easeOutCubic
+      sc.scrollTop = from + dist * e;
+      if (p < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    anim.current = raf;
+    return () => cancelAnimationFrame(raf);
+  }, [active, m.open, queueOpen, lyrMode]);
   useEffect(() => {
     if (!m.open) return;
     const k = (e: KeyboardEvent): void => {
       const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === 'INPUT' && (t as HTMLInputElement).type !== 'range' || t.tagName === 'TEXTAREA')) return;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'BUTTON' || t.getAttribute('role') === 'slider')) { if (e.key === 'Escape') setOpen(false); return; }
       if (e.key === 'Escape') setOpen(false);
       else if (e.key === ' ') { e.preventDefault(); togglePlay(); }
       else if (e.key === 'ArrowRight' && e.ctrlKey) next();
@@ -66,15 +93,23 @@ export default function NowPlaying() {
     setStarred(cur.id, v);
     nd.star(cur.id, v).catch(() => setStar(!v));
   };
-  const pct = m.dur > 0 ? Math.min(100, (m.pos / m.dur) * 100) : 0;
   const quality = [cur.suffix.toUpperCase(), cur.bitDepth ? `${cur.bitDepth}bit` : '', cur.samplingRate ? `${(cur.samplingRate / 1000).toFixed(cur.samplingRate % 1000 ? 1 : 0)}kHz` : '', cur.bitRate ? `${cur.bitRate}kbps` : ''].filter(Boolean).join(' · ');
 
   return (
-    <div className="mu-np" role="dialog" aria-label="正在播放">
+    <div className="mu-np" role="dialog" aria-label="正在播放"
+      onTouchStart={(e) => { const t = e.target as HTMLElement; g0.current = t.closest('.mu-np-right, .mu-sl, .mu-np-btns, .mu-np-foot') ? null : { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
+      onTouchEnd={(e) => {
+        const g = g0.current; g0.current = null;
+        if (!g) return;
+        const dx = e.changedTouches[0].clientX - g.x, dy = e.changedTouches[0].clientY - g.y;
+        if (dy > 90 && Math.abs(dx) < 70) setOpen(false);
+        else if (Math.abs(dx) > 80 && Math.abs(dy) < 60) { if (dx < 0) next(); else prev(); }
+      }}>
       <div className="mu-np-bg" style={{ backgroundImage: `url("${coverUrl(cur.coverArt, 200)}")` }} />
       <div className="mu-np-top">
         <button type="button" className="mu-ib" aria-label="收起" onClick={() => setOpen(false)}><Ic n="down" size={26} /></button>
         <span className="mu-np-top-t">正在播放</span>
+        <button type="button" className={`mu-ib mu-np-lyrbtn${lyrMode ? ' on' : ''}`} aria-label="歌词" onClick={() => { setQueueOpen(false); setLyrMode((v) => !v); }}><span className="mu-ci">词</span></button>
         <button type="button" className="mu-ib" aria-label="播放队列" onClick={() => setQueueOpen((v) => !v)}><Ic n="list" /></button>
       </div>
       <div className={`mu-np-body${lyrMode || queueOpen ? ' lyr-mode' : ''}`}>
@@ -92,9 +127,10 @@ export default function NowPlaying() {
               {cur.album && <> · <a href="#b" onClick={(e) => { e.preventDefault(); if (cur.albumId) { setOpen(false); nav(`/music/album/${cur.albumId}`); } }}>{cur.album}</a></>}
             </div>
             <div className="mu-np-q">{quality}</div>
+            {!lyrMode && <div className="mu-np-hint">点唱片或右上角「词」查看歌词 · 左右滑动切歌 · 下滑收起</div>}
           </div>
         </div>
-        <div className="mu-np-right" ref={box}>
+        <div className="mu-np-right" ref={box} data-noscrollbar="" onTouchStart={() => { userTs.current = Date.now(); cancelAnimationFrame(anim.current); }} onTouchMove={() => { userTs.current = Date.now(); }} onWheel={() => { userTs.current = Date.now(); cancelAnimationFrame(anim.current); }}>
           {queueOpen ? (
             <div className="mu-np-queue">
               <div className="mu-np-qh">播放队列 · {m.queue.length}</div>
@@ -119,9 +155,9 @@ export default function NowPlaying() {
       </div>
       <div className="mu-np-ctl">
         <div className="mu-np-prog">
-          <span>{fmtTime(m.pos)}</span>
-          <input type="range" min={0} max={Math.max(1, Math.floor(m.dur))} value={Math.floor(m.pos)} aria-label="播放进度" onChange={(e) => seek(Number(e.target.value))} style={{ ['--p' as string]: `${pct}%` }} />
-          <span>-{fmtTime(Math.max(0, m.dur - m.pos))}</span>
+          <span>{fmtTime(dragPos ?? m.pos)}</span>
+          <Slider value={m.pos} max={m.dur} onSeek={seek} onDrag={setDragPos} />
+          <span>-{fmtTime(Math.max(0, m.dur - (dragPos ?? m.pos)))}</span>
         </div>
         <div className="mu-np-btns">
           <button type="button" className={`mu-ib${m.shuffle ? ' on' : ''}`} aria-label="随机播放" onClick={() => setShuffle(!m.shuffle)}><Ic n="shuffle" /></button>

@@ -24,8 +24,16 @@ function savePrefs(): void { try { localStorage.setItem(VOL_KEY, JSON.stringify(
 let triedTranscode = false;
 let scrobbled = '';
 
+let keepOn = false;
+function keepAwake(on: boolean): void {
+  if (on === keepOn) return;
+  keepOn = on;
+  try { (window as unknown as { AndroidMusic?: { playing(b: boolean): void } }).AndroidMusic?.playing(on); } catch { /* 非安卓 */ }
+}
+
 function emit(p: Partial<MusicState>): void {
   st = { ...st, ...p };
+  if (p.playing !== undefined) keepAwake(st.playing);
   st.cur = st.queue[st.index] || null;
   subs.forEach((f) => f());
 }

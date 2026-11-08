@@ -69,7 +69,7 @@ export default function ScrollIndicator() {
   useEffect(() => {
     const onScroll = (e: Event): void => {
       const el = e.target;
-      if (!(el instanceof HTMLElement) || el.scrollHeight <= el.clientHeight + 4) return;
+      if (!(el instanceof HTMLElement) || el.scrollHeight <= el.clientHeight + 4 || el.hasAttribute('data-noscrollbar')) return;
       if (drag.current && cur.current === el) { place(el); return; }
       show(el);
     };
@@ -79,7 +79,7 @@ export default function ScrollIndicator() {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         const el = findScroller(e.target as HTMLElement);
-        if (el) {
+        if (el && !el.hasAttribute('data-noscrollbar')) {
           const r = el.getBoundingClientRect();
           if (e.clientX >= r.right - 18 && e.clientX <= r.right + 2) { show(el); return; }
         }

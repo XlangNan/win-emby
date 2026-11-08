@@ -15,6 +15,7 @@ const mf = path.join(root, 'src/main/AndroidManifest.xml');
 let x = fs.readFileSync(mf, 'utf8');
 if (/android:usesCleartextTraffic="[^"]*"/.test(x)) x = x.replace(/android:usesCleartextTraffic="[^"]*"/, 'android:usesCleartextTraffic="true"');
 else x = x.replace('<application', '<application android:usesCleartextTraffic="true"');
+if (!x.includes('android.permission.WAKE_LOCK')) x = x.replace('<application', '<uses-permission android:name="android.permission.WAKE_LOCK" />\n    <application');
 fs.writeFileSync(mf, x);
 
 // 2. 依赖
