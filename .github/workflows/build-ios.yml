@@ -67,6 +67,16 @@ jobs:
         run: |
           node scripts/ios-patch.mjs
           cd src-tauri/gen/apple && xcodegen generate
+          # 工程文件里直接关掉签名（全局设置对 Xcode 的「需要开发团队」检查不起作用）
+          python3 - <<'PY'
+          import re
+          p = 'weave.xcodeproj/project.pbxproj'
+          s = open(p).read()
+          s = re.sub(r'\s*(CODE_SIGN_STYLE|DEVELOPMENT_TEAM|CODE_SIGN_IDENTITY|"CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]"|PROVISIONING_PROFILE_SPECIFIER) = [^;]*;', '', s)
+          s = s.replace('buildSettings = {', 'buildSettings = {\n\t\t\t\tCODE_SIGN_STYLE = Manual;\n\t\t\t\tCODE_SIGNING_ALLOWED = NO;\n\t\t\t\tCODE_SIGNING_REQUIRED = NO;\n\t\t\t\tCODE_SIGN_IDENTITY = "";')
+          open(p, 'w').write(s)
+          print('已关闭签名')
+          PY
 
       # 导出（签名）那一步没证书必然失败，但 archive 已经生成，后面从 archive 里取 .app
       - name: Build
@@ -77,8 +87,11 @@ jobs:
         run: |
           ARCH=$(find src-tauri/gen/apple -name '*.xcarchive' -maxdepth 4 | head -1)
           echo "archive: $ARCH"
-          test -n "$ARCH"
-          APP=$(find "$ARCH/Products/Applications" -maxdepth 1 -name '*.app' | head -1)
+          APP=""
+          if [ -n "$ARCH" ]; then APP=$(find "$ARCH/Products/Applications" -maxdepth 1 -name '*.app' | head -1); fi
+          if [ -z "$APP" ]; then
+            APP=$(find "$HOME/Library/Developer/Xcode/DerivedData" src-tauri/gen/apple -path '*Release-iphoneos/*.app' -maxdepth 8 -type d 2>/dev/null | head -1)
+          fi
           echo "app: $APP"
           test -n "$APP"
           rm -rf "$APP/_CodeSignature" "$APP/embedded.mobileprovision"
