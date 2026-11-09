@@ -28,6 +28,9 @@ function patchPlist() {
   pb('Delete :NSAppTransportSecurity'); pb('Add :NSAppTransportSecurity dict'); pb('Add :NSAppTransportSecurity:NSAllowsArbitraryLoads bool true');
   pb('Delete :NSLocalNetworkUsageDescription'); pb('Add :NSLocalNetworkUsageDescription string 用于连接局域网里的 Emby / 音乐服务器');
   pb('Delete :UIFileSharingEnabled'); // 不开放文件共享
+  // 可执行文件名 / .app 目录名改成了 ASCII（Weave），桌面显示名仍用 tauri.conf.json 里的 productName（织影）
+  const shown = JSON.parse(fs.readFileSync(path.resolve('src-tauri/tauri.conf.json'), 'utf8')).productName || 'Weave';
+  pb('Delete :CFBundleDisplayName'); pb('Add :CFBundleDisplayName string ' + shown);
   pb('Delete :UIRequiresFullScreen'); pb('Add :UIRequiresFullScreen bool true');
   console.log('已修改 Info.plist：', plist);
   console.log(execFileSync('/usr/libexec/PlistBuddy', ['-c', 'Print', plist]).toString());

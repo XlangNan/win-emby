@@ -72,10 +72,10 @@ jobs:
           import re
           p = 'weave.xcodeproj/project.pbxproj'
           s = open(p).read()
-          s = re.sub(r'\s*(CODE_SIGN_STYLE|DEVELOPMENT_TEAM|CODE_SIGN_IDENTITY|"CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]"|PROVISIONING_PROFILE_SPECIFIER) = [^;]*;', '', s)
-          s = s.replace('buildSettings = {', 'buildSettings = {\n\t\t\t\tCODE_SIGN_STYLE = Manual;\n\t\t\t\tCODE_SIGNING_ALLOWED = NO;\n\t\t\t\tCODE_SIGNING_REQUIRED = NO;\n\t\t\t\tCODE_SIGN_IDENTITY = "";')
+          s = re.sub(r'\s*(PRODUCT_NAME|CODE_SIGN_STYLE|DEVELOPMENT_TEAM|CODE_SIGN_IDENTITY|"CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]"|PROVISIONING_PROFILE_SPECIFIER) = [^;]*;', '', s)
+          s = s.replace('buildSettings = {', 'buildSettings = {\n\t\t\t\tCODE_SIGN_STYLE = Manual;\n\t\t\t\tCODE_SIGNING_ALLOWED = NO;\n\t\t\t\tCODE_SIGNING_REQUIRED = NO;\n\t\t\t\tCODE_SIGN_IDENTITY = "";\n\t\t\t\tPRODUCT_NAME = Weave;')
           open(p, 'w').write(s)
-          print('已关闭签名')
+          print('已关闭签名，可执行文件名固定为 Weave（中文可执行文件名会让 CFBundle 启动即崩溃）')
           PY
           cd ../../..
           # Info.plist 必须在 xcodegen 之后改（xcodegen 每次生成都会重写它）
