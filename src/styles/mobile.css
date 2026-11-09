@@ -352,3 +352,19 @@ html.android * { scrollbar-width: none; }
 :root.android[data-shell] .m-tab.active::before { display: none; }
 :root.android[data-shell] .m-tab.active svg { stroke: #ff6a73; fill: none; transform: none; }
 .mu-mini.inline { margin: 0 16px 8px; }
+
+/* ───────── 悬浮导航：真正浮在内容上，内容从下面透出；选中只高亮图标和文字 ───────── */
+.m-app { position: relative; }
+:root.android[data-shell] .m-tabs, .m-tabs {
+  position: absolute; left: 22px; right: 22px; bottom: calc(12px + env(safe-area-inset-bottom)); margin: 0; z-index: 60;
+  background: rgba(28, 28, 34, .55); -webkit-backdrop-filter: blur(22px) saturate(1.4); backdrop-filter: blur(22px) saturate(1.4);
+}
+:root.android[data-shell] .m-tab, .m-tab { color: #c4c4cc !important; background: none !important; }
+:root.android[data-shell] .m-tab.active, .m-tab.active { background: none !important; color: #ff5a64 !important; font-weight: 700; }
+:root.android[data-shell] .m-tab.active svg, .m-tab.active svg { stroke: #ff5a64; }
+.mu-mini.inline {
+  position: absolute; left: 16px; right: 16px; margin: 0; z-index: 59;
+  bottom: calc(var(--m-mini-b, 12px) + env(safe-area-inset-bottom));
+  background: rgba(36, 36, 41, .9); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+}
+.m-main .content, :root.android[data-shell] .m-main .content { padding-bottom: calc(var(--m-dock, 0px) + env(safe-area-inset-bottom) + 14px); }

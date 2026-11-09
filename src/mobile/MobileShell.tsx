@@ -1,6 +1,7 @@
 // 手机外壳（安卓）：底部标签栏 + 首页顶部品牌/分类条。结构参照主流流媒体手机 App 的交互习惯。
 import MiniPlayer from '../music/MiniPlayer';
 import NowPlaying from '../music/NowPlaying';
+import { useMusic } from '../music/player';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { androidBridge } from '../lib/platform';
@@ -93,10 +94,14 @@ export default function MobileShell({ views, routes }: { views: EmbyItem[]; rout
     window.addEventListener('resize', set);
     return () => { window.clearTimeout(t); window.removeEventListener('resize', set); };
   }, []);
+  const hasMini = !!useMusic().cur;
+  const hideTabsNow = p.startsWith('/live/play') || p.startsWith('/detail') || /^\/discover\/(movie|tv)\//.test(p);
+  // 悬浮导航 / 小播放条不占布局，页面内容从它们下面透出；这两个变量让页面底部留出空白、小播放条停在导航上方
+  const dockVars = { ['--m-dock' as string]: `${(hideTabsNow ? 0 : 82) + (hasMini ? 68 : 0)}px`, ['--m-mini-b' as string]: `${hideTabsNow ? 12 : 86}px` } as React.CSSProperties;
   const hideTabs = p.startsWith('/live/play') || p.startsWith('/detail') || /^\/discover\/(movie|tv)\//.test(p);
 
   return (
-    <div className={`m-app${p.startsWith('/detail') ? ' m-app-detail' : ''}`}>
+    <div className={`m-app${p.startsWith('/detail') ? ' m-app-detail' : ''}`} style={dockVars}>
       <div className="m-main">
         {home && (
           <header className="m-head">
