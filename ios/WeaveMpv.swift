@@ -144,19 +144,30 @@ final class WeaveBoot: NSObject, WKScriptMessageHandlerWithReply {
         default: return MPV_FORMAT_STRING
         }
     }
+    // 销毁：先把 mpv 实例和画面层「摘」下来，等 mpv 完全退出后再释放画面层。
+    // （之前画面层是异步移除的，新一轮播放刚建好就被上一轮的清理删掉，mpv 还拿着它的指针 → 崩溃）
     private func destroyMpv() {
-        if let m = mpv {
-            mpv = nil
-            mpv_set_wakeup_callback(m, nil, nil)
-            mpv_terminate_destroy(m)
-        }
-        DispatchQueue.main.async {
-            self.host?.removeFromSuperview()
-            self.host = nil
-            UIApplication.shared.isIdleTimerDisabled = false
-            if let b = self.savedBrightness { UIScreen.main.brightness = b; self.savedBrightness = nil }
-        }
+        let m = mpv
+        let h = host
+        mpv = nil
+        host = nil
         lastTime = -1; lastCache = -1
+        guard let m = m else {
+            DispatchQueue.main.async { h?.removeFromSuperview() }
+            return
+        }
+        mpv_set_wakeup_callback(m, nil, nil)
+        // 放到串行队列里退出：不能堵住主线程（mpv 的画面线程会回到主线程设置图层），也不会和事件循环同时访问同一个实例
+        q.async {
+            mpv_terminate_destroy(m)
+            DispatchQueue.main.async {
+                h?.removeFromSuperview()
+                if self.mpv == nil {
+                    UIApplication.shared.isIdleTimerDisabled = false
+                    if let b = self.savedBrightness { UIScreen.main.brightness = b; self.savedBrightness = nil }
+                }
+            }
+        }
     }
     private func command(_ json: String) -> String {
         guard let m = mpv else { return "mpv 未初始化" }
