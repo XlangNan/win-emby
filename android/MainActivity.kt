@@ -37,6 +37,33 @@ class MainActivity : TauriActivity() {
         }
     }
 
+    private var askedNotif = false
+
+    /** 网页把当前歌曲 / 播放状态交给原生，用来显示状态栏、锁屏的通知 */
+    inner class MusicNotifBridge {
+        @android.webkit.JavascriptInterface
+        fun update(json: String) {
+            runOnUiThread {
+                try {
+                    // Android 13+ 要先授权「通知」，只在第一次播放时问一次
+                    if (android.os.Build.VERSION.SDK_INT >= 33 && !askedNotif &&
+                        checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                        askedNotif = true
+                        requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 71)
+                    }
+                    val o = org.json.JSONObject(json)
+                    MusicService.push(
+                        this@MainActivity, o.optString("title"), o.optString("artist"), o.optString("album"), o.optString("cover"),
+                        o.optLong("dur"), o.optLong("pos"), o.optBoolean("playing"),
+                    )
+                } catch (_: Exception) { }
+            }
+        }
+
+        @android.webkit.JavascriptInterface
+        fun clear() { runOnUiThread { try { MusicService.clear(this@MainActivity) } catch (_: Exception) { } } }
+    }
+
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
         window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.BLACK))
@@ -71,6 +98,11 @@ class MainActivity : TauriActivity() {
         webView.addJavascriptInterface(NetBridge(webView), "AndroidNet")
         web = webView
         webView.addJavascriptInterface(MusicKeep(), "AndroidMusic")
+        webView.addJavascriptInterface(MusicNotifBridge(), "AndroidMusicNotif")
+        // 通知栏 / 锁屏按钮 → 网页里的播放器
+        MusicService.onCommand = { c, a ->
+            runOnUiThread { web?.evaluateJavascript("window.__musicCmd&&window.__musicCmd('$c',$a)", null) }
+        }
     }
 
     override fun onPause() {
@@ -81,6 +113,8 @@ class MainActivity : TauriActivity() {
     }
 
     override fun onDestroy() {
+        MusicService.onCommand = null
+        try { MusicService.clear(this) } catch (_: Exception) { }
         try { if (wake?.isHeld == true) wake?.release() } catch (_: Exception) { }
         bridge?.release()
         super.onDestroy()

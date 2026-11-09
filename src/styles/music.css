@@ -453,7 +453,9 @@
 .mu-scope button.primary:not([class*='mu-']):hover:not(:disabled) { background: #f4525b; }
 .mu-dhead-btns button { height: 42px; padding: 0 22px; border-radius: 21px; }
 .mu-ib { transition: background .15s, color .15s; }
-.mu-ib:hover { background: rgba(255, 255, 255, .08); }
+@media (hover: hover) { .mu-ib:hover { background: rgba(255, 255, 255, .08); } }
+.mu-ib-big:hover, .mu-ib-big:active, .mu-ib-big:focus { background: #fff !important; }
+.mu-ib-big:active { transform: scale(.94); }
 .mu-ib-main:hover { background: #f4525b !important; }
 .mu-mini.inline .mu-ib-main:hover { background: transparent !important; }
 
@@ -550,6 +552,9 @@
 .cfg-fold .we-set h3 { cursor: pointer; user-select: none; display: flex; align-items: center; gap: 8px; }
 .cfg-fold .we-set h3::after { content: ''; width: 8px; height: 8px; margin-left: auto; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translateY(-2px); opacity: .55; transition: transform .2s; flex: none; }
 .cfg-fold .we-set.fold h3::after { transform: rotate(-45deg); }
-.cfg-fold .we-set.fold > :not(h3):not(:has(h3)) { display: none; }
+.cfg-fold .we-set.fold > :not([data-fold-head]) { display: none !important; }
 .cfg-fold .we-set.fold h3 { margin-bottom: 0; }
 .mu-np .mu-np-top .mu-np-top-t { -webkit-app-region: drag; }
+
+.mu-mini.inline .mu-mini-sl { position: absolute; left: 10px; right: 10px; bottom: -6px; height: 16px; display: flex; z-index: 3; }
+.mu-mini.inline .mu-mini-sl .mu-sl { height: 16px; }

@@ -455,8 +455,23 @@ export default function ConfigPage() {
   const readOpen = (): string[] => { try { return JSON.parse(localStorage.getItem(FOLD_KEY) || '["账号与服务器"]') as string[]; } catch { return ['账号与服务器']; } };
   const titleOf = (c: Element): string => c.querySelector('h3')?.textContent?.trim() || '';
   useEffect(() => {
-    const open = new Set(readOpen());
-    root.current?.querySelectorAll(':scope > .we-set').forEach((c) => { if (!open.has(titleOf(c))) c.classList.add('fold'); });
+    const el = root.current;
+    if (!el) return;
+    // 有的卡片是稍后才渲染出来的（等数据 / 重新挂载），所以要盯着新出现的卡片，每张只初始化一次
+    const apply = (): void => {
+      const open = new Set(readOpen());
+      el.querySelectorAll<HTMLElement>(':scope > .we-set').forEach((c) => {
+        if (c.dataset.foldInit) return;
+        c.dataset.foldInit = '1';
+        // 标记「标题所在的那一块」，折叠时只留它（不依赖 :has，旧 WebView 也能用）
+        for (let n = 0; n < c.children.length; n++) { const k = c.children[n]; if (k.tagName === 'H3' || k.querySelector('h3')) k.setAttribute('data-fold-head', ''); }
+        if (!open.has(titleOf(c))) c.classList.add('fold');
+      });
+    };
+    apply();
+    const mo = new MutationObserver(apply);
+    mo.observe(el, { childList: true });
+    return () => mo.disconnect();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const onFold = (e: React.MouseEvent): void => {
     const h = (e.target as HTMLElement).closest('h3');

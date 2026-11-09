@@ -35,12 +35,30 @@ function keepAwake(on: boolean): void {
   try { (window as unknown as { AndroidMusic?: { playing(b: boolean): void } }).AndroidMusic?.playing(on); } catch { /* 非安卓 */ }
 }
 
+// 安卓：把当前歌曲 / 状态交给原生通知（状态栏 + 锁屏，带上一首 / 暂停 / 下一首 / 关闭）
+type NotifBridge = { update(json: string): void; clear(): void };
+const notifBridge = (): NotifBridge | undefined => (window as unknown as { AndroidMusicNotif?: NotifBridge }).AndroidMusicNotif;
+let notifKey = '';
+function pushNotif(force = false): void {
+  const b = notifBridge();
+  if (!b) return;
+  const c = st.queue[st.index] || null;
+  const key = c ? `${c.id}|${st.playing}|${Math.round(st.dur || c.duration || 0)}` : '';
+  if (!force && key === notifKey) return;
+  notifKey = key;
+  try {
+    if (!c) { b.clear(); return; }
+    b.update(JSON.stringify({ title: c.title, artist: c.artist, album: c.album, cover: coverUrl(c.coverArt, 512), dur: Math.round(st.dur || c.duration || 0), pos: Math.round(st.pos), playing: st.playing }));
+  } catch { /* ignore */ }
+}
+
 function emit(p: Partial<MusicState>): void {
   st = { ...st, ...p };
   if (p.playing !== undefined) thumbPlaying(st.playing);
   if (p.playing !== undefined || st.playing) keepAwake(st.playing);
   if (p.playing !== undefined) { try { navigator.mediaSession.playbackState = st.playing ? 'playing' : 'paused'; } catch { /* ignore */ } }
   st.cur = st.queue[st.index] || null;
+  pushNotif();
   subs.forEach((f) => f());
 }
 
@@ -135,7 +153,13 @@ export function prev(): void {
   if (st.index > 0 && !st.shuffle) { load(st.index - 1); return; }
   a.currentTime = 0;
 }
-export function seek(t: number): void { const a = el(); if (Number.isFinite(t)) a.currentTime = Math.max(0, t); }
+export function seek(t: number): void {
+  const a = el();
+  if (!Number.isFinite(t)) return;
+  a.currentTime = Math.max(0, t);
+  emit({ pos: a.currentTime });
+  pushNotif(true);   // 通知 / 锁屏的进度也跟着校正
+}
 export function setShuffle(v: boolean): void { emit({ shuffle: v }); savePrefs(); }
 export function setRepeat(r: Repeat): void { emit({ repeat: r }); savePrefs(); }
 export function cycleRepeat(): void { emit({ repeat: st.repeat === 'off' ? 'all' : st.repeat === 'all' ? 'one' : 'off' }); savePrefs(); }
@@ -204,6 +228,15 @@ function updateSession(): void {
   } catch { /* ignore */ }
 }
 function setupMediaSession(): void {
+  // 原生通知 / 锁屏按钮的回调入口
+  (window as unknown as { __musicCmd?: (c: string, a?: number) => void }).__musicCmd = (c, a) => {
+    if (c === 'play') { if (audio?.paused) togglePlay(); }
+    else if (c === 'pause') pause();
+    else if (c === 'next') next();
+    else if (c === 'prev') prev();
+    else if (c === 'stop') stopMusic();
+    else if (c === 'seek' && a != null) { seek(a); pushNotif(true); }
+  };
   if (!('mediaSession' in navigator)) return;
   const ms = navigator.mediaSession;
   const set = (a: MediaSessionAction, f: MediaSessionActionHandler): void => { try { ms.setActionHandler(a, f); } catch { /* ignore */ } };
