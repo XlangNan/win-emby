@@ -558,3 +558,20 @@
 
 .mu-mini.inline .mu-mini-sl { position: absolute; left: 10px; right: 10px; bottom: -6px; height: 16px; display: flex; z-index: 3; }
 .mu-mini.inline .mu-mini-sl .mu-sl { height: 16px; }
+
+/* 手机小播放条：与悬浮导航同宽，按钮收紧，给歌名 / 歌词留出更多位置 */
+.mu-mini.inline { left: 22px !important; right: 22px !important; height: 56px !important; padding: 0 4px 0 8px !important; border-radius: 28px !important; box-sizing: border-box; }
+.mu-mini.inline .mu-mini-main { gap: 10px; min-width: 0; }
+.mu-mini.inline .mu-mini-cv { width: 40px !important; flex: none; }
+.mu-mini.inline .mu-ib { width: 36px !important; height: 36px !important; }
+.mu-mini.inline .mu-ib-stop { width: 30px !important; }
+.mu-mini.inline .mu-mini-sl { left: 22px; right: 22px; bottom: -8px; }
+
+/* 手机小播放条：music.css 比 mobile.css 后加载，前面的 position: relative 把悬浮定位盖掉了，这里强制 */
+.mu-mini.inline {
+  position: absolute !important; left: 22px !important; right: 22px !important; margin: 0 !important; z-index: 59;
+  bottom: calc(var(--m-mini-b, 12px) + env(safe-area-inset-bottom)) !important;
+  background: rgba(36, 36, 41, .9) !important; -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+}
+.mu-mini.inline .mu-mini-sl .mu-sl-tr { height: 3px; }
+.mu-mini.inline .mu-mini-sl .mu-sl-th { width: 10px; height: 10px; margin: -5px 0 0 -5px; }
