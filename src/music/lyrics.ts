@@ -19,14 +19,16 @@ async function autoOnline(s: Song): Promise<Lyr | null> {
   tried.add(s.id);
   try {
     const hits = await searchOnline(`${s.title} ${s.artist}`.trim());
+    // 自动匹配只收有把握的：歌名完全一致 + 歌手有重合 + （知道时长时）时长相差 6 秒以内
     const t = norm(s.title);
-    const h = hits.find((x) => norm(x.title) === t) || hits.find((x) => norm(x.title).includes(t) || t.includes(norm(x.title)));
+    const ar = norm(s.artist);
+    const sameArtist = (a: string): boolean => { const x = norm(a); return !!x && !!ar && (x.includes(ar) || ar.includes(x) || a.split(/[\/、,&]/).some((p) => { const y = norm(p); return !!y && (ar.includes(y) || y.includes(ar)); })); };
+    const h = hits.find((x) => norm(x.title) === t && sameArtist(x.artist) && (!x.dur || !s.duration || Math.abs(x.dur - s.duration) <= 6));
     if (!h) return null;
     const text = await fetchLyric(h);
     const r = parseLrc(text);
     if (!r.lines.length) return null;
-    setLrcOverride(s.id, text);
-    return r;
+    return r;   // 只放内存缓存，不写成本机歌词：万一配错，下次打开会重新判断
   } catch { return null; }
 }
 

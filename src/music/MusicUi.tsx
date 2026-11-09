@@ -119,7 +119,7 @@ export function SongMenu({ s, anchor, onClose, ctx }: { s: Song; anchor: DOMRect
             {item('添加到播放队列', () => { enqueue([s]); flash('已加入队列'); }, 'list')}
             {item('添加到歌单', () => setSub('pl'), 'plus')}
             {item(s.starred ? '取消收藏' : '收藏', () => { nd.star(s.id, !s.starred).then(() => { notifyStarred(); setStarred(s.id, !s.starred); s.starred = !s.starred; flash(s.starred ? '已收藏' : '已取消'); }, () => flash('操作失败')); }, 'heart')}
-            {item('匹配 / 编辑 歌词与封面', () => { onClose(); openMatch(s); }, 'note')}
+            {item('匹配 / 编辑 歌词与封面', () => leaveOverlaysThen(() => openMatch(s)), 'note')}
             {s.albumId && item('查看专辑', () => leaveOverlaysThen(() => nav(`/music/album/${s.albumId}`)), 'disc')}
             {s.artistId && item('查看艺术家', () => leaveOverlaysThen(() => nav(`/music/artist/${s.artistId}`)), 'user')}
             {ctx?.onRemove && item('从歌单中删除', () => { ctx.onRemove?.(); onClose(); }, 'trash')}

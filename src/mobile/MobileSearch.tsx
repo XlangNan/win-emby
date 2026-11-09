@@ -7,9 +7,6 @@ import { emby } from '../emby/client';
 import type { EmbyItem } from '../emby/types';
 import { loadSearchHistory, pushSearchHistory } from '../lib/prefs';
 
-// 只在第一次进入搜索页时自动弹键盘；从详情返回不再弹
-let searchFocused = false;
-
 export default function MobileSearch() {
   const [sp] = useSearchParams();
   const [q, setQ] = useState(sp.get('q') || '');
@@ -54,7 +51,7 @@ export default function MobileSearch() {
   return (
     <>
       <div className="m-search-bar">
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索电影、剧集" autoFocus={!searchFocused} onFocus={() => { searchFocused = true; }} onKeyDown={(e) => { if (e.key === 'Enter') remember(); }} onBlur={remember} spellCheck={false} enterKeyHint="search" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索电影、剧集" autoFocus={!q} onKeyDown={(e) => { if (e.key === 'Enter') remember(); }} onBlur={remember} spellCheck={false} enterKeyHint="search" />
         {q && <button className="m-search-x" aria-label="清空" onClick={() => setQ('')}><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" /></svg></button>}
       </div>
       <div className="content">

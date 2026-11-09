@@ -11,9 +11,11 @@ const bump = (): void => { ver++; subs.forEach((f) => f()); };
 export function getLrcOverride(songId: string): string {
   try { return localStorage.getItem(LRC + songId) || ''; } catch { return ''; }
 }
-export function setLrcOverride(songId: string, text: string | null): void {
-  try { if (text && text.trim()) localStorage.setItem(LRC + songId, text); else localStorage.removeItem(LRC + songId); } catch { /* 空间不够 */ }
-  bump();
+export function setLrcOverride(songId: string, text: string | null): boolean {
+  let ok = true;
+  try { if (text && text.trim()) localStorage.setItem(LRC + songId, text); else localStorage.removeItem(LRC + songId); } catch { ok = false; }   // 空间不够
+  if (ok) bump();
+  return ok;
 }
 export function getCoverOverride(coverId: string): string {
   if (!coverId) return '';

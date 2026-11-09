@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { emby } from '../emby/client';
 import type { EmbyItem } from '../emby/types';
-import { useBackClose } from '../music/useBackClose';
+import { leaveOverlaysThen, useBackClose } from '../music/useBackClose';
 
 export interface MenuState {
   x: number;
@@ -56,9 +56,12 @@ export default function ItemMenu({
   }, [onClose]);
 
   const run = (fn: () => Promise<void> | void, drop?: boolean): void => {
-    onClose();
-    if (drop && inResume) onChanged({ id: it.Id, remove: true });
-    Promise.resolve(fn()).then(() => onChanged(), () => onChanged());
+    // 先退掉菜单占的历史记录再执行动作（动作可能是跳页面，不然会多留一条无效记录）
+    leaveOverlaysThen(() => {
+      onClose();
+      if (drop && inResume) onChanged({ id: it.Id, remove: true });
+      Promise.resolve(fn()).then(() => onChanged(), () => onChanged());
+    });
   };
 
   const row = (label: string, fn: () => Promise<void> | void, danger?: boolean, drop?: boolean): React.ReactNode => (

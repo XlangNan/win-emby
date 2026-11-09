@@ -773,7 +773,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
               window.clearTimeout(scrubHold.current);
               setScrub(scrubAt(e.clientX));
             }}
-            onPointerMove={(e) => { if (scrub !== null) setScrub(scrubAt(e.clientX)); }}
+            onPointerMove={(e) => { if (scrubDrag.current) setScrub(scrubAt(e.clientX)); }}
             onPointerUp={(e) => {
               if (scrub === null) return;
               scrubDrag.current = false;

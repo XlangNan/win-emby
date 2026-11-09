@@ -1,12 +1,12 @@
 // 底部播放条（网易云风格）：桌面三段式 + 音量 / 模式 / 歌词 / 队列；手机为旋转封面小条
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useLayoutEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Cover, fmtTime, Ic, Slider, VolumeBox } from './MusicUi';
 import { activeLine, useLyrics } from './lyrics';
 import { saveOpts, useOpts } from './prefs';
 import { nd } from './navidrome';
 import { useBackClose } from './useBackClose';
-import { notifyStarred, setRepeat, setStarred, next, pause, playIndex, prev, removeAt, seek, setOpen, setShuffle, setVolume, stopMusic, togglePlay, useMusic } from './player';
+import { notifyStarred, setRepeat, setStarred, next, pause, playIndex, prev, removeAt, seek, setOpen, setShuffle, setVolume, stopMusic, togglePlay, useMusic, useMusicPos } from './player';
 
 const MODE_NAME = { order: '顺序播放', loop: '列表循环', shuffle: '随机播放', one: '单曲循环' } as const;
 
@@ -38,7 +38,7 @@ function Queue({ onClose }: { onClose: () => void }) {
 }
 
 export default function MiniPlayer({ inline }: { inline?: boolean }) {
-  const m = useMusic();
+  const m = useMusicPos();
   const opts = useOpts();
   const [dp, setDp] = useState<number | null>(null);
   const p = useLocation().pathname;
@@ -75,7 +75,7 @@ export default function MiniPlayer({ inline }: { inline?: boolean }) {
       }}>
         <div className="mu-mini-main" role="button" tabIndex={0} onClick={() => setOpen(true)} onKeyDown={(e) => { if (e.key === 'Enter' && e.target === e.currentTarget) setOpen(true); }}>
           <Cover id={c.coverArt} size={120} className={`mu-mini-cv mu-spin${m.playing ? '' : ' paused'}`} label={c.title} />
-          <div className="mu-mini-txt"><b>{c.title}</b><BarSub /></div>
+          <div className="mu-mini-txt"><Marquee tag="b" text={c.title} loop /><BarSub /></div>
         </div>
         <button type="button" className="mu-ib mu-ib-main" aria-label={m.playing ? '暂停' : '播放'} onClick={togglePlay}><Ic n={m.playing ? 'pause' : 'play'} size={22} /></button>
         <button type="button" className="mu-ib" aria-label="播放队列" onClick={() => setQ(true)}><Ic n="list" /></button>
@@ -89,7 +89,7 @@ export default function MiniPlayer({ inline }: { inline?: boolean }) {
     <div className="mu-mini mu-scope">
       <div className="mu-mini-left" role="button" tabIndex={0} onClick={() => setOpen(true)} onKeyDown={(e) => { if (e.key === 'Enter' && e.target === e.currentTarget) setOpen(true); }} title="打开播放页">
         <Cover id={c.coverArt} size={120} className="mu-mini-cv" label={c.title} />
-        <div className="mu-mini-txt"><b>{c.title}</b><BarSub /></div>
+        <div className="mu-mini-txt"><Marquee tag="b" text={c.title} loop /><BarSub /></div>
       </div>
       <div className="mu-mini-mid">
         <div className="mu-mini-btns">
@@ -121,7 +121,7 @@ export default function MiniPlayer({ inline }: { inline?: boolean }) {
 
 /** 播放条第二行：开启「歌词」且这首歌有逐行歌词时显示当前一句，否则显示歌手 */
 function BarSub() {
-  const m = useMusic();
+  const m = useMusicPos();
   const o = useOpts();
   const c = m.cur;
   const lyr = useLyrics(o.barLyric ? c : null);
@@ -129,6 +129,34 @@ function BarSub() {
   const i = o.barLyric ? activeLine(lyr, m.pos) : -1;
   const line = i >= 0 ? lyr?.lines[i].text.trim() : '';
   if (m.error) return <span>{m.error}</span>;
-  if (line) return <span className="mu-barlyr" key={`${c.id}-${i}`}>{line}</span>;
-  return <span>{c.artist}</span>;
+  if (line && lyr) {
+    // 这一句会唱多久：用来决定滚动速度，保证下一句出现前正好滚完
+    const secs = (lyr.lines[i + 1]?.t ?? lyr.lines[i].t + 6) - lyr.lines[i].t;
+    return <Marquee key={`${c.id}-${i}`} tag="span" cls="mu-barlyr" text={line} secs={secs} />;
+  }
+  return <Marquee tag="span" text={c.artist} loop />;
+}
+
+/** 放不下的文字自动滚动：loop 为来回循环（歌名 / 歌手），否则按 secs 秒滚一遍（歌词，停顿后从头滚到尾） */
+function Marquee({ tag, text, cls, loop, secs }: { tag: 'b' | 'span'; text: string; cls?: string; loop?: boolean; secs?: number }) {
+  const box = useRef<HTMLElement>(null);
+  const inner = useRef<HTMLSpanElement>(null);
+  const [d, setD] = useState(0);
+  useLayoutEffect(() => {
+    const b = box.current, i = inner.current;
+    if (!b || !i) return;
+    const measure = (): void => { const over = i.scrollWidth - b.clientWidth; setD(over > 2 ? Math.ceil(over) + 6 : 0); };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(b);
+    return () => ro.disconnect();
+  }, [text]);
+  const t = loop ? d / 32 + 3.5 : Math.min(30, Math.max(2.5, (secs ?? 4) - 0.6));
+  const style = d ? ({ ['--mq-d' as string]: `${d}px`, ['--mq-t' as string]: `${t}s` } as React.CSSProperties) : undefined;
+  const Tag = tag as 'span';
+  return (
+    <Tag ref={box as React.RefObject<HTMLSpanElement>} className={`mu-mq ${cls || ''}`}>
+      <span ref={inner} className={d ? (loop ? 'mu-mq-in run loop' : 'mu-mq-in run') : 'mu-mq-in'} style={style}>{text}</span>
+    </Tag>
+  );
 }

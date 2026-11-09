@@ -211,7 +211,7 @@
 @media (hover: none) { .mu-more { opacity: 1; } }
 /* 歌曲菜单 / 弹层 */
 .mu-menu-mask, .mu-pop-mask { position: fixed; inset: 0; z-index: 300; }
-.mu-pop-mask { z-index: 59; }
+.mu-pop-mask { z-index: 70; }
 .mu-menu { position: fixed; z-index: 301; background: #232327; border-radius: 12px; padding: 6px; box-shadow: 0 12px 32px rgba(0, 0, 0, .55); max-height: 340px; overflow-y: auto; }
 .mu-menu-i { all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 6px; font-size: 13.5px; color: #e4e4e7; cursor: pointer; }
 .mu-menu-i span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -575,3 +575,25 @@
 }
 .mu-mini.inline .mu-mini-sl .mu-sl-tr { height: 3px; }
 .mu-mini.inline .mu-mini-sl .mu-sl-th { width: 10px; height: 10px; margin: -5px 0 0 -5px; }
+
+/* 匹配窗口：名称整行显示，按钮换到下一行，且不带底色 */
+.mu-match-tab, .mu-match-act { all: unset; cursor: pointer; box-sizing: border-box; }
+.mu-match-tab { font-size: 14px; color: #9a9aa2; padding: 4px 0; border-bottom: 2px solid transparent; }
+.mu-match-tab.on { color: #fff; border-bottom-color: #f0414b; }
+.mu-match-act { font-size: 13px; color: #f0414b; padding: 4px 0; }
+.mu-match-act:disabled { opacity: .4; }
+.mu-match-it { flex-wrap: wrap; row-gap: 2px; padding: 10px 0; }
+.mu-match-tx { flex: 1 1 0; min-width: 0; }
+.mu-match-tx b, .mu-match-tx i { white-space: normal; overflow: visible; text-overflow: clip; word-break: break-all; }
+.mu-match-ac { flex: 1 0 100%; margin-left: 54px; gap: 22px; }
+
+/* 播放条歌词：颜色和歌名一致 */
+.mu-mini-txt .mu-barlyr { color: inherit !important; }
+
+/* 播放条文字：放不下时滚动显示 */
+.mu-mini-txt .mu-mq { display: block; overflow: hidden; white-space: nowrap; text-overflow: clip; min-width: 0; }
+.mu-mq-in { display: inline-block; will-change: transform; }
+.mu-mq-in.run { animation: mu-mq var(--mq-t, 6s) linear 1 forwards; }
+.mu-mq-in.run.loop { animation-iteration-count: infinite; animation-direction: alternate; }
+@keyframes mu-mq { 0%, 18% { transform: translateX(0); } 82%, 100% { transform: translateX(calc(-1 * var(--mq-d, 0px))); } }
+.mu-mini-txt .mu-mq-in { font: inherit; color: inherit; overflow: visible; text-overflow: clip; }

@@ -15,6 +15,8 @@ let audio: HTMLAudioElement | null = null;
 const P0 = prefs();
 let st: MusicState = { queue: [], index: -1, playing: false, pos: 0, dur: 0, shuffle: P0.shuffle, repeat: P0.repeat, open: false, loading: false, error: '', cur: null, volume: P0.vol, sleepAt: 0 };
 const subs = new Set<() => void>();
+const posSubs = new Set<() => void>();
+let stS: MusicState = st;   // 不含实时进度的快照
 let history: number[] = [];
 let sleepTimer = 0;
 export interface SleepInfo { at: number }
@@ -59,7 +61,11 @@ function emit(p: Partial<MusicState>): void {
   if (p.playing !== undefined) { try { navigator.mediaSession.playbackState = st.playing ? 'playing' : 'paused'; } catch { /* ignore */ } }
   st.cur = st.queue[st.index] || null;
   pushNotif();
+  // 只有播放进度（pos / dur）变化时，只通知需要进度的组件；歌曲行、页面这些不用跟着每秒重绘几次
+  if (Object.keys(p).every((k) => k === 'pos' || k === 'dur')) { posSubs.forEach((f) => f()); return; }
+  stS = st;
   subs.forEach((f) => f());
+  posSubs.forEach((f) => f());
 }
 
 function el(): HTMLAudioElement {
@@ -249,5 +255,9 @@ function setupMediaSession(): void {
 }
 
 const subscribe = (f: () => void): (() => void) => { subs.add(f); return () => { subs.delete(f); }; };
-export function useMusic(): MusicState { return useSyncExternalStore(subscribe, () => st); }
+const subscribePos = (f: () => void): (() => void) => { posSubs.add(f); return () => { posSubs.delete(f); }; };
+/** 不含实时进度：播放进度变化不会触发重渲染（歌曲行、页面用这个） */
+export function useMusic(): MusicState { return useSyncExternalStore(subscribe, () => stS); }
+/** 含实时进度（pos / dur）：只给进度条、歌词、时间显示用 */
+export function useMusicPos(): MusicState { return useSyncExternalStore(subscribePos, () => st); }
 export const musicState = (): MusicState => st;

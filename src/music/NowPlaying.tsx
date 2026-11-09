@@ -6,13 +6,13 @@ import { leaveOverlaysThen, useBackClose } from './useBackClose';
 import { coverUrl, nd } from './navidrome';
 import { activeLine, useLyrics } from './lyrics';
 import { openMatch } from './MatchDialog';
-import { cycleRepeat, next, playIndex, prev, removeAt, seek, setOpen, setShuffle, setSleep, setStarred, notifyStarred, setVolume, stopMusic, togglePlay, useMusic, musicState } from './player';
+import { cycleRepeat, next, playIndex, prev, removeAt, seek, setOpen, setShuffle, setSleep, setStarred, notifyStarred, setVolume, stopMusic, togglePlay, useMusic, musicState, useMusicPos } from './player';
 
 const musicPos = (): number => musicState().pos;
 const SLEEPS = [15, 30, 45, 60, 90];
 
 export default function NowPlaying() {
-  const m = useMusic();
+  const m = useMusicPos();
   const nav = useNavigate();
   const lyr = useLyrics(m.open ? m.cur : null);
   const box = useRef<HTMLDivElement>(null);

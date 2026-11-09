@@ -2,22 +2,37 @@
 import { httpFetch } from '../emby/http';
 import { loadOpts } from './prefs';
 
-export interface OnlineHit { key: string; title: string; artist: string; album: string; pic: string; source: 'netease' | 'meting'; id: string; lrc?: string }
+export interface OnlineHit { key: string; title: string; artist: string; album: string; dur?: number; pic: string; source: 'netease' | 'meting'; id: string; lrc?: string }
 const str = (v: unknown): string => (v == null ? '' : String(v));
 
 export const onlineConfigured = (): boolean => !!(loadOpts().neteaseApi || loadOpts().metingApi);
 
+/** 带超时的请求：12 秒没响应就报错，并把具体地址写进错误里，方便判断是哪里不通 */
+async function req(url: string): Promise<Response> {
+  const ctl = new AbortController();
+  const tm = window.setTimeout(() => ctl.abort(), 12000);
+  try {
+    const res = await httpFetch(url, { signal: ctl.signal });
+    if (!res.ok) throw new Error(`接口返回 ${res.status}（${shortUrl(url)}）`);
+    return res;
+  } catch (e) {
+    if (e instanceof Error && /接口返回/.test(e.message)) throw e;
+    throw new Error(`连不上 ${shortUrl(url)}：${e instanceof Error ? e.message : String(e)}`);
+  } finally { window.clearTimeout(tm); }
+}
+const shortUrl = (u: string): string => u.replace(/\?.*$/, '');
 async function getJson<T>(url: string): Promise<T> {
-  const res = await httpFetch(url, { headers: { Accept: 'application/json' } });
-  if (!res.ok) throw new Error(`接口返回 ${res.status}`);
-  return (await res.json()) as T;
+  const res = await req(url);
+  const t = await res.text();
+  try { return JSON.parse(t) as T; } catch { throw new Error(`返回的不是 JSON（${shortUrl(url)}）：${t.slice(0, 60)}`); }
 }
-async function getText(url: string): Promise<string> {
-  const res = await httpFetch(url);
-  if (!res.ok) throw new Error(`接口返回 ${res.status}`);
-  return res.text();
-}
-const withBase = (u: string): string => (/^https?:\/\//i.test(u) ? u : `http://${u}`);
+async function getText(url: string): Promise<string> { return (await req(url)).text(); }
+/** 补 http://，去掉末尾斜杠；如果粘贴成了完整接口地址（/search、/cloudsearch、/lyric…）也截回根地址 */
+const withBase = (u: string): string => {
+  let s = u.trim();
+  if (!/^https?:\/\//i.test(s)) s = `http://${s}`;
+  return s.replace(/\/(cloudsearch|search|lyric|song\/detail)\/?(\?.*)?$/i, '').replace(/\/+$/, '');
+};
 
 export async function searchOnline(q: string): Promise<OnlineHit[]> {
   const o = loadOpts();
@@ -25,21 +40,25 @@ export async function searchOnline(q: string): Promise<OnlineHit[]> {
   if (!kw) return [];
   if (o.neteaseApi) {
     const base = withBase(o.neteaseApi);
-    type R = { result?: { songs?: { id: number; name: string; ar?: { name: string }[]; artists?: { name: string }[]; al?: { name: string; picUrl?: string }; album?: { name: string; picUrl?: string } }[] } };
+    type R = { result?: { songs?: { id: number; name: string; ar?: { name: string }[]; artists?: { name: string }[]; dt?: number; al?: { name: string; picUrl?: string }; album?: { name: string; picUrl?: string } }[] } };
     let r: R;
     try { r = await getJson<R>(`${base}/cloudsearch?keywords=${encodeURIComponent(kw)}&limit=12`); }
-    catch { r = await getJson<R>(`${base}/search?keywords=${encodeURIComponent(kw)}&limit=12`); }
+    catch (e1) {
+      try { r = await getJson<R>(`${base}/search?keywords=${encodeURIComponent(kw)}&limit=12`); }
+      catch { throw e1; }
+    }
     return (r.result?.songs || []).map((x) => {
       const al = x.al || x.album;
       const pic = al?.picUrl ? `${al.picUrl}${al.picUrl.includes('?') ? '' : '?param=600y600'}` : '';
-      return { key: `n${x.id}`, title: x.name, artist: (x.ar || x.artists || []).map((a) => a.name).join(' / '), album: al?.name || '', pic, source: 'netease' as const, id: String(x.id) };
+      return { key: `n${x.id}`, title: x.name, artist: (x.ar || x.artists || []).map((a) => a.name).join(' / '), album: al?.name || '', dur: x.dt ? x.dt / 1000 : undefined, pic, source: 'netease' as const, id: String(x.id) };
     });
   }
   if (o.metingApi) {
-    const b = withBase(o.metingApi);
+    const b = o.metingApi.trim().replace(/^(?!https?:\/\/)/i, 'http://');
     const url = `${b}${b.includes('?') ? '&' : '?'}server=netease&type=search&id=${encodeURIComponent(kw)}`;
-    const r = await getJson<Record<string, unknown>[]>(url);
-    return (Array.isArray(r) ? r : []).map((x, i) => ({
+    const raw = await getJson<Record<string, unknown>[] | { data?: Record<string, unknown>[] }>(url);
+    const r = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+    return r.map((x, i) => ({
       key: `m${i}`, title: str(x.title || x.name), artist: str(x.author || x.artist), album: '', pic: str(x.pic), source: 'meting' as const, id: str(x.id || x.songid || ''), lrc: str(x.lrc),
     }));
   }
