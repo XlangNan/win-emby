@@ -367,4 +367,4 @@ html.android * { scrollbar-width: none; }
   bottom: calc(var(--m-mini-b, 12px) + env(safe-area-inset-bottom));
   background: rgba(36, 36, 41, .9); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
 }
-.m-main .content, :root.android[data-shell] .m-main .content { padding-bottom: calc(var(--m-dock, 0px) + env(safe-area-inset-bottom) + 14px); }
+.m-main .content, :root.android[data-shell] .m-main .content { padding-bottom: calc(var(--m-dock, 0px) + env(safe-area-inset-bottom) + 14px) !important; }
