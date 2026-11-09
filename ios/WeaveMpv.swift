@@ -120,6 +120,11 @@ final class WeaveBoot: NSObject, WKScriptMessageHandlerWithReply {
             let e = mpv_set_option_string(m, k, v)
             if e < 0 { NSLog("[Weave] 选项 \(k)=\(v) 无效：\(String(cString: mpv_error_string(e)))") }
         }
+        // HDR 直通只在真正有 HDR（EDR）屏幕的设备上才开；普通屏幕一律由 mpv 色调映射成 SDR，否则颜色发灰 / 偏色
+        var hdrScreen = false
+        if #available(iOS 16.0, *) { hdrScreen = UIScreen.main.potentialEDRHeadroom > 1.5 }
+        _ = mpv_set_option_string(m, "target-colorspace-hint", hdrScreen && opts["target-colorspace-hint"] == "yes" ? "yes" : "no")
+        NSLog("[Weave] HDR 屏幕=\(hdrScreen)")
         err = mpv_initialize(m)
         if err < 0 { destroyMpv(); return "MPV 初始化失败：\(String(cString: mpv_error_string(err)))" }
         if let obs = cfg["observed"] as? [[Any]] {

@@ -88,7 +88,19 @@ function openAndroid(o: MpvOpenOpts): Promise<MpvSession> {
     };
     // iOS：MPVKit（MoltenVK + VideoToolbox 硬解），画面层由 Swift 端提供
     const platOpts: Record<string, string> = isIOS
-      ? { vo: 'gpu-next', 'gpu-api': 'vulkan', 'gpu-context': 'moltenvk', hwdec: 'videotoolbox' }
+      ? {
+          vo: 'gpu-next', 'gpu-api': 'vulkan', 'gpu-context': 'moltenvk',
+          // 先试零拷贝；和 Vulkan 画面层对接不上时自动退到 videotoolbox-copy，仍是硬解（只写 videotoolbox 会悄悄退回 CPU 软解，4K 必卡）
+          hwdec: 'videotoolbox,videotoolbox-copy',
+          'hwdec-codecs': 'all',
+          // 平板 GPU 吃不消默认的高质量缩放 / 峰值检测：全部用最轻的
+          scale: 'bilinear', cscale: 'bilinear', dscale: 'bilinear',
+          'correct-downscaling': 'no', 'sigmoid-upscaling': 'no', deband: 'no', 'dither-depth': 'no',
+          interpolation: 'no', 'hdr-compute-peak': 'no', 'blend-subtitles': 'no',
+          'vd-lavc-dr': 'yes',
+          // 高码率片源网络抖动时多缓冲一些
+          'demuxer-max-bytes': '160MiB', 'demuxer-max-back-bytes': '48MiB', 'demuxer-readahead-secs': '90',
+        }
       : {
           // gpu-next（libplacebo）负责 HDR → SDR 色调映射和杜比视界重塑；没有就退回 gpu
           vo: 'gpu-next,gpu',
