@@ -8,6 +8,12 @@ import type { EmbyItem } from '../emby/types';
 import { listSources } from '../lib/live';
 
 const ICON = {
+  film: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2.5" />
+      <path d="m10 9 5 3-5 3z" />
+    </>
+  ),
   home: <path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z" />,
   media: (
     <>
@@ -57,9 +63,7 @@ function Ico({ k }: { k: keyof typeof ICON }) {
 }
 
 const TABS: { to: string; label: string; ico: keyof typeof ICON; end?: boolean; also?: string[] }[] = [
-  { to: '/', label: '首页', ico: 'home', end: true },
-  { to: '/media', label: '媒体', ico: 'media', also: ['/lib'] },
-  { to: '/discover', label: '片库', ico: 'disc' },
+  { to: '/', label: '影视', ico: 'film', end: true, also: ['/media', '/lib', '/discover', '/search'] },
   { to: '/live', label: '直播', ico: 'live' },
   { to: '/music', label: '音乐', ico: 'music' },
   { to: '/me', label: '我的', ico: 'me', also: ['/favorites', '/history', '/config'] },
@@ -98,7 +102,9 @@ export default function MobileShell({ views, routes }: { views: EmbyItem[]; rout
           <header className="m-head">
             <div className="m-head-top">
               <span className="m-brand" onClick={() => nav('/')}>WEAVE</span>
+              <button className="m-iconbtn" aria-label="媒体库" onClick={() => nav('/media')}><Ico k="media" /></button>
               <span style={{ flex: 1 }} />
+              <button className="m-iconbtn" aria-label="片库" onClick={() => nav('/discover')}><Ico k="disc" /></button>
               <button className="m-iconbtn" aria-label="搜索" onClick={() => nav('/search')}><Ico k="search" /></button>
             </div>
           </header>
@@ -110,7 +116,7 @@ export default function MobileShell({ views, routes }: { views: EmbyItem[]; rout
       {!hideTabs && (
         <nav className="m-tabs" aria-label="主导航">
           {TABS.filter((t) => t.to !== '/live' || hasLive).map((t) => {
-            const active = t.end ? p === t.to : p.startsWith(t.to) || !!t.also?.some((a) => p.startsWith(a));
+            const active = (t.end ? p === t.to : p.startsWith(t.to)) || !!t.also?.some((a) => p.startsWith(a));
             return (
               <NavLink key={t.to} to={t.to} end={t.end} className={`m-tab${active ? ' active' : ''}`}>
                 <Ico k={t.ico} />
