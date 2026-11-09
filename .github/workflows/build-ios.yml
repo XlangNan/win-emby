@@ -108,6 +108,10 @@ jobs:
           echo "app: $APP"
           test -n "$APP"
           EXE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")
+          # 中文的 .app / 可执行文件名会让 iOS 启动即崩溃（CFBundle 路径处理失败），必须是纯 ASCII
+          case "$(basename "$APP")$EXE" in
+            *[!A-Za-z0-9._-]*) echo "::error::.app 或可执行文件名含非 ASCII 字符：$(basename "$APP") / $EXE（装上会闪退）"; exit 1 ;;
+          esac
           SZ=$(stat -f%z "$APP/$EXE")
           echo "executable: $EXE ($SZ bytes)"
           du -sh "$APP"
