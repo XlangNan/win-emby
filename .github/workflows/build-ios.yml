@@ -77,11 +77,23 @@ jobs:
           open(p, 'w').write(s)
           print('已关闭签名')
           PY
+          cd ../../..
+          # Info.plist 必须在 xcodegen 之后改（xcodegen 每次生成都会重写它）
+          node scripts/ios-patch.mjs --plist
 
-      # 导出（签名）那一步没证书必然失败，但 archive 已经生成，后面从 archive 里取 .app
+      # 导出（签名）那一步没证书会失败，但只要编译成功就行；编译失败（xcodebuild 报错）则直接让 CI 变红
       - name: Build
-        continue-on-error: true
-        run: pnpm tauri ios build --target aarch64 --export-method debugging
+        run: |
+          set +e
+          pnpm tauri ios build --target aarch64 --export-method debugging 2>&1 | tee build.log
+          set -e
+          if grep -q "exited with code 65" build.log; then
+            echo "===== 编译失败，错误如下 ====="
+            grep -nE "error:" build.log | head -60
+            echo "===== 日志最后 80 行 ====="
+            tail -80 build.log
+            exit 1
+          fi
 
       - name: Package unsigned ipa
         run: |
@@ -95,11 +107,24 @@ jobs:
           if [ -z "$APP" ]; then find "$HOME/Library/Developer/Xcode/DerivedData" -name '*.app' -maxdepth 6 -type d | head; fi
           echo "app: $APP"
           test -n "$APP"
+          EXE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")
+          SZ=$(stat -f%z "$APP/$EXE")
+          echo "executable: $EXE ($SZ bytes)"
+          du -sh "$APP"
+          # 没链上 Rust 库 / MPVKit 时可执行文件会非常小
+          test "$SZ" -gt 1000000
           rm -rf "$APP/_CodeSignature" "$APP/embedded.mobileprovision"
           mkdir -p out/Payload
           cp -R "$APP" out/Payload/
           (cd out && zip -qry Weave-ios-unsigned.ipa Payload && rm -rf Payload)
           ls -la out
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-log
+          path: build.log
+          if-no-files-found: ignore
 
       - uses: actions/upload-artifact@v4
         with:
