@@ -1,7 +1,7 @@
 // 自绘滚动条（不占位置）：
 // 手机：滚动时显示一条细指示条；电脑：滚动时显示，鼠标移到滚动区域右边缘时也显示，并且可以按住拖动。
 import { useEffect, useRef } from 'react';
-import { isAndroid } from '../lib/platform';
+import { isMobileApp } from '../lib/platform';
 
 function findScroller(t: HTMLElement | null): HTMLElement | null {
   let el: HTMLElement | null = t;
@@ -62,7 +62,7 @@ export default function ScrollIndicator() {
     cur.current = el;
     place(el);
     b.style.opacity = '1';
-    b.style.pointerEvents = isAndroid ? 'none' : 'auto';
+    b.style.pointerEvents = isMobileApp ? 'none' : 'auto';
     hideLater();
   };
 
@@ -75,7 +75,7 @@ export default function ScrollIndicator() {
     };
     let raf = 0;
     const onMove = (e: MouseEvent): void => {
-      if (isAndroid || drag.current) return;
+      if (isMobileApp || drag.current) return;
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         const el = findScroller(e.target as HTMLElement);
@@ -104,7 +104,7 @@ export default function ScrollIndicator() {
 
   return (
     <div
-      className={`we-sbar${isAndroid ? ' phone' : ''}`}
+      className={`we-sbar${isMobileApp ? ' phone' : ''}`}
       ref={bar}
       onMouseEnter={() => { hover.current = true; window.clearTimeout(timer.current); }}
       onMouseLeave={() => { hover.current = false; hideLater(400); }}

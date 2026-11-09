@@ -1,0 +1,54 @@
+/* iPad 版：横屏 = 侧边栏外壳（.tb-*），竖屏 = 手机外壳放大。全部挂在 :root.tablet 下，不影响手机 / 桌面。 */
+
+/* ───────── 公共：卡片放大，一行放更多 ───────── */
+:root.tablet[data-shell] { --card-w: 150px !important; }
+:root.tablet[data-shell] .grid { grid-template-columns: repeat(var(--cols, 6), minmax(0, 1fr)) !important; gap: 16px 14px; padding: 0 22px; }
+:root.tablet[data-shell] .nf-row-title { padding: 0 22px; font-size: 19px; }
+:root.tablet[data-shell] .nf-row-scroll { padding: 0 22px; gap: 14px; }
+:root.tablet[data-shell] .nf-row-scroll > div { flex: 0 0 150px !important; }
+:root.tablet[data-shell] .nf-row-scroll > div[style*="280px"] { flex: 0 0 280px !important; }
+:root.tablet[data-shell] .mp-grid { grid-template-columns: repeat(5, 1fr); gap: 16px 14px; padding: 0 22px; }
+:root.tablet[data-shell] .nfd-sim { grid-template-columns: repeat(5, 1fr); }
+:root.tablet[data-shell] .content > .card, :root.tablet[data-shell] .content > .we-set { margin-left: 22px; margin-right: 22px; max-width: 760px; }
+:root.tablet[data-shell] .nfd-body { max-width: 760px; padding: 0 28px 6px; }
+
+/* ───────── 竖屏：悬浮胶囊导航放大并居中 ───────── */
+:root.tablet .m-tabs { left: 50% !important; right: auto !important; transform: translateX(-50%); width: min(560px, calc(100% - 44px)); height: 68px; border-radius: 34px; }
+:root.tablet .m-tab span { font-size: 12px; }
+:root.tablet .mu-mini.inline { left: 50% !important; right: auto !important; transform: translateX(-50%); width: min(560px, calc(100% - 32px)); }
+:root.tablet .m-head { padding: 8px 28px 12px; }
+:root.tablet .m-brand { font-size: 24px; }
+
+/* ───────── 横屏：侧边栏外壳 ───────── */
+.tb-app { position: fixed; inset: 0; display: flex; background: #0c0c0e; color: #fff; padding-top: env(safe-area-inset-top); box-sizing: border-box; }
+.tb-side { width: 210px; flex: none; padding: 22px 14px calc(18px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 4px; border-right: 1px solid #1d1d22; background: #101013; box-sizing: border-box; overflow-y: auto; scrollbar-width: none; transition: width .2s; }
+.tb-side::-webkit-scrollbar { display: none; }
+.tb-brand { font-weight: 900; letter-spacing: 2px; font-size: 22px; color: #f0414b; padding: 2px 12px 18px; cursor: pointer; white-space: nowrap; overflow: hidden; }
+.tb-it { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 12px; color: #a8a8b0; font-size: 15px; text-decoration: none; background: none; white-space: nowrap; }
+.tb-it svg { flex: none; }
+.tb-it.on { color: #ff5a64; background: rgba(240, 65, 75, .12); font-weight: 700; }
+.tb-grp { font-size: 12px; color: #666; padding: 14px 12px 4px; }
+.tb-sp { flex: 1; }
+/* 音乐页自己带一列歌单导航：外壳侧边栏收成图标栏，避免两列并排 */
+.tb-app.rail .tb-side { width: 72px; padding-left: 10px; padding-right: 10px; }
+.tb-app.rail .tb-it span, .tb-app.rail .tb-grp { display: none; }
+.tb-app.rail .tb-it { justify-content: center; padding: 12px 0; }
+.tb-app.rail .tb-brand { font-size: 12px; letter-spacing: 0; text-align: center; padding: 4px 0 14px; }
+
+.tb-main { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+.tb-top { flex: none; display: flex; align-items: center; gap: 12px; padding: 16px 28px 10px; }
+.tb-search { all: unset; box-sizing: border-box; flex: 1; max-width: 420px; height: 38px; border-radius: 19px; background: #1a1a1f; display: flex; align-items: center; gap: 8px; padding: 0 14px; color: #777; font-size: 14px; cursor: pointer; }
+.tb-search svg { width: 18px; height: 18px; }
+.tb-ib { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #d8d8dc; background: none; }
+.tb-ib.active { color: #ff5a64; }
+.tb-body { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; overflow: hidden; }
+.tb-body .page-anim { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.tb-body .content { padding-bottom: calc(var(--mini-h, 0px) + 40px + env(safe-area-inset-bottom)) !important; }
+.tb-body .m-home-top { display: none; }
+.tb-app.detail .tb-body .content { padding-bottom: calc(var(--mini-h, 0px) + 24px) !important; }
+
+/* 音乐播放条：悬浮玻璃条，只盖住内容区（不盖侧边栏） */
+.tb-app .mu-mini { left: 228px; right: 18px; bottom: calc(16px + env(safe-area-inset-bottom)); height: 70px; border-radius: 20px; background: rgba(32, 32, 38, .78) !important; -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px); border: 1px solid rgba(255, 255, 255, .08); box-shadow: 0 10px 30px rgba(0, 0, 0, .6); padding: 0 18px; }
+.tb-app.rail .mu-mini { left: 90px; }
+.tb-app .mu-mini-bar { display: none; }
+.tb-app .mu-mini-txt span { color: #fff; }

@@ -1,6 +1,6 @@
 // 手机「媒体」页：Emby 各媒体库，封面取自 Emby 媒体库自己的图片
 import { useNavigate } from 'react-router-dom';
-import { isAndroid } from '../lib/platform';
+import { isMobileApp } from '../lib/platform';
 import { emby, posterUrl, thumbUrl } from '../emby/client';
 import type { EmbyItem } from '../emby/types';
 import { loadPlayPrefs } from '../lib/prefs';
@@ -36,7 +36,7 @@ export default function MediaPage() {
   return (
     <div className="content m-media">
       <div className="m-media-title">媒体</div>
-      {!isAndroid && (
+      {!isMobileApp && (
         <div className="we-cats" style={{ padding: '0 16px 12px' }}>
           <button type="button" className="tag" onClick={() => nav('/discover')}>🎞 片库（TMDB 发现）</button>
           <button type="button" className="tag" onClick={() => nav('/favorites')}>⭐ 收藏</button>

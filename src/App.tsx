@@ -29,7 +29,8 @@ import LoginPage from './pages/LoginPage';
 import PlayerPage from './pages/PlayerPage';
 import SearchPage from './pages/SearchPage';
 import { useSkinLayout } from './lib/theme';
-import { isAndroid } from './lib/platform';
+import { isIPad, isMobileApp } from './lib/platform';
+import TabletShell, { useLandscape } from './mobile/TabletShell';
 import MobileShell from './mobile/MobileShell';
 import MePage from './mobile/MePage';
 import MobileSearch from './mobile/MobileSearch';
@@ -127,6 +128,7 @@ function AppShell() {
   const loc = useLocation();
   const shell = useSkinLayout().shell ?? 'topbar';
   const [views, setViews] = useState<EmbyItem[]>([]);
+  const landscape = useLandscape();
 
   useEffect(() => {
     emby
@@ -191,7 +193,7 @@ function AppShell() {
         <Route path="/lib/:id" element={<LibraryPage />} />
         <Route path="/detail/:id" element={<DetailPage />} />
         <Route path="/person/:id" element={<PersonPage />} />
-        <Route path="/search" element={isAndroid ? <MobileSearch /> : <SearchPage />} />
+        <Route path="/search" element={isMobileApp ? <MobileSearch /> : <SearchPage />} />
         <Route path="/me" element={<MePage />} />
         <Route path="/favorites" element={<FavoritesPage />} />
         <Route path="/history" element={<HistoryPage />} />
@@ -221,7 +223,8 @@ function AppShell() {
   }
 
   // ── 安卓手机：底部标签栏外壳 ──
-  if (isAndroid) return <MobileShell views={views} routes={routes} />;
+  if (isIPad && landscape) return <TabletShell routes={routes} />;
+  if (isMobileApp) return <MobileShell views={views} routes={routes} />;
 
   // ── 大果：全宽工具栏 + 玻璃侧边栏 ──
   if (shell === 'sidebar') {

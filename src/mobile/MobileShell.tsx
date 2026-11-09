@@ -8,7 +8,7 @@ import { androidBridge } from '../lib/platform';
 import type { EmbyItem } from '../emby/types';
 import { listSources } from '../lib/live';
 
-const ICON = {
+export const ICON = {
   film: (
     <>
       <rect x="3" y="5" width="18" height="14" rx="2.5" />
@@ -47,6 +47,19 @@ const ICON = {
       <circle cx="16.5" cy="16" r="2.5" />
     </>
   ),
+  star: <path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9L12 3Z" />,
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </>
+  ),
+  gear: (
+    <>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1" />
+    </>
+  ),
   me: (
     <>
       <circle cx="12" cy="8" r="4" />
@@ -55,7 +68,7 @@ const ICON = {
   ),
 };
 
-function Ico({ k }: { k: keyof typeof ICON }) {
+export function Ico({ k }: { k: keyof typeof ICON }) {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {ICON[k]}

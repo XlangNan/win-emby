@@ -2,7 +2,7 @@
 // 原理：mpv 把画面渲染进主窗口里的一个原生子窗口，网页层（透明背景）叠在上面当控制层。
 // 所有对 mpv 的操作串行执行：React StrictMode / 切集时 init → destroy → init 不会交错。
 import * as lib from 'tauri-plugin-libmpv-api';
-import { androidBridge } from './platform';
+import { androidBridge, isIOS } from './platform';
 
 interface MpvApi {
   init(cfg: { initialOptions: Record<string, string>; observedProperties: unknown[] }): Promise<unknown>;
@@ -69,57 +69,58 @@ function openAndroid(o: MpvOpenOpts): Promise<MpvSession> {
       if (name === '__ready') ready();
       else o.onProp(name, data);
     };
-    const r = b.init(
-      JSON.stringify({
-        options: {
+    const common = {
+      'tone-mapping': 'bt.2390',
+      'force-window': 'no',
+      idle: 'yes',
+      'keep-open': 'yes',
+      config: 'no',
+      'load-scripts': 'no',
+      ytdl: 'no',
+      cache: 'yes',
+      'demuxer-max-bytes': '64MiB',
+      'demuxer-max-back-bytes': '32MiB',
+      'demuxer-readahead-secs': '60',
+      'sub-auto': 'no',
+      slang: 'chi,zho,chs,cht,zh,eng',
+      'audio-display': 'no',
+      'target-colorspace-hint': o.hdr ? 'yes' : 'no',
+    };
+    // iOS：MPVKit（MoltenVK + VideoToolbox 硬解），画面层由 Swift 端提供
+    const platOpts: Record<string, string> = isIOS
+      ? { vo: 'gpu-next', 'gpu-api': 'vulkan', 'gpu-context': 'moltenvk', hwdec: 'videotoolbox' }
+      : {
           // gpu-next（libplacebo）负责 HDR → SDR 色调映射和杜比视界重塑；没有就退回 gpu
           vo: 'gpu-next,gpu',
           'gpu-context': 'android',
           'opengl-es': 'yes',
           // copy 模式把画面读回内存再交给 libplacebo，颜色才对（零拷贝模式 HDR 会发灰）
           hwdec: 'mediacodec-copy',
-          'tone-mapping': 'bt.2390',
           'hwdec-codecs': 'all',
           ao: 'audiotrack,opensles',
-          'force-window': 'no',
-          idle: 'yes',
-          'keep-open': 'yes',
-          config: 'no',
-          'load-scripts': 'no',
-          ytdl: 'no',
-          cache: 'yes',
-          'demuxer-max-bytes': '64MiB',
-          'demuxer-max-back-bytes': '32MiB',
-          'demuxer-readahead-secs': '60',
-          'sub-auto': 'no',
-          slang: 'chi,zho,chs,cht,zh,eng',
           'sub-fonts-dir': '/system/fonts',
-          'audio-display': 'no',
-          'target-colorspace-hint': o.hdr ? 'yes' : 'no',
-        },
-        observed: OBSERVED,
-      }),
-    );
+        };
+    const r = await b.init(JSON.stringify({ options: { ...common, ...platOpts }, observed: OBSERVED }));
     if (r !== 'ok') throw new Error(r);
     await Promise.race([readyP, new Promise<void>((_, rej) => setTimeout(() => rej(new Error('视频画面层没有就绪（超时）')), 8000))]);
-    const call = (cmd: string[]): void => {
-      const res = b.command(JSON.stringify(cmd));
+    const call = async (cmd: string[]): Promise<void> => {
+      const res = await b.command(JSON.stringify(cmd));
       if (res !== 'ok') throw new Error(res);
     };
     const sess: MpvSession = {
       async loadfile(url, opts = {}) {
         const kv = Object.entries(opts).map(([k, v]) => `${k}=${v}`).join(',');
-        call(['loadfile', url, 'replace', '-1', kv]);
+        await call(['loadfile', url, 'replace', '-1', kv]);
       },
       async set(name, value) {
-        call(['set', name, String(value)]);
+        await call(['set', name, String(value)]);
       },
       async cmd(name, args = []) {
-        call([name, ...args]);
+        await call([name, ...args]);
       },
       async get(name, type) {
         try {
-          return JSON.parse(b.getProp(name, type));
+          return JSON.parse(await b.getProp(name, type));
         } catch {
           return null;
         }

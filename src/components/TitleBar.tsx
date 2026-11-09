@@ -2,7 +2,7 @@
 // variant="mac" 仅供大果皮肤的全宽工具栏使用（左置红黄绿圆点）。
 // 拖拽由 lib/dragRegion.ts 统一处理（读取 CSS 的 -webkit-app-region）。
 import { useEffect, useState } from 'react';
-import { isAndroid } from '../lib/platform';
+import { isMobileApp } from '../lib/platform';
 import { winClose, winIsMaximized, winMinimize, winToggleMax } from '../lib/win';
 
 export default function TitleBar({ title = 'WEAVE', variant = 'win' }: { title?: string; variant?: 'win' | 'mac' }) {
@@ -11,7 +11,7 @@ export default function TitleBar({ title = 'WEAVE', variant = 'win' }: { title?:
     void winIsMaximized().then(setMax).catch(() => undefined);
   }, []);
   const toggleMax = async (): Promise<void> => setMax(await winToggleMax());
-  if (isAndroid) return null; // 手机上没有窗口按钮
+  if (isMobileApp) return null; // 手机上没有窗口按钮
 
   if (variant === 'mac') {
     return (

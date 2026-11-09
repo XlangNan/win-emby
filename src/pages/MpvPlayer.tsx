@@ -7,7 +7,7 @@ import { directStreamUrl, emby, posterUrl, subtitleUrl, thumbUrl } from '../emby
 import { fmtDuration, ticksToSec } from '../emby/format';
 import type { EmbyItem, MediaSource, MediaStream } from '../emby/types';
 import { openMpv, type MpvSession } from '../lib/mpv';
-import { androidBridge, isAndroid } from '../lib/platform';
+import { androidBridge, isMobileApp } from '../lib/platform';
 import { getManual, setManual } from '../lib/introManual';
 import { syncSeriesMarkers } from '../lib/markerSync';
 import DanmakuLayer from '../components/DanmakuLayer';
@@ -313,11 +313,11 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           } catch { /* ignore */ }
         };
         // 安卓：mpv 内部音量固定 100%，音量完全跟随手机的媒体音量（音量键 / 手势）
-        await sess.set('volume', isAndroid ? 100 : Math.round(loadPlayPrefs().volume * 100));
+        await sess.set('volume', isMobileApp ? 100 : Math.round(loadPlayPrefs().volume * 100));
         await applySubStyle(sess, loadSubStyle());
         const mst = psrc.MediaStreams || src.MediaStreams || [];
         // 杜比视界 Profile 5（没有 HDR10 / SDR 兼容层）：硬解拿不到 RPU 元数据，画面会偏紫偏绿 → 改软解，交给 libplacebo 重塑
-        if (isAndroid) {
+        if (isMobileApp) {
           const v = mst.find((x) => x.Type === 'Video');
           const tag = `${v?.VideoRangeType ?? ''} ${v?.ExtendedVideoSubType ?? ''} ${v?.ExtendedVideoSubTypeDescription ?? ''} ${v?.DvProfile ?? ''}`.toLowerCase();
           const p5 = /profile\s*5|doviprofile50|dovi50/.test(tag) || String(v?.VideoRangeType ?? '').toLowerCase() === 'dovi' || Number(v?.DvProfile) === 5;
@@ -615,7 +615,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
 
   // 安卓：进入播放页即横屏沉浸全屏，离开时恢复
   useEffect(() => {
-    if (!isAndroid) return;
+    if (!isMobileApp) return;
     void winSetFullscreen(true);
     setFull(true);
     return () => {
@@ -662,7 +662,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   return (
     <div className={`we-player mpv${showUi ? '' : ' hide-ui'}`} onMouseMove={poke} onClick={() => menu && setMenu('')}>
       {/* 透明点击层：mpv 画面在它下面的原生窗口里 */}
-      {isAndroid ? (
+      {isMobileApp ? (
         <div className="we-surface" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} />
       ) : (
         <div className="we-surface" onClick={(e) => { e.stopPropagation(); if (menu) setMenu(''); else toggle(); }} onDoubleClick={() => void toggleFull()} />
@@ -692,7 +692,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         <button className="we-btn we-txt" title="简介 / 演职员 / 选集（I）" onClick={(e) => { e.stopPropagation(); setDrawer((v) => !v); }}>
           {drawer ? '收起' : '信息'}
         </button>
-        {!full && !isAndroid && (
+        {!full && !isMobileApp && (
           <div className="we-winbtns">
             <button className="we-btn" title="最小化" onClick={(e) => { e.stopPropagation(); void winMinimize(); }}>
               <svg width="12" height="12" viewBox="0 0 16 16"><line x1="3.5" y1="8" x2="12.5" y2="8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
@@ -708,8 +708,8 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       </div>
 
       {/* 中间大按钮：后退 10 秒 / 播放暂停 / 快进 10 秒 */}
-      {isAndroid && (<div className="we-center" onClick={(e) => e.stopPropagation()}>
-        {isAndroid && (<button className="we-cbtn" title="后退 10 秒（←）" aria-label="后退 10 秒" onClick={() => { seekBy(-10); poke(); }}>
+      {isMobileApp && (<div className="we-center" onClick={(e) => e.stopPropagation()}>
+        {isMobileApp && (<button className="we-cbtn" title="后退 10 秒（←）" aria-label="后退 10 秒" onClick={() => { seekBy(-10); poke(); }}>
           <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4" /><text x="8.4" y="15.2" fontSize="6.6" fill="currentColor" stroke="none" fontWeight="700">10</text></svg>
         </button>)}
         <button className="we-cbtn we-cplay" title="播放/暂停（空格）" aria-label={paused ? '播放' : '暂停'} onClick={toggle}>
@@ -719,7 +719,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
             <svg width="64" height="64" viewBox="0 0 24 24"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z" fill="currentColor" /></svg>
           )}
         </button>
-        {isAndroid && (<button className="we-cbtn" title="快进 10 秒（→）" aria-label="快进 10 秒" onClick={() => { seekBy(10); poke(); }}>
+        {isMobileApp && (<button className="we-cbtn" title="快进 10 秒（→）" aria-label="快进 10 秒" onClick={() => { seekBy(10); poke(); }}>
           <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12a8 8 0 1 1-3-6.2M20 4v4h-4" /><text x="8.4" y="15.2" fontSize="6.6" fill="currentColor" stroke="none" fontWeight="700">10</text></svg>
         </button>)}
       </div>)}
@@ -793,7 +793,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           <span className="we-time we-time-r" title={`${fmtDuration(shownCur)} / ${fmtDuration(total)}`}>{total > 0 ? `-${fmtDuration(Math.max(0, total - shownCur))}` : ''}<i className="we-clock">{clock.toTimeString().slice(0, 5)}</i></span>
         </div>
         <div className="we-ctrls">
-          {!isAndroid && (
+          {!isMobileApp && (
             <button className="we-btn" title="播放/暂停（空格）" aria-label={paused ? '播放' : '暂停'} onClick={() => { toggle(); poke(); }}>
               {paused ? <svg width="26" height="26" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" /></svg> : <svg width="26" height="26" viewBox="0 0 24 24"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z" fill="currentColor" /></svg>}
             </button>
@@ -809,7 +809,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           <span className="we-volnum">{muted ? '静音' : Math.round(vol)}</span>
           </div>
 
-          {!isAndroid && (<>
+          {!isMobileApp && (<>
         <button className="we-btn" title="后退 10 秒（←）" aria-label="后退 10 秒" onClick={() => { seekBy(-10); poke(); }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4" /><text x="8.4" y="15.2" fontSize="6.6" fill="currentColor" stroke="none" fontWeight="700">10</text></svg>
         </button>
@@ -818,7 +818,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         </button>
           </>)}
           <span style={{ flex: 1 }} />
-          {isAndroid && (
+          {isMobileApp && (
             <div className="we-menu-wrap">
               <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'sleep' ? '' : 'sleep')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" /></svg><span>{sleepEnd ? (item?.Type === 'Episode' ? '播完本集' : '播完退出') : sleepAt ? '定时中' : '定时'}</span></button>
               {menu === 'sleep' && (
@@ -965,7 +965,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
             )}
           </div>
 
-          {isAndroid ? (
+          {isMobileApp ? (
             <button className="we-btn we-lbl" title="旋转屏幕（横屏 / 竖屏）" onClick={() => void toggleFull()}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="7" y="3" width="10" height="18" rx="2" transform={full ? 'rotate(90 12 12)' : undefined} /><path d="M20 8a9 9 0 0 0-3-3.5M4 16a9 9 0 0 0 3 3.5M20 4v4h-4M4 20v-4h4" /></svg>
               <span>{full ? '竖屏' : '横屏'}</span>

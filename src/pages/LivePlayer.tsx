@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { openMpv, type MpvSession } from '../lib/mpv';
 import { loadChannels, loadFavs, type LiveChannel } from '../lib/live';
 import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
-import { androidBridge, isAndroid } from '../lib/platform';
+import { androidBridge, isMobileApp } from '../lib/platform';
 import { hhmm, nowNext, progsOf } from '../lib/epg';
 import { winClose, winIsFullscreen, winMinimize, winSetFullscreen, winToggleMax } from '../lib/win';
 
@@ -197,7 +197,7 @@ export default function LivePlayer() {
   }, [toggle, step, setVolume, vol, ch, toggleFull, exit, poke]);
 
   useEffect(() => {
-    if (!isAndroid) return;
+    if (!isMobileApp) return;
     void winSetFullscreen(true);
     setFull(true);
     return () => {
@@ -251,7 +251,7 @@ export default function LivePlayer() {
 
   return (
     <div className={`we-player mpv${showUi ? '' : ' hide-ui'}`} onMouseMove={poke}>
-      <div className="we-surface" onClick={() => { if (!isAndroid) toggle(); }} onDoubleClick={() => { if (!isAndroid) void toggleFull(); }} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} />
+      <div className="we-surface" onClick={() => { if (!isMobileApp) toggle(); }} onDoubleClick={() => { if (!isMobileApp) void toggleFull(); }} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} />
       {hud && <div className="we-hud">{hud}</div>}
       {busy && !err && <div className="we-loading"><span className="spinner" aria-hidden="true" />正在连接…</div>}
       {osd && ch && (() => {
@@ -287,7 +287,7 @@ export default function LivePlayer() {
             {[dim.w > 0 ? `${dim.w}×${dim.h}` : '', fps > 0 ? `${Number(fps.toFixed(3))} fps` : '', vbr > 0 ? `${(vbr / 1e6).toFixed(1)} Mbps` : '', ch && ch.lines.length > 1 ? `线路 ${line + 1}/${ch.lines.length}` : '', `MPV${hw && hw !== 'no' ? ` · ${hw}` : ''}`].filter(Boolean).join('  ·  ')}
           </div>
         </div>
-        {!full && !isAndroid && (
+        {!full && !isMobileApp && (
           <div className="we-winbtns">
             <button className="we-btn" title="最小化" onClick={() => void winMinimize()}><svg width="12" height="12" viewBox="0 0 16 16"><line x1="3.5" y1="8" x2="12.5" y2="8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></button>
             <button className="we-btn" title="最大化" onClick={() => void winToggleMax()}><svg width="12" height="12" viewBox="0 0 16 16"><rect x="3.5" y="3.5" width="9" height="9" rx="1.2" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg></button>
@@ -296,7 +296,7 @@ export default function LivePlayer() {
         )}
       </div>
 
-      {isAndroid && (<div className="we-center" onClick={(e) => e.stopPropagation()}>
+      {isMobileApp && (<div className="we-center" onClick={(e) => e.stopPropagation()}>
         <button className="we-cbtn we-cplay" title="播放/暂停（空格）" aria-label={paused ? '播放' : '暂停'} onClick={toggle}>
           {paused ? <svg width="64" height="64" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" /></svg> : <svg width="64" height="64" viewBox="0 0 24 24"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z" fill="currentColor" /></svg>}
         </button>
@@ -328,7 +328,7 @@ export default function LivePlayer() {
 
       <div className="we-bottom" onClick={(e) => e.stopPropagation()}>
         <div className="we-ctrls">
-          {!isAndroid && (
+          {!isMobileApp && (
             <button className="we-btn" title="播放/暂停（空格）" aria-label={paused ? '播放' : '暂停'} onClick={() => { toggle(); poke(); }}>
               {paused ? <svg width="26" height="26" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" /></svg> : <svg width="26" height="26" viewBox="0 0 24 24"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z" fill="currentColor" /></svg>}
             </button>
@@ -356,7 +356,7 @@ export default function LivePlayer() {
           <button className="we-btn we-lbl" title="频道列表（L）" onClick={() => setList((v) => !v)}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h10" /></svg><span>频道</span>
           </button>
-          {!isAndroid && (
+          {!isMobileApp && (
             <button className="we-btn" title="全屏（F）" onClick={() => void toggleFull()}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{full ? <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /> : <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />}</svg>
             </button>

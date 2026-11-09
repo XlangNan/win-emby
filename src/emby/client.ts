@@ -1,5 +1,5 @@
 // Emby REST 客户端：登录 / 媒体库 / 列表 / 详情 / 播放信息 / 进度回报 / 收藏
-import { isAndroid } from '../lib/platform';
+import { platformName } from '../lib/platform';
 import { httpFetch } from './http';
 import { deviceId, getSession, normalizeServer } from './session';
 import type { EmbyItem, ItemsResult, PlaybackInfo, Session } from './types';
@@ -8,7 +8,7 @@ const CLIENT = 'Weave';
 const VERSION = '0.2.0';
 
 function authHeader(token?: string): Record<string, string> {
-  const v = `MediaBrowser Client="${CLIENT}", Device="Weave ${isAndroid ? 'Android' : 'Windows'}", DeviceId="${deviceId()}", Version="${VERSION}"`;
+  const v = `MediaBrowser Client="${CLIENT}", Device="Weave ${platformName}", DeviceId="${deviceId()}", Version="${VERSION}"`;
   const h: Record<string, string> = { 'X-Emby-Authorization': v, Accept: 'application/json' };
   if (token) h['X-Emby-Token'] = token;
   return h;

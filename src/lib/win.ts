@@ -1,6 +1,6 @@
 // 窗口控制（Tauri）。浏览器里调试时退化为无操作 / 浏览器全屏。
 import { isTauri } from '../emby/http';
-import { androidBridge, isAndroid } from './platform';
+import { androidBridge, isMobileApp } from './platform';
 
 async function cur() {
   const m = await import('@tauri-apps/api/window');
@@ -8,23 +8,23 @@ async function cur() {
 }
 
 export async function winMinimize(): Promise<void> {
-  if (isAndroid) return;
+  if (isMobileApp) return;
   if (isTauri()) await (await cur()).minimize();
 }
 
 export async function winToggleMax(): Promise<boolean> {
-  if (!isTauri() || isAndroid) return false;
+  if (!isTauri() || isMobileApp) return false;
   const w = await cur();
   await w.toggleMaximize();
   return w.isMaximized();
 }
 
 export async function winIsMaximized(): Promise<boolean> {
-  return isTauri() && !isAndroid ? (await cur()).isMaximized() : false;
+  return isTauri() && !isMobileApp ? (await cur()).isMaximized() : false;
 }
 
 export async function winClose(): Promise<void> {
-  if (isAndroid) {
+  if (isMobileApp) {
     androidBridge()?.exit();
     return;
   }
@@ -33,7 +33,7 @@ export async function winClose(): Promise<void> {
 }
 
 export async function winStartDrag(): Promise<void> {
-  if (isAndroid) return;
+  if (isMobileApp) return;
   if (isTauri()) await (await cur()).startDragging();
 }
 
@@ -43,7 +43,7 @@ let androidFull = false;
 let saved: { x: number; y: number; w: number; h: number; max: boolean } | null = null;
 
 export async function winSetFullscreen(on: boolean): Promise<void> {
-  if (isAndroid) {
+  if (isMobileApp) {
     androidFull = on;
     androidBridge()?.setFullscreen(on);
     return;
@@ -86,13 +86,13 @@ export async function winSetFullscreen(on: boolean): Promise<void> {
 }
 
 export async function winIsFullscreen(): Promise<boolean> {
-  if (isAndroid) return androidFull;
+  if (isMobileApp) return androidFull;
   return isTauri() ? (await cur()).isFullscreen() : !!document.fullscreenElement;
 }
 
 /** 拦截窗口关闭（点 ✕ / Alt+F4 / 任务栏关闭）：先跑 before，再真正销毁窗口。返回取消函数。 */
 export async function winOnClose(before: () => Promise<void>): Promise<() => void> {
-  if (!isTauri() || isAndroid) return () => undefined;
+  if (!isTauri() || isMobileApp) return () => undefined;
   const w = await cur();
   const un = await w.onCloseRequested(async (e) => {
     e.preventDefault();

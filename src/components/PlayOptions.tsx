@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { emby } from '../emby/client';
 import type { MediaSource, MediaStream } from '../emby/types';
-import { isAndroid } from '../lib/platform';
+import { isMobileApp } from '../lib/platform';
 import { loadPlayPrefs } from '../lib/prefs';
 import { pickInitialTracks } from '../lib/tracks';
 import { useAsync } from '../lib/useAsync';
@@ -46,7 +46,7 @@ export default function PlayOptions({ itemId, onChange }: { itemId: string; onCh
   // 手机：字幕 / 音轨选择放到播放按钮正下方（NfDetail 里的 #nfd-opts-slot），文件信息默认折叠
   const [slot, setSlot] = useState<HTMLElement | null>(null);
   useEffect(() => {
-    if (isAndroid) setSlot(document.getElementById('nfd-opts-slot'));
+    if (isMobileApp) setSlot(document.getElementById('nfd-opts-slot'));
   }, [itemId]);
 
   const sources: MediaSource[] = it?.MediaSources || [];
@@ -163,7 +163,7 @@ export default function PlayOptions({ itemId, onChange }: { itemId: string; onCh
     </>
   );
 
-  if (isAndroid) {
+  if (isMobileApp) {
     return (
       <>
         {slot && createPortal(mobilePickers, slot)}
