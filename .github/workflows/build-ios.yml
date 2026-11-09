@@ -90,8 +90,9 @@ jobs:
           APP=""
           if [ -n "$ARCH" ]; then APP=$(find "$ARCH/Products/Applications" -maxdepth 1 -name '*.app' | head -1); fi
           if [ -z "$APP" ]; then
-            APP=$(find "$HOME/Library/Developer/Xcode/DerivedData" src-tauri/gen/apple -path '*Release-iphoneos/*.app' -maxdepth 8 -type d 2>/dev/null | head -1)
+            APP=$(find "$HOME/Library/Developer/Xcode/DerivedData" -ipath '*/Build/Products/*iphoneos/*.app' -maxdepth 6 -type d -prune 2>/dev/null | head -1)
           fi
+          if [ -z "$APP" ]; then find "$HOME/Library/Developer/Xcode/DerivedData" -name '*.app' -maxdepth 6 -type d | head; fi
           echo "app: $APP"
           test -n "$APP"
           rm -rf "$APP/_CodeSignature" "$APP/embedded.mobileprovision"
