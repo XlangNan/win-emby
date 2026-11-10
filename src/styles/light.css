@@ -1,0 +1,185 @@
+/* 浅色外观（设置 → 外观）。<html data-mode="light"> 时生效；深色（默认）完全不受影响。
+   做法：① 令牌换成亮色；② 把各处写死的白 / 黑色逐个换掉；③ 视频播放器、影片详情、首页大封面、音乐全屏播放页
+   是叠在图片上的，保持深色（见文末「深色岛」，把令牌还原成深色值）。 */
+:root[data-mode='light'][data-theme] {
+  color-scheme: light;
+  --surface-0: #f5f5f7;
+  --surface-1: rgba(255, 255, 255, .86);
+  --surface-2: rgba(255, 255, 255, .94);
+  --surface-3: #ffffff;
+  --surface-glass: rgba(250, 250, 252, .92);
+  --accent: #e50914;
+  --accent-strong: #c40812;
+  --accent-container: #e50914;
+  --accent-soft: rgba(229, 9, 20, .1);
+  --on-accent: #ffffff;
+  --accent-2: #e50914;
+  --text: #1d1d1f;
+  --text-dim: #5f5f66;
+  --text-faint: #86868b;
+  --border: rgba(60, 60, 67, .2);
+  --border-soft: rgba(60, 60, 67, .12);
+  --hairline: rgba(60, 60, 67, .14);
+  --danger: #d70015;
+  --warn: #a65b00;
+  --success: #1c8c43;
+  --info: #0a66d6;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .05), 0 8px 24px rgba(0, 0, 0, .08);
+  --shadow-lg: 0 2px 6px rgba(0, 0, 0, .06), 0 18px 48px rgba(0, 0, 0, .14);
+}
+:root[data-mode='light'][data-theme] {
+  --mu-b151518: #ececf0;
+  --mu-b17171a: #ffffff;
+  --mu-b1c1c20: #f2f2f5;
+  --mu-b1d1d21: #ffffff;
+  --mu-b1d1d22: #f2f2f5;
+  --mu-b1d1d23: #ffffff;
+  --mu-b1f1f23: #f0f0f3;
+  --mu-b1f1f26: #f0f0f4;
+  --mu-b22222a: #e6e6ea;
+  --mu-b232327: #f4f4f6;
+  --mu-b26262b: #e9e9ed;
+  --mu-b2a2a30: #e9e9ed;
+  --mu-b2f2f35: #e0e0e5;
+  --mu-b34343a: #dcdce1;
+  --mu-b34343c: #d8d8de;
+  --mu-b35353c: #e0e0e5;
+  --mu-b3a3a40: #cacad0;
+  --mu-c0e0e10: #ffffff;
+  --mu-c6a6a72: #a6a6ae;
+  --mu-c77777f: #9a9aa2;
+  --mu-c8f8f98: #7a7a82;
+  --mu-c9a9aa2: #7a7a82;
+  --mu-c9a9aa3: #7a7a82;
+  --mu-ca0a0a8: #6e6e76;
+  --mu-cb8b8c0: #55555c;
+  --mu-cc8c8ce: #4a4a50;
+  --mu-cc9c9d0: #55555c;
+  --mu-cd4d4d8: #3a3a3f;
+  --mu-ce4e4e7: #2c2c30;
+  --mu-cf2f2f3: #1d1d1f;
+  --mu-r23232697: rgba(255,255,255,.97);
+  --mu-r30303495: rgba(255,255,255,.96);
+  --mu-r3636419: rgba(255,255,255,.92);
+  --mu-r40404686: rgba(255,255,255,.96);
+  --mu-r40404696: rgba(255,255,255,.96);
+  --mu-w025: rgba(0,0,0,0.017);
+  --mu-w08: rgba(0,0,0,0.056);
+  --mu-w1: rgba(0,0,0,0.07);
+  --mu-w12: rgba(0,0,0,0.084);
+  --mu-w22: rgba(0,0,0,0.154);
+  --mu-w4: rgba(0,0,0,0.28);
+  --mu-w85: rgba(0,0,0,0.595);
+}
+
+/* ───────── 通用控件 ───────── */
+:root[data-mode='light'][data-theme] body:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: var(--surface-glass); color: var(--text); }
+:root[data-mode='light'][data-theme] ::placeholder:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { color: #8e8e93; }
+:root[data-mode='light'][data-theme] button:where(:not(.mu-scope *)):hover:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { color: var(--text); }
+:root[data-mode='light'][data-theme][data-shell='topbar'] ::-webkit-scrollbar-thumb:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: rgba(0, 0, 0, .22); }
+:root[data-mode='light'][data-theme][data-shell='topbar'] ::-webkit-scrollbar-thumb:hover:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: rgba(0, 0, 0, .38); }
+:root[data-mode='light'][data-theme][data-shell='topbar'] button:where(:not(.mu-scope *)):where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: rgba(0, 0, 0, .06); border-color: rgba(0, 0, 0, .1); color: var(--text); }
+:root[data-mode='light'][data-theme][data-shell='topbar'] button:where(:not(.mu-scope *)):hover:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: rgba(0, 0, 0, .1); border-color: rgba(0, 0, 0, .18); color: var(--text); }
+:root[data-mode='light'][data-theme][data-shell='topbar'] button:where(:not(.mu-scope *)).primary:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: var(--accent); border-color: transparent; color: #fff; box-shadow: 0 4px 14px rgba(229, 9, 20, .28); }
+:root[data-mode='light'][data-theme][data-shell='topbar'] button:where(:not(.mu-scope *)).primary:hover:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: var(--accent-strong); color: #fff; }
+:root[data-mode='light'][data-theme][data-shell='topbar'] input:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)), :root[data-mode='light'][data-theme][data-shell='topbar'] select:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)), :root[data-mode='light'][data-theme][data-shell='topbar'] textarea:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: #fff; border-color: #d2d2d7; color: var(--text); }
+:root[data-mode='light'][data-theme][data-shell='topbar'] input:focus:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)), :root[data-mode='light'][data-theme][data-shell='topbar'] select:focus:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+:root[data-mode='light'][data-theme][data-shell='topbar'] .tag:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: rgba(0, 0, 0, .05); border-color: rgba(0, 0, 0, .12); color: var(--text); }
+:root[data-mode='light'][data-theme][data-shell='topbar'] .tag:hover:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: rgba(0, 0, 0, .09); border-color: rgba(0, 0, 0, .22); }
+:root[data-mode='light'][data-theme][data-shell='topbar'] .tag.active:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: #1d1d1f; border-color: #1d1d1f; color: #fff; box-shadow: none; }
+:root[data-mode='light'][data-theme][data-shell='topbar'] .ep:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: rgba(0, 0, 0, .05); color: var(--text); }
+:root[data-mode='light'][data-theme][data-shell='topbar'] .ep:hover:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: rgba(0, 0, 0, .1); }
+:root[data-mode='light'][data-theme][data-shell='topbar'] .ep.active:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: #1d1d1f; color: #fff; }
+:root[data-mode='light'][data-theme][data-shell='topbar'] .no-cover:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: linear-gradient(180deg, #ececf0, #e2e2e8); color: var(--text-dim); }
+:root[data-mode='light'][data-theme][data-shell='topbar'] .cascade-label:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { color: var(--text-dim); }
+:root[data-mode='light'][data-theme][data-shell='topbar'] .cascade-row + .cascade-row:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { border-top-color: rgba(0, 0, 0, .08); }
+:root[data-mode='light'][data-theme][data-shell='topbar'] .card-media:hover .card:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { box-shadow: 0 8px 24px rgba(0, 0, 0, .16), 0 0 0 1px rgba(0, 0, 0, .06); }
+:root[data-mode='light'][data-theme][data-discover='shelf'] .nf-row-title:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { color: var(--text); }
+:root[data-mode='light'][data-theme] .hist-ops button:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)), :root[data-mode='light'][data-theme] .card-media .hist-del:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { color: #fff; }
+
+/* ───────── 桌面顶栏 ───────── */
+:root[data-mode='light'][data-theme][data-shell='topbar'] .app:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: var(--surface-0); }
+:root[data-mode='light'][data-theme][data-shell='topbar'] .nf-nav:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: rgba(255, 255, 255, .9); box-shadow: 0 1px 0 rgba(0, 0, 0, .08); }
+:root[data-mode='light'][data-theme][data-shell='topbar'] .nf-link:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)), :root[data-mode='light'][data-theme][data-shell='topbar'] .nf-nav .nf-link:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { color: #4a4a50; }
+:root[data-mode='light'][data-theme][data-shell='topbar'] .nf-nav .nf-link:hover:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: rgba(0, 0, 0, .06); color: var(--text); text-shadow: none; }
+:root[data-mode='light'][data-theme][data-shell='topbar'] .nf-nav .tb-btn:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { color: #5f5f66; }
+:root[data-mode='light'][data-theme][data-shell='topbar'] .nf-nav .tb-btn:hover:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: rgba(0, 0, 0, .07); color: var(--text); }
+:root[data-mode='light'][data-theme][data-shell='topbar'] .nf-nav .tb-btn.tb-close:hover:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: #e81123; color: #fff; }
+:root[data-mode='light'][data-theme][data-shell='topbar'] .topbar:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: rgba(255, 255, 255, .78); border-bottom-color: rgba(0, 0, 0, .08); }
+:root[data-mode='light'][data-theme][data-shell='topbar'] .topbar button:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)), :root[data-mode='light'][data-theme][data-shell='topbar'] .topbar button.primary:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: rgba(0, 0, 0, .05); border-color: rgba(0, 0, 0, .08); color: #4a4a50; }
+:root[data-mode='light'][data-theme][data-shell='topbar'] .topbar button:hover:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: rgba(0, 0, 0, .1); }
+:root[data-mode='light'][data-theme] .mini-strip:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: rgba(255, 255, 255, .8); color: var(--text-dim); }
+:root[data-mode='light'][data-theme] .mini-btn:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { color: var(--text-dim); }
+:root[data-mode='light'][data-theme] .mini-btn:hover:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: rgba(0, 0, 0, .08); color: var(--text); }
+:root[data-mode='light'][data-theme] .side-foot:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)), :root[data-mode='light'][data-theme] .tb-sub:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { color: var(--text-faint); }
+:root[data-mode='light'][data-theme] .srcpick-pop:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)), :root[data-mode='light'][data-theme] .sp-panel:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)), :root[data-mode='light'][data-theme] .vp-subpanel:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { box-shadow: 0 12px 40px rgba(0, 0, 0, .16); }
+
+/* ───────── 手机（安卓 / iOS）外壳 ───────── */
+:root[data-mode='light'].android:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)), :root[data-mode='light'].android body:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)), :root[data-mode='light'].android #root:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: var(--surface-0); }
+:root[data-mode='light'][data-theme][data-shell] .m-app:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: var(--surface-0); color: var(--text); }
+:root[data-mode='light'][data-theme][data-shell] .m-head:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)), :root.android[data-mode='light'][data-theme][data-shell] .m-head:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: var(--surface-0); }
+:root[data-mode='light'][data-theme][data-shell] .m-iconbtn:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { color: var(--text) !important; }
+:root[data-mode='light'][data-theme][data-shell] .m-chip:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { border-color: rgba(0, 0, 0, .25); color: var(--text); background: rgba(0, 0, 0, .04); }
+:root[data-mode='light'][data-theme][data-shell] .m-chip.active:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: #1d1d1f; color: #fff; border-color: #1d1d1f; }
+:root[data-mode='light'][data-theme][data-shell] .m-tabs:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)), :root.android[data-mode='light'][data-theme][data-shell] .m-tabs:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: rgba(255, 255, 255, .78); border: 1px solid rgba(0, 0, 0, .08); box-shadow: 0 10px 30px rgba(0, 0, 0, .14); }
+:root[data-mode='light'][data-theme][data-shell] .m-tab:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)), :root.android[data-mode='light'][data-theme][data-shell] .m-tab:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { color: #6e6e73 !important; }
+:root[data-mode='light'][data-theme][data-shell] .m-tab.active:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)), :root.android[data-mode='light'][data-theme][data-shell] .m-tab.active:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { color: var(--accent) !important; }
+:root[data-mode='light'][data-theme][data-shell] .m-tab.active svg:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { stroke: var(--accent); }
+:root[data-mode='light'][data-theme][data-shell] .topbar:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)), :root.android[data-mode='light'][data-theme][data-shell] .topbar:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: var(--surface-0); }
+:root[data-mode='light'][data-theme][data-shell] .m-me-list:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)), :root.android[data-mode='light'][data-theme][data-shell] .card:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)), :root[data-mode='light'][data-theme][data-shell] .m-fileinfo:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: #fff; }
+:root[data-mode='light'][data-theme][data-shell] .m-me-row:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { border-bottom-color: rgba(0, 0, 0, .08); }
+:root[data-mode='light'][data-theme][data-shell] .m-me-row:active:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: #ececf0; }
+:root[data-mode='light'][data-theme][data-shell] .m-me-arrow:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)), :root[data-mode='light'][data-theme][data-shell] .m-fileinfo summary::after:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { color: #9a9aa2; }
+:root[data-mode='light'][data-theme][data-shell] .m-me-avatar:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { color: #fff; }
+:root[data-mode='light'][data-theme][data-shell] .m-search-bar input:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: #e9e9ed; color: var(--text); }
+:root[data-mode='light'][data-theme][data-shell] .m-search-x:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)), :root[data-mode='light'][data-theme][data-shell] .m-search-bar .m-search-x:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { color: #6e6e73 !important; background: #d8d8de !important; }
+:root[data-mode='light'][data-theme][data-shell] .m-pickers .we-set-row > span:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)), :root[data-mode='light'][data-theme][data-shell] .m-pk-item > span:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { color: var(--text-dim); }
+:root[data-mode='light'][data-theme][data-shell] .m-pickers select:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)), :root[data-mode='light'][data-theme][data-shell] .m-pk-item > select:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: #e9e9ed; color: var(--text); }
+:root[data-mode='light'][data-theme][data-shell] .m-person-name:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { color: var(--text); }
+:root[data-mode='light'][data-theme][data-shell] .m-person-img:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background-color: #dcdce1; }
+:root[data-mode='light'][data-theme][data-shell] .nf-row-title:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { color: var(--text) !important; }
+:root[data-mode='light'][data-theme][data-shell] .mu-mini.inline:where(:not(:is(.nfd, .spot, .nf-hero, .mh-card, .we-player, .vplayer, .aud, .we-drawer, .we-menu, .we-ctx, .nfd-more) *)) { background: rgba(255, 255, 255, .92) !important; box-shadow: 0 8px 22px rgba(0, 0, 0, .18); }
+
+/* ───────── 平板（iPad 横屏）外壳 ───────── */
+:root[data-mode='light'] .tb-app { background: var(--surface-0); color: var(--text); }
+:root[data-mode='light'] .tb-side { background: #ececf0; border-right-color: rgba(0, 0, 0, .08); }
+:root[data-mode='light'] .tb-it { color: #5f5f66; }
+:root[data-mode='light'] .tb-it.on { color: var(--accent); background: rgba(229, 9, 20, .1); }
+:root[data-mode='light'] .tb-grp { color: #8e8e93; }
+:root[data-mode='light'] .tb-search { background: #e0e0e5; color: #6e6e73; }
+:root[data-mode='light'] .tb-ib { color: #4a4a50; }
+:root[data-mode='light'] .tb-app .mu-mini { background: rgba(255, 255, 255, .86) !important; border-color: rgba(0, 0, 0, .08); }
+:root[data-mode='light'] .tb-app .mu-mini-txt span { color: var(--text-dim); }
+
+/* ───────── 音乐页（不含全屏播放页） ───────── */
+:root[data-mode='light'] .mu-mini { box-shadow: 0 -4px 20px rgba(0, 0, 0, .1); }
+:root[data-mode='light'] .mu-mini-txt b { color: var(--text); }
+:root[data-mode='light'] .mu-queue, :root[data-mode='light'] .mu-menu, :root[data-mode='light'] .mu-dlg, :root[data-mode='light'] .mu-sleep { box-shadow: 0 12px 36px rgba(0, 0, 0, .2); }
+:root[data-mode='light'] .mu-dlg-mask, :root[data-mode='light'] .mu-menu-mask { background: rgba(0, 0, 0, .35); }
+:root[data-mode='light'] #mu-toast, :root[data-mode='light'] .mu-voltip { border: 1px solid rgba(0, 0, 0, .08); box-shadow: 0 6px 20px rgba(0, 0, 0, .16); }
+
+/* ───────── 深色岛：叠在图片 / 视频上的区域，令牌还原成深色 ───────── */
+:root[data-mode='light'][data-theme] :is(.we-player, .vplayer, .aud, .nfd, .spot, .nf-hero, .mh-card, .nf-hero-body, .mu-np, .we-ctx, .we-toast, .nfd-more, .we-drawer, .we-menu, .we-upnext) {
+  color-scheme: dark;
+  --surface-0: #000;
+  --surface-1: #141414;
+  --surface-2: #1a1a1c;
+  --surface-3: #262629;
+  --surface-glass: rgba(20, 20, 20, .92);
+  --accent: #e50914;
+  --accent-strong: #f6121d;
+  --accent-soft: rgba(229, 9, 20, .18);
+  --on-accent: #141414;
+  --text: #ffffff;
+  --text-dim: #b3b3b3;
+  --text-faint: #808080;
+  --border: #2a2a2d;
+  --border-soft: rgba(255, 255, 255, .1);
+  --hairline: rgba(255, 255, 255, .12);
+  --shadow: 0 2px 6px rgba(0, 0, 0, .5), 0 14px 34px rgba(0, 0, 0, .62);
+  color: #fff;
+}
+
+/* 手机小播放条的「播放 / 暂停」按钮：深色下是白字，浅色下改成深字 */
+:root[data-mode='light'] .mu-mini.inline .mu-ib-main { color: var(--text) !important; }
+:root[data-mode='light'] .mu-mini.inline .mu-ib-main:hover { background: transparent !important; }

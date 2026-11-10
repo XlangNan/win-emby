@@ -5,6 +5,7 @@ import { getSession, listAccounts, removeAccount, sameAccount, saveSession } fro
 import type { EmbyItem, Session } from '../emby/types';
 import { isAndroid } from '../lib/platform';
 import { applyFont, FONT_PRESETS, loadFont } from '../lib/font';
+import { applyMode, loadMode, MODE_LABELS, type ModePref } from '../lib/mode';
 import { introDbOn, loadIntroProxy, saveIntroProxy, setIntroDbOn } from '../lib/introdb';
 import { loadDanmaku, saveDanmaku, testDanmaku } from '../lib/danmaku';
 import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
@@ -335,6 +336,20 @@ function MpSettings() {
   );
 }
 
+function ModeSettings() {
+  const [m, setM] = useState<ModePref>(loadMode);
+  const pick = (v: ModePref): void => { setM(v); applyMode(v); };
+  return (
+    <div className="card we-set" style={{ marginBottom: 14 }}>
+      <h3>外观</h3>
+      <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+        {MODE_LABELS.map(([v, n]) => <button key={v} className={`tag ${m === v ? 'active' : ''}`} aria-pressed={m === v} onClick={() => pick(v)}>{n}</button>)}
+      </div>
+      <div className="muted" style={{ fontSize: 12, marginTop: 8 }}>浅色只改界面底色和文字；视频播放器、影片详情页和音乐的全屏播放页保持深色。</div>
+    </div>
+  );
+}
+
 function FontSettings() {
   const [f, setF] = useState(loadFont());
   const upd = (n: Partial<typeof f>): void => {
@@ -498,6 +513,7 @@ export default function ConfigPage() {
         <MpSettings />
         <DanmakuSettings />
 
+        <ModeSettings />
         <FontSettings />
 
         <div className="card we-set">
