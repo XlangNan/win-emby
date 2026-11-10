@@ -656,3 +656,10 @@
 .mu-aprog i { display: block; height: 100%; background: #f0414b; transition: width .2s; }
 .mu-more-btn { all: unset; display: block; margin: 14px auto 4px; padding: 9px 22px; border-radius: 18px; background: #1c1c20; color: #cfcfd6; font-size: 13px; cursor: pointer; }
 @media (max-width: 899px) { .mu-astats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .mu-atabs button { flex: 1; text-align: center; padding: 11px 0; } }
+
+/* 小播放条：渐显渐隐（只用透明度，不和 tablet 的 translateX 居中冲突） */
+@keyframes mu-mini-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mu-mini-out { from { opacity: 1; } to { opacity: 0; } }
+.mu-mini { animation: mu-mini-in .28s ease both; }
+.mu-mini.out { animation: mu-mini-out .26s ease both; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .mu-mini, .mu-mini.out { animation-duration: .01s; } }

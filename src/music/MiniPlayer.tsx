@@ -55,8 +55,17 @@ export default function MiniPlayer({ inline }: { inline?: boolean }) {
     return () => { document.documentElement.style.setProperty('--mini-h', '0px'); };
   }, [show, inline]);
   useEffect(() => { if (!show) setQ(false); }, [show]);
-  if (!show || !m.cur) return null;
-  const c = m.cur;
+  const lastCur = useRef(m.cur);
+  if (m.cur) lastCur.current = m.cur;
+  const [vis, setVis] = useState(show);
+  useEffect(() => {
+    if (show) { setVis(true); return; }
+    const t = window.setTimeout(() => setVis(false), 280);
+    return () => window.clearTimeout(t);
+  }, [show]);
+  const c = m.cur ?? lastCur.current;
+  if ((!show && !vis) || !c) return null;
+  const out = !show ? ' out' : '';
   const mode: 'order' | 'loop' | 'shuffle' | 'one' = m.shuffle ? 'shuffle' : m.repeat === 'one' ? 'one' : m.repeat === 'all' ? 'loop' : 'order';
   const cycleMode = (): void => {
     if (mode === 'order') { setShuffle(false); setRepeat('all'); }
@@ -67,7 +76,7 @@ export default function MiniPlayer({ inline }: { inline?: boolean }) {
   const pct = m.dur > 0 ? Math.min(100, (m.pos / m.dur) * 100) : 0;
   if (inline) {
     return (
-      <div className="mu-mini mu-scope inline" onTouchStart={(e) => { skip.current = !!(e.target as HTMLElement).closest('.mu-sl'); sy.current = e.touches[0].clientY; sx.current = e.touches[0].clientX; }} onTouchEnd={(e) => {
+      <div className={`mu-mini mu-scope inline${out}`} onTouchStart={(e) => { skip.current = !!(e.target as HTMLElement).closest('.mu-sl'); sy.current = e.touches[0].clientY; sx.current = e.touches[0].clientX; }} onTouchEnd={(e) => {
         if (skip.current) return;   // 在进度条上拖动不当作切歌 / 展开手势
         const dx = e.changedTouches[0].clientX - sx.current, dy = sy.current - e.changedTouches[0].clientY;
         if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) { if (dx < 0) next(); else prev(); }   // 左右滑：切歌
@@ -86,7 +95,7 @@ export default function MiniPlayer({ inline }: { inline?: boolean }) {
     );
   }
   return (
-    <div className="mu-mini mu-scope">
+    <div className={`mu-mini mu-scope${out}`}>
       <div className="mu-mini-left" role="button" tabIndex={0} onClick={() => setOpen(true)} onKeyDown={(e) => { if (e.key === 'Enter' && e.target === e.currentTarget) setOpen(true); }} title="打开播放页">
         <Cover id={c.coverArt} size={120} className="mu-mini-cv" label={c.title} />
         <div className="mu-mini-txt"><Marquee tag="b" text={c.title} loop /><BarSub /></div>
