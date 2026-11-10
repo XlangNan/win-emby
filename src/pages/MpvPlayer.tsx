@@ -735,7 +735,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         />
       )}
 
-      {inCredits && !inIntro && (
+      {inCredits && !inIntro && (nextEp || item?.Type !== 'Episode') && (
         <div className={`we-upnext${showUi ? ' up' : ''}`} onClick={(e) => e.stopPropagation()}>
           {nextEp ? (
             <>

@@ -663,3 +663,13 @@
 .mu-mini { animation: mu-mini-in .28s ease both; }
 .mu-mini.out { animation: mu-mini-out .26s ease both; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .mu-mini, .mu-mini.out { animation-duration: .01s; } }
+
+/* 进度条两侧的时间固定宽度 + 等宽数字：数字位数变化（0:59 → 1:00、拖动时剩余时间）不再把进度条挤长挤短 */
+.mu-np-prog > span, .mu-mini-prog > span { flex: none; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mu-np-prog > span { width: 52px; }
+.mu-np-prog > span:first-child { text-align: left; }
+.mu-np-prog > span:last-child { text-align: right; }
+.mu-mini-prog > span { width: 44px; }
+.mu-mini-prog > span:first-child { text-align: right; }
+.mu-mini-prog > span:last-child { text-align: left; }
+.mu-np-prog .mu-sl, .mu-mini-prog .mu-sl { min-width: 0; }
