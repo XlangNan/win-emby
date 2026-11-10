@@ -21,15 +21,16 @@ function loadSort(): { songs: Sort; albums: Sort } {
 }
 const coll = new Intl.Collator(['zh-Hans-CN-u-co-pinyin', 'zh-CN', 'zh'], { numeric: true, sensitivity: 'base' });
 
-function SortBar({ value, onChange, count, children }: { value: Sort; onChange: (s: Sort) => void; count: string; children?: React.ReactNode }) {
+function SortBar({ value, onChange, count, children, lead }: { value: Sort; onChange: (s: Sort) => void; count: string; children?: React.ReactNode; lead?: React.ReactNode }) {
   return (
     <div className="mu-sortbar">
+      {lead}
       <span className="mu-sortbar-n">{count}</span>
       <span className="mu-sortbar-sp" />
       {children}
       <span className="mu-seg" role="group" aria-label="排序方式">
-        <button type="button" className={value.k === 'year' ? 'on' : ''} onClick={() => onChange({ ...value, k: 'year' })}>年代</button>
-        <button type="button" className={value.k === 'name' ? 'on' : ''} onClick={() => onChange({ ...value, k: 'name' })}>名称</button>
+        <button type="button" className={`mu-sg${value.k === 'year' ? ' on' : ''}`} onClick={() => onChange({ ...value, k: 'year' })}>年代</button>
+        <button type="button" className={`mu-sg${value.k === 'name' ? ' on' : ''}`} onClick={() => onChange({ ...value, k: 'name' })}>名称</button>
       </span>
       <button type="button" className="mu-seg-dir" aria-label={value.d === 1 ? '升序' : '降序'} onClick={() => onChange({ ...value, d: value.d === 1 ? -1 : 1 })}>{value.d === 1 ? '升序 ↑' : '降序 ↓'}</button>
     </div>
@@ -94,7 +95,7 @@ function useBio(name: string, id: string): string | null {
 const topCache = new Map<string, Song[]>();
 const fmtDur = (sec: number): string => (sec >= 3600 ? `${Math.floor(sec / 3600)} 小时 ${Math.round((sec % 3600) / 60)} 分钟` : `${Math.round(sec / 60)} 分钟`);
 
-export default function ArtistView({ id, name, cover, albums }: { id: string; name: string; cover: string; albums: Album[] }) {
+export default function ArtistView({ id, name, cover, albums, back }: { id: string; name: string; cover: string; albums: Album[]; back?: React.ReactNode }) {
   const [tab, setTab] = useState<TabKey>(() => { const v = localStorage.getItem(TAB_KEY); return TABS.find((t) => t[0] === v)?.[0] || 'info'; });
   const [sort, setSort] = useState(loadSort);
   const [pending, setPending] = useState<'play' | 'shuffle' | null>(null);
@@ -162,20 +163,22 @@ export default function ArtistView({ id, name, cover, albums }: { id: string; na
 
   return (
     <>
-      <div className="mu-dhead">
-        <Cover id={cover} size={400} radius="50%" className="mu-dhead-cv" label={name} />
-        <div className="mu-dhead-info">
-          <div className="mu-dhead-t">{name}</div>
-          <div className="mu-dhead-meta">艺术家 · {albums.length} 张专辑{songTotal ? ` · ${songTotal} 首歌` : ''}</div>
-          <div className="mu-dhead-btns">
-            <button type="button" className="primary" disabled={!albums.length || busy} onClick={() => setPending('play')}><Ic n="play" size={18} /> {busy && pending === 'play' ? `读取中 ${done}/${total}` : '播放全部'}</button>
-            <button type="button" disabled={!albums.length || busy} onClick={() => setPending('shuffle')}><Ic n="shuffle" size={18} /> {busy && pending === 'shuffle' ? `读取中 ${done}/${total}` : '随机'}</button>
+      <div className="mu-ahero">
+        <Cover id={cover} size={600} radius={0} className="mu-ahero-cv" label={name} />
+        <div className="mu-ahero-shade" />
+        {back && <div className="mu-ahero-back">{back}</div>}
+        <div className="mu-ahero-info">
+          <div className="mu-ahero-t">{name}</div>
+          <div className="mu-ahero-s">{albums.length} 张专辑{songTotal ? ` · ${songTotal} 首歌` : ''}</div>
+          <div className="mu-ahero-acts">
+            <button type="button" className="mu-ahero-a" disabled={!albums.length || busy} onClick={() => setPending('play')}>▶ {busy && pending === 'play' ? `读取中 ${done}/${total}` : '播放全部'}</button>
+            <button type="button" className="mu-ahero-a" disabled={!albums.length || busy} onClick={() => setPending('shuffle')}>⇄ {busy && pending === 'shuffle' ? `读取中 ${done}/${total}` : '随机'}</button>
           </div>
         </div>
       </div>
 
       <div className="mu-atabs" role="tablist">
-        {TABS.map(([t, n]) => <button key={t} type="button" role="tab" aria-selected={tab === t} className={tab === t ? 'on' : ''} onClick={() => pick(t)}>{n}</button>)}
+        {TABS.map(([t, n]) => <button key={t} type="button" role="tab" aria-selected={tab === t} className={`mu-at${tab === t ? ' on' : ''}`} onClick={() => pick(t)}>{n}</button>)}
       </div>
 
       {tab === 'info' && (
@@ -199,7 +202,7 @@ export default function ArtistView({ id, name, cover, albums }: { id: string; na
           </section>
           {top && top.length > 0 && (
             <section className="mu-sec">
-              <div className="mu-sec-head"><h3>热门歌曲</h3><button type="button" className="primary" onClick={() => playQueue(top, 0)}><Ic n="play" size={16} /> 播放热门</button></div>
+              <div className="mu-sec-head"><h3>热门歌曲</h3><button type="button" className="mu-link" onClick={() => playQueue(top, 0)}>▶ 播放热门</button></div>
               <div className="mu-songs">{top.slice(0, 10).map((s, i) => <SongRow key={s.id} s={s} i={i} list={top} showCover />)}</div>
             </section>
           )}
@@ -208,7 +211,8 @@ export default function ArtistView({ id, name, cover, albums }: { id: string; na
 
       {tab === 'songs' && (
         <section className="mu-sec">
-          <SortBar value={sort.songs} onChange={(s) => setS('songs', s)} count={finished ? `${songs.length} 首` : `已读取 ${done} / ${total} 张专辑 · ${songs.length} 首`} />
+          <SortBar value={sort.songs} onChange={(s) => setS('songs', s)} count={finished ? `${songs.length} 首 · ${fmtDur(songs.reduce((a, x) => a + x.duration, 0))}` : `已读取 ${done} / ${total} 张专辑 · ${songs.length} 首`}
+            lead={<button type="button" className="mu-aplay" aria-label="播放全部" disabled={!albums.length || busy} onClick={() => setPending('play')}><Ic n="play" size={18} /></button>} />
           {!finished && <div className="mu-aprog"><i style={{ width: `${total ? (done / total) * 100 : 0}%` }} /></div>}
           <div className="mu-songs">
             {sortedSongs.slice(0, cap).map((s, i) => <SongRow key={`${s.id}-${i}`} s={s} i={i} list={sortedSongs} showCover />)}

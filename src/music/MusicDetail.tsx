@@ -60,7 +60,7 @@ export default function MusicDetail() {
   const x = d.data;
   return (
     <div className="content mu-page mu-scope">
-      <div style={{ padding: '4px 0 10px' }}><BackButton fallback="/music" /></div>
+      {kind !== 'artist' && <div style={{ padding: '4px 0 10px' }}><BackButton fallback="/music" /></div>}
       {d.error && <div className="err">{d.error}<button style={{ marginLeft: 10 }} onClick={d.reload}>重试</button></div>}
       {!x && !d.error && <div className="empty"><span className="spinner" aria-hidden="true" />加载中…</div>}
       {x && kind !== 'artist' && (
@@ -78,7 +78,7 @@ export default function MusicDetail() {
           {kind === 'album' && x.songs.length > 0 && <div className="muted" style={{ padding: '14px 4px', fontSize: 12 }}>总时长 {fmtTime(x.songs.reduce((a, s) => a + s.duration, 0))}</div>}
         </>
       )}
-      {x && kind === 'artist' && <ArtistView id={id || ''} name={x.title} cover={x.cover} albums={x.albums} />}
+      {x && kind === 'artist' && <ArtistView id={id || ''} name={x.title} cover={x.cover} albums={x.albums} back={<BackButton fallback="/music" />} />}
     </div>
   );
 }
