@@ -131,7 +131,7 @@
 .app.nf { padding-bottom: var(--mini-h, 0px); box-sizing: border-box; }
 
 /* ═════════ 网易云风格 ═════════ */
-.mu-wy { display: flex; gap: 0; padding: 0 !important; max-width: none; }
+.mu-wy { display: flex; align-items: flex-start; gap: 0; padding: 0 !important; max-width: none; }   /* flex-start：内容区按自己的高度撑开，外层 .content 的底部留白才会算进滚动范围（默认 stretch 会把留白吞掉，导致最后一行被悬浮导航盖住） */
 .mu-side { width: 210px; flex: none; padding: 14px 10px; box-sizing: border-box; position: sticky; top: 0; align-self: flex-start; max-height: calc(100vh - var(--mini-h, 0px) - 60px); overflow-y: auto; scrollbar-width: none; }
 .mu-side::-webkit-scrollbar { display: none; }
 .mu-side-g { display: flex; align-items: center; justify-content: space-between; padding: 14px 12px 6px; font-size: 12px; color: #8f8f98; letter-spacing: 1px; }
@@ -600,8 +600,6 @@
 
 /* ───────── 触屏：手指滑过后不残留 hover 高亮；点按不闪灰块 ───────── */
 .mu-song, .mu-prow, .mu-qrow, .mu-rank, .mu-card, .mu-side-i, .mu-np-qrow { -webkit-tap-highlight-color: transparent; }
-/* 安卓 / iPad 手机外壳：音乐页内容区自己再垫一层底部空间（不依赖外层 .content 的 padding 是否被算进滚动高度） */
-:root.android[data-shell] .mu-wy .mu-main { padding-bottom: calc(var(--m-dock, 0px) + env(safe-area-inset-bottom) + 18px); }
 
 /* ───────── 播放页：歌词字号 / 延迟面板、黑胶下三行歌词 ───────── */
 .mu-np .mu-lyr-l { font-size: calc(26px * var(--lyr-scale, 1)); }
