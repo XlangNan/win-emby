@@ -120,6 +120,15 @@ final class WeaveBoot: NSObject, WKScriptMessageHandlerWithReply {
             let e = mpv_set_option_string(m, k, v)
             if e < 0 { NSLog("[Weave] 选项 \(k)=\(v) 无效：\(String(cString: mpv_error_string(e)))") }
         }
+        // 字幕字体：iOS 的 libass 找不到系统中文字体，会显示方框，并且每帧都重新搜字体导致卡顿。
+        // CI 打包时把一个中文字体放进 App 里的 fonts 目录，这里让 libass 从那里找。
+        let fontsDir = Bundle.main.bundlePath + "/fonts"
+        if FileManager.default.fileExists(atPath: fontsDir) {
+            _ = mpv_set_option_string(m, "sub-fonts-dir", fontsDir)
+            NSLog("[Weave] 字幕字体目录：\(fontsDir)")
+        } else {
+            NSLog("[Weave] 没有 fonts 目录，中文字幕会显示方框")
+        }
         // HDR 直通只在真正有 HDR（EDR）屏幕的设备上才开；普通屏幕一律由 mpv 色调映射成 SDR，否则颜色发灰 / 偏色
         var hdrScreen = false
         if #available(iOS 16.0, *) { hdrScreen = UIScreen.main.potentialEDRHeadroom > 1.5 }

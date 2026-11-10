@@ -105,6 +105,15 @@ export const nd = {
     const r = await call<{ artist: Obj & { album?: Obj[] } }>('getArtist', { id });
     return { artist: artist(r.artist), albums: arr(r.artist.album).map(album) };
   },
+  /** Navidrome 自带的歌手简介（要服务器配了 Last.fm 等才有内容，没有就返回空串） */
+  async artistBio(id: string): Promise<string> {
+    const r = await call<{ artistInfo2?: { biography?: string } }>('getArtistInfo2', { id });
+    const h = r.artistInfo2?.biography || '';
+    if (!h) return '';
+    // DOMParser 解析的文档不会执行脚本 / 加载图片，比 innerHTML 安全
+    const t = (new DOMParser().parseFromString(h, 'text/html').body.textContent || '').replace(/\s*Read more on Last\.fm\.?\s*$/i, '').trim();
+    return t;
+  },
   async playlists(): Promise<Playlist[]> {
     const r = await call<{ playlists?: { playlist?: Obj[] } }>('getPlaylists');
     return arr(r.playlists?.playlist).map((p) => ({ id: s(p.id), name: s(p.name), songCount: n(p.songCount), duration: n(p.duration), coverArt: s(p.coverArt || p.id) }));

@@ -96,7 +96,9 @@ function openAndroid(o: MpvOpenOpts): Promise<MpvSession> {
           // 平板 GPU 吃不消默认的高质量缩放 / 峰值检测：全部用最轻的
           scale: 'bilinear', cscale: 'bilinear', dscale: 'bilinear',
           'correct-downscaling': 'no', 'sigmoid-upscaling': 'no', deband: 'no', 'dither-depth': 'no',
-          interpolation: 'no', 'hdr-compute-peak': 'no', 'blend-subtitles': 'no',
+          interpolation: 'no', 'blend-subtitles': 'no',
+          // HDR → SDR：逐帧检测实际峰值亮度 + mobius（保留中间调亮度），否则按片源标称的 4000~10000 尼特压缩，整体发深
+          'hdr-compute-peak': 'yes', 'tone-mapping': 'mobius',
           'vd-lavc-dr': 'yes',
           // 高码率片源网络抖动时多缓冲一些
           'demuxer-max-bytes': '160MiB', 'demuxer-max-back-bytes': '48MiB', 'demuxer-readahead-secs': '90',

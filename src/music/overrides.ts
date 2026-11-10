@@ -3,6 +3,7 @@ import { useSyncExternalStore } from 'react';
 
 const LRC = 'wemby-lrc:';
 const COV = 'wemby-cover:';
+const OFF = 'wemby-lrcoff:';
 const covMem = new Map<string, string | null>();
 let ver = 0;
 const subs = new Set<() => void>();
@@ -16,6 +17,15 @@ export function setLrcOverride(songId: string, text: string | null): boolean {
   try { if (text && text.trim()) localStorage.setItem(LRC + songId, text); else localStorage.removeItem(LRC + songId); } catch { ok = false; }   // 空间不够
   if (ok) bump();
   return ok;
+}
+/** 歌词延迟（秒，按歌曲分别记住）：正数 = 歌词晚出现，负数 = 歌词早出现 */
+export function getLrcOffset(songId: string): number {
+  try { const v = Number(localStorage.getItem(OFF + songId)); return Number.isFinite(v) ? v : 0; } catch { return 0; }
+}
+export function setLrcOffset(songId: string, sec: number): void {
+  const v = Math.max(-10, Math.min(10, Math.round(sec * 10) / 10));
+  try { if (v) localStorage.setItem(OFF + songId, String(v)); else localStorage.removeItem(OFF + songId); } catch { /* ignore */ }
+  bump();
 }
 export function getCoverOverride(coverId: string): string {
   if (!coverId) return '';

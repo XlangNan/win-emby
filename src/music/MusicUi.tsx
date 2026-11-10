@@ -155,7 +155,7 @@ export function SongRow({ s, i, list, showCover, ctx, showAlbum = true }: { s: S
     nd.star(s.id, v).catch(() => setStar(!v)).finally(notifyStarred);
   };
   return (
-    <div className={`mu-song${active ? ' active' : ''}`} role="button" tabIndex={0} onClick={(e) => {
+    <div className={`mu-song${active ? ' active' : ''}`} data-sid={s.id} role="button" tabIndex={0} onClick={(e) => {
       // 点在按钮 / 菜单上、或刚关掉菜单的瞬间，都不算「点这一行播放」
       if ((e.target as HTMLElement).closest('button, [role="menu"], .mu-menu-mask')) return;
       if (menu || Date.now() - lastMenuClose < 450) return;
@@ -255,4 +255,59 @@ export function VolumeBox({ className, children }: { className?: string; childre
     return () => { el.removeEventListener('wheel', on); window.clearTimeout(tm.current); };
   }, []);
   return <span ref={ref} className={`mu-volbox ${className || ''}`}>{children}{tip && <i className="mu-voltip">{tip}</i>}</span>;
+}
+
+/** 歌曲列表右下角的两个悬浮按钮：定位正在播放的歌曲（它就在这个列表里时才出现）/ 回到顶端（滚下来之后才出现） */
+export function ListFab({ songs, onBeforeLocate }: { songs?: Song[]; onBeforeLocate?: (id: string) => void }) {
+  const m = useMusic();
+  const anchor = useRef<HTMLSpanElement>(null);
+  const sc = useRef<HTMLElement | Window>(window);
+  const [far, setFar] = useState(false);
+  useEffect(() => {
+    let e: HTMLElement | null = anchor.current?.parentElement || null;
+    let box: HTMLElement | Window = window;
+    while (e) { const o = getComputedStyle(e).overflowY; if (o === 'auto' || o === 'scroll') { box = e; break; } e = e.parentElement; }
+    sc.current = box;
+    const top = (): number => (box instanceof Window ? window.scrollY : box.scrollTop);
+    const f = (): void => setFar(top() > 420);
+    f();
+    box.addEventListener('scroll', f, { passive: true });
+    return () => box.removeEventListener('scroll', f);
+  }, []);
+  const id = m.cur?.id;
+  const has = !!id && !!songs?.some((x) => x.id === id);
+  const locate = (): void => {
+    if (!id) return;
+    onBeforeLocate?.(id);
+    // 等列表（可能刚展开了更多行）渲染完再找那一行
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const row = document.querySelector<HTMLElement>(`[data-sid="${CSS.escape(id)}"]`);
+      if (!row) { toast('当前列表里找不到这首歌'); return; }
+      row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      row.classList.remove('mu-song-flash');
+      void row.offsetWidth;
+      row.classList.add('mu-song-flash');
+      window.setTimeout(() => row.classList.remove('mu-song-flash'), 1600);
+    }));
+  };
+  const toTop = (): void => { sc.current.scrollTo({ top: 0, behavior: 'smooth' }); };
+  return (
+    <>
+      <span ref={anchor} style={{ display: 'none' }} />
+      {(has || far) && (
+        <div className="mu-fab" role="group" aria-label="列表快捷操作">
+          {has && (
+            <button type="button" className="mu-fab-b" aria-label="定位到正在播放的歌曲" title="定位到正在播放的歌曲" onClick={locate}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2" /><circle cx="12" cy="12" r="7.5" /><path d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3" /></svg>
+            </button>
+          )}
+          {far && (
+            <button type="button" className="mu-fab-b" aria-label="回到顶端" title="回到顶端" onClick={toTop}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 5h14M6 15l6-6 6 6M12 9v11" /></svg>
+            </button>
+          )}
+        </div>
+      )}
+    </>
+  );
 }

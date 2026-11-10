@@ -321,8 +321,8 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           const v = mst.find((x) => x.Type === 'Video');
           const tag = `${v?.VideoRangeType ?? ''} ${v?.ExtendedVideoSubType ?? ''} ${v?.ExtendedVideoSubTypeDescription ?? ''} ${v?.DvProfile ?? ''}`.toLowerCase();
           const p5 = /profile\s*5|doviprofile50|dovi50/.test(tag) || String(v?.VideoRangeType ?? '').toLowerCase() === 'dovi' || Number(v?.DvProfile) === 5;
-          // iOS 用 VideoToolbox（先零拷贝，不行退到拷贝模式）；mediacodec 是安卓专用，iOS 上写它会变成 CPU 软解
-          await sess.set('hwdec', isIOS ? 'videotoolbox,videotoolbox-copy' : p5 ? 'no' : 'mediacodec-copy');
+          // iOS 用 VideoToolbox（先零拷贝，不行退到拷贝模式）；mediacodec 是安卓专用，iOS 上写它会变成 CPU 软解。杜比 P5 两端都改软解（硬解丢 RPU，颜色会偏紫偏绿）
+          await sess.set('hwdec', p5 ? 'no' : isIOS ? 'videotoolbox,videotoolbox-copy' : 'mediacodec-copy');
         }
         const pick = pickInitialTracks(id, mst, loadPlayPrefs(), {
           audio: qs.get('aud') ? Number(qs.get('aud')) : undefined,

@@ -4,12 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { Cover, fmtTime, Ic, Slider, VolumeBox } from './MusicUi';
 import { leaveOverlaysThen, useBackClose } from './useBackClose';
 import { coverUrl, nd } from './navidrome';
-import { activeLine, useLyrics } from './lyrics';
+import { activeLine, useLrcOffset, useLyrics } from './lyrics';
+import { setLrcOffset } from './overrides';
+import { LYR_SIZES, LYR_SIZE_NAMES, saveOpts, useOpts } from './prefs';
 import { openMatch } from './MatchDialog';
 import { cycleRepeat, next, playIndex, prev, removeAt, seek, setOpen, setShuffle, setSleep, setStarred, notifyStarred, setVolume, stopMusic, togglePlay, useMusic, musicState, useMusicPos } from './player';
 
 const musicPos = (): number => musicState().pos;
 const SLEEPS = [15, 30, 45, 60, 90];
+const fmtOff = (o: number): string => (o === 0 ? '无' : o > 0 ? `延后 ${o.toFixed(1)} 秒` : `提前 ${(-o).toFixed(1)} 秒`);
 
 export default function NowPlaying() {
   const m = useMusicPos();
@@ -20,18 +23,22 @@ export default function NowPlaying() {
   const [star, setStar] = useState(false);
   const [lyrMode, setLyrMode] = useState(false); // 手机：点碟片切换歌词
   const [sleepOpen, setSleepOpen] = useState(false);
+  const [setOpenPanel, setSetOpenPanel] = useState(false);   // 歌词设置面板（字号 / 延迟）
+  const opts = useOpts();
   const [dragPos, setDragPos] = useState<number | null>(null);
   const userTs = useRef(0);      // 手指 / 滚轮碰过歌词的时间：之后几秒不自动滚动
   const anim = useRef(0);
   const g0 = useRef<{ x: number; y: number } | null>(null);
-  useEffect(() => { if (!m.open) { setQueueOpen(false); setSleepOpen(false); setLyrMode(false); } }, [m.open]);
+  useEffect(() => { if (!m.open) { setQueueOpen(false); setSleepOpen(false); setSetOpenPanel(false); setLyrMode(false); } }, [m.open]);
   useBackClose(m.open, () => setOpen(false));
   useBackClose(m.open && queueOpen, () => setQueueOpen(false));
   useBackClose(m.open && sleepOpen, () => setSleepOpen(false));
+  useBackClose(m.open && setOpenPanel, () => setSetOpenPanel(false));
   const cur = m.cur;
+  const off = useLrcOffset(cur?.id);
   useEffect(() => setStar(!!cur?.starred), [cur?.id, cur?.starred]);
 
-  const active = activeLine(lyr, m.pos);
+  const active = activeLine(lyr, m.pos, off);
   useEffect(() => {
     if (!m.open || active < 0) return;
     const sc = box.current;
@@ -82,7 +89,7 @@ export default function NowPlaying() {
   const quality = [cur.suffix.toUpperCase(), cur.bitDepth ? `${cur.bitDepth}bit` : '', cur.samplingRate ? `${(cur.samplingRate / 1000).toFixed(cur.samplingRate % 1000 ? 1 : 0)}kHz` : '', cur.bitRate ? `${cur.bitRate}kbps` : ''].filter(Boolean).join(' · ');
 
   return (
-    <div className="mu-np mu-scope" role="dialog" aria-label="正在播放"
+    <div className="mu-np mu-scope" role="dialog" aria-label="正在播放" style={{ ['--lyr-scale' as string]: LYR_SIZES[opts.lyrSize] }}
       onTouchStart={(e) => { const t = e.target as HTMLElement; g0.current = t.closest('.mu-np-right, .mu-sl, .mu-np-btns, .mu-np-foot') ? null : { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
       onTouchEnd={(e) => {
         const g = g0.current; g0.current = null;
@@ -96,6 +103,31 @@ export default function NowPlaying() {
         <button type="button" className="mu-ib" aria-label="收起" onClick={() => setOpen(false)}><Ic n="down" size={26} /></button>
         <span className="mu-np-top-t">正在播放</span>
         <button type="button" className="mu-ib" aria-label="搜索歌词和封面" title="搜索 / 匹配歌词与封面" onClick={() => openMatch(cur)}><Ic n="search" size={22} /></button>
+        <span className="mu-lset-w">
+          <button type="button" className={`mu-ib${setOpenPanel ? ' on' : ''}`} aria-label="歌词设置" title="歌词字体大小 / 延迟" onClick={() => setSetOpenPanel((v) => !v)}><span className="mu-ci">Aa</span></button>
+          {setOpenPanel && (
+            <>
+              <div className="mu-pop-mask" onClick={() => setSetOpenPanel(false)} />
+              <div className="mu-lset" role="dialog" aria-label="歌词设置">
+                <div className="mu-lset-r"><b>字体大小</b><span>{LYR_SIZE_NAMES[opts.lyrSize]}</span></div>
+                <div className="mu-lset-b">
+                  <button type="button" aria-label="减小字号" disabled={opts.lyrSize <= 0} onClick={() => saveOpts({ lyrSize: opts.lyrSize - 1 })}>A−</button>
+                  <input type="range" min={0} max={LYR_SIZES.length - 1} step={1} value={opts.lyrSize} aria-label="字体大小" onChange={(e) => saveOpts({ lyrSize: Number(e.target.value) })} style={{ ['--p' as string]: `${(opts.lyrSize / (LYR_SIZES.length - 1)) * 100}%` }} />
+                  <button type="button" aria-label="增大字号" disabled={opts.lyrSize >= LYR_SIZES.length - 1} onClick={() => saveOpts({ lyrSize: opts.lyrSize + 1 })}>A+</button>
+                </div>
+                <div className="mu-lset-r"><b>歌词延迟</b><span>{fmtOff(off)}</span></div>
+                <div className="mu-lset-b mu-lset-off">
+                  <button type="button" onClick={() => setLrcOffset(cur.id, off - 0.5)}>−0.5</button>
+                  <button type="button" onClick={() => setLrcOffset(cur.id, off - 0.1)}>−0.1</button>
+                  <button type="button" className="rs" disabled={off === 0} onClick={() => setLrcOffset(cur.id, 0)}>重置</button>
+                  <button type="button" onClick={() => setLrcOffset(cur.id, off + 0.1)}>+0.1</button>
+                  <button type="button" onClick={() => setLrcOffset(cur.id, off + 0.5)}>+0.5</button>
+                </div>
+                <div className="mu-lset-tip">「−」歌词提前出现，「+」歌词延后出现。只对这首歌生效，下次播放自动沿用。</div>
+              </div>
+            </>
+          )}
+        </span>
         <button type="button" className={`mu-ib mu-np-lyrbtn${lyrMode ? ' on' : ''}`} aria-label="歌词" onClick={() => { setQueueOpen(false); setLyrMode((v) => !v); }}><span className="mu-ci">词</span></button>
         <button type="button" className="mu-ib" aria-label="播放队列" onClick={() => setQueueOpen((v) => !v)}><Ic n="list" /></button>
       </div>
@@ -114,8 +146,16 @@ export default function NowPlaying() {
               {cur.album && <> · <a href="#b" onClick={(e) => { e.preventDefault(); if (cur.albumId) leaveOverlaysThen(() => nav(`/music/album/${cur.albumId}`)); }}>{cur.album}</a></>}
             </div>
             <div className="mu-np-q">{quality}</div>
-            {!lyrMode && <div className="mu-np-hint">点唱片或右上角「词」查看歌词 · 左右滑动切歌 · 下滑收起</div>}
           </div>
+          {!lyrMode && !queueOpen && lyr?.synced && lyr.lines.length > 0 && (
+            <div className="mu-np-l3" onClick={() => setLyrMode(true)}>
+              {[-1, 0, 1].map((d) => {
+                const idx = Math.max(active, 0) + d;
+                const t = lyr.lines[idx]?.text.trim();
+                return <div key={idx} className={`mu-np-l3-l${d === 0 && active >= 0 ? ' on' : ''}`}>{t || ' '}</div>;
+              })}
+            </div>
+          )}
         </div>
         <div className="mu-np-right" ref={box} data-noscrollbar="" onTouchStart={() => { userTs.current = Date.now(); cancelAnimationFrame(anim.current); }} onTouchMove={() => { userTs.current = Date.now(); }} onWheel={() => { userTs.current = Date.now(); cancelAnimationFrame(anim.current); }}>
           {queueOpen ? (
@@ -134,7 +174,7 @@ export default function NowPlaying() {
               <div className="mu-lyr">
                 {lyr.lines.map((l, i) => (
                   <div key={i} data-active={i === active ? '1' : undefined} className={`mu-lyr-l${i === active ? ' on' : ''}${lyr.synced ? '' : ' plain'}`}
-                    onClick={() => { if (lyr.synced) seek(l.t); }}>{l.text || ' '}</div>
+                    onClick={() => { if (lyr.synced) seek(Math.max(0, l.t + off)); }}>{l.text || ' '}</div>
                 ))}
                 <button type="button" className="mu-np-fix" onClick={() => cur && openMatch(cur)}>歌词不对？点此匹配</button>
               </div>

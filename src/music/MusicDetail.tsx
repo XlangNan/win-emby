@@ -1,15 +1,14 @@
 // 专辑 / 歌单 / 艺术家详情
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import BackButton from '../components/BackButton';
 import { useCachedAsync } from '../lib/useAsync';
-import { Cover, fmtTime, Ic, SongRow } from './MusicUi';
+import { Cover, fmtTime, Ic, ListFab, SongRow } from './MusicUi';
+import ArtistView from './ArtistView';
 import { AlbumCard } from './MusicPage';
 import { loadNd, nd, type Album, type Song } from './navidrome';
 import { askConfirm, toast } from './Dialog';
 import { enqueue, playQueue, shuffled } from './player';
-
-const topCache = new Map<string, Song[]>();
 
 function Head({ cover, title, sub, meta, songs, extra }: { cover: string; title: string; sub?: React.ReactNode; meta: string; songs: Song[]; extra?: React.ReactNode }) {
   const go = (shuffle: boolean): void => {
@@ -57,19 +56,6 @@ export default function MusicDetail() {
     },
     60 * 1000,
   );
-  // 热门歌曲：Navidrome 要去 Last.fm 之类的外部服务查，可能很慢甚至超时 —— 放后台加载，不挡住专辑列表
-  const [top, setTop] = useState<Song[] | null>(null);
-  const artistName = kind === 'artist' ? d.data?.title : undefined;
-  useEffect(() => {
-    setTop(null);
-    if (!artistName) return;
-    const hit = topCache.get(artistName);
-    if (hit) { setTop(hit); return; }
-    let dead = false;
-    const t = new Promise<Song[]>((res) => window.setTimeout(() => res([]), 8000));
-    Promise.race([nd.topSongs(artistName, 15).catch(() => [] as Song[]), t]).then((l) => { if (l.length) topCache.set(artistName, l); if (!dead) setTop(l); });
-    return () => { dead = true; };
-  }, [artistName]);
   useEffect(() => { if (kind !== 'playlist') return; const f = (): void => d.reload(); window.addEventListener('wemby-nd-playlists', f); return () => window.removeEventListener('wemby-nd-playlists', f); }, [kind, d]);
   const x = d.data;
   return (
@@ -88,24 +74,11 @@ export default function MusicDetail() {
               ctx={kind === 'playlist' ? { onRemove: () => { nd.removeFromPlaylist(id || '', i).then(() => { window.dispatchEvent(new Event('wemby-nd-playlists')); d.reload(); }, (e: Error) => toast(e.message)); } } : undefined} />)}
           </div>
           {x.songs.length === 0 && <div className="empty">这里还没有歌曲</div>}
+          <ListFab songs={x.songs} />
           {kind === 'album' && x.songs.length > 0 && <div className="muted" style={{ padding: '14px 4px', fontSize: 12 }}>总时长 {fmtTime(x.songs.reduce((a, s) => a + s.duration, 0))}</div>}
         </>
       )}
-      {x && kind === 'artist' && (
-        <>
-          <div className="mu-dhead">
-            <Cover id={x.cover} size={400} radius="50%" className="mu-dhead-cv" label={x.title} />
-            <div className="mu-dhead-info"><div className="mu-dhead-t">{x.title}</div><div className="mu-dhead-meta">艺术家 · {x.albums.length} 张专辑</div></div>
-          </div>
-          {top && top.length > 0 && (
-            <section className="mu-sec">
-              <div className="mu-sec-head"><h3>热门歌曲</h3><button type="button" className="primary" onClick={() => playQueue(top, 0)}><Ic n="play" size={16} /> 播放热门</button></div>
-              <div className="mu-songs">{top.slice(0, 10).map((s, i) => <SongRow key={s.id} s={s} i={i} list={top} showCover />)}</div>
-            </section>
-          )}
-          <section className="mu-sec"><h3>专辑 · {x.albums.length}</h3><div className="mu-grid">{x.albums.map((a) => <AlbumCard key={a.id} a={a} />)}</div></section>
-        </>
-      )}
+      {x && kind === 'artist' && <ArtistView id={id || ''} name={x.title} cover={x.cover} albums={x.albums} />}
     </div>
   );
 }

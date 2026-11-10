@@ -98,3 +98,33 @@ export async function imageToData(blob: Blob): Promise<string> {
   bmp.close();
   return c.toDataURL('image/jpeg', 0.86);
 }
+
+/** 歌手简介：netease-api 先按名字搜歌手（歌手名或别名要完全对得上才采用，避免串到同名别人），再取 /artist/desc。没配 netease-api 返回空串 */
+export async function fetchArtistBio(name: string): Promise<string> {
+  const o = loadOpts();
+  if (!o.neteaseApi || !name.trim()) return '';
+  const base = withBase(o.neteaseApi);
+  type S = { result?: { artists?: { id: number; name: string; alias?: string[]; alia?: string[] }[] } };
+  const kw = encodeURIComponent(name.trim());
+  let r: S;
+  try { r = await getJson<S>(`${base}/cloudsearch?keywords=${kw}&type=100&limit=5`); }
+  catch (e1) {
+    try { r = await getJson<S>(`${base}/search?keywords=${kw}&type=100&limit=5`); }
+    catch { throw e1; }
+  }
+  const n = (t: string): string => t.toLowerCase().replace(/[\s·.\-_()（）\[\]【】'"]/g, '');
+  const want = n(name);
+  const hit = (r.result?.artists || []).find((a) => n(a.name) === want || [...(a.alias || []), ...(a.alia || [])].some((x) => n(x) === want));
+  if (!hit) return '';
+  type D = { briefDesc?: string; introduction?: { ti?: string; txt?: string }[] };
+  const d = await getJson<D>(`${base}/artist/desc?id=${hit.id}`);
+  const brief = str(d.briefDesc).trim();
+  const parts: string[] = [];
+  if (brief) parts.push(brief);
+  for (const x of d.introduction || []) {
+    const txt = str(x.txt).trim();
+    if (!txt || txt === brief) continue;
+    parts.push(x.ti ? `【${str(x.ti).trim()}】\n${txt}` : txt);
+  }
+  return parts.join('\n\n');
+}

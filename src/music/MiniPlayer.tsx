@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, useLayoutEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Cover, fmtTime, Ic, Slider, VolumeBox } from './MusicUi';
-import { activeLine, useLyrics } from './lyrics';
+import { activeLine, useLrcOffset, useLyrics } from './lyrics';
 import { saveOpts, useOpts } from './prefs';
 import { nd } from './navidrome';
 import { useBackClose } from './useBackClose';
@@ -125,8 +125,9 @@ function BarSub() {
   const o = useOpts();
   const c = m.cur;
   const lyr = useLyrics(o.barLyric ? c : null);
+  const off = useLrcOffset(c?.id);
   if (!c) return null;
-  const i = o.barLyric ? activeLine(lyr, m.pos) : -1;
+  const i = o.barLyric ? activeLine(lyr, m.pos, off) : -1;
   const line = i >= 0 ? lyr?.lines[i].text.trim() : '';
   if (m.error) return <span>{m.error}</span>;
   if (line && lyr) {

@@ -1,7 +1,7 @@
 // 歌词：本机覆盖 > 服务器歌词。播放页和底部播放条共用一份缓存。
 import { useEffect, useState } from 'react';
 import { nd, parseLrc, type Song } from './navidrome';
-import { getLrcOverride, setLrcOverride, useOverrideVer } from './overrides';
+import { getLrcOffset, getLrcOverride, setLrcOverride, useOverrideVer } from './overrides';
 import { fetchLyric, onlineConfigured, searchOnline } from './online';
 import { loadOpts } from './prefs';
 
@@ -66,11 +66,18 @@ export function useLyrics(s: Song | null): Lyr | null {
 }
 
 /** 当前播放到第几行（-1 = 还没到第一句 / 不是逐行歌词） */
-export function activeLine(l: Lyr | null, pos: number): number {
+export function activeLine(l: Lyr | null, pos: number, off = 0): number {
   if (!l?.synced) return -1;
+  const p = pos - off;   // off > 0：歌词延后；off < 0：歌词提前
   let a = -1;
-  for (let i = 0; i < l.lines.length; i++) { if (l.lines[i].t <= pos + 0.25) a = i; else break; }
+  for (let i = 0; i < l.lines.length; i++) { if (l.lines[i].t <= p + 0.25) a = i; else break; }
   return a;
+}
+
+/** 这首歌的歌词延迟（秒）；调整后自动刷新 */
+export function useLrcOffset(songId: string | undefined): number {
+  useOverrideVer();
+  return songId ? getLrcOffset(songId) : 0;
 }
 
 /** 把当前歌词还原成 LRC 文本（给编辑框用） */

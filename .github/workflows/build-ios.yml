@@ -117,6 +117,24 @@ jobs:
           du -sh "$APP"
           # 没链上 Rust 库 / MPVKit 时可执行文件会非常小
           test "$SZ" -gt 1000000
+          # 中文字幕字体：放进 .app/fonts（体积约 8~16MB）。几个来源依次尝试，都失败只警告，不影响出包
+          mkdir -p "$APP/fonts"
+          for U in \
+            "https://github.com/notofonts/noto-cjk/raw/main/Sans/SubsetOTF/SC/NotoSansSC-Regular.otf" \
+            "https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main/Sans/SubsetOTF/SC/NotoSansSC-Regular.otf" \
+            "https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/SubsetOTF/SC/NotoSansSC-Regular.otf"; do
+            if curl -fL --retry 2 --max-time 120 -o "$APP/fonts/NotoSansSC-Regular.otf" "$U" && [ "$(stat -f%z "$APP/fonts/NotoSansSC-Regular.otf")" -gt 1000000 ]; then
+              echo "字体下载成功：$U"; break
+            fi
+            rm -f "$APP/fonts/NotoSansSC-Regular.otf"
+          done
+          if [ ! -f "$APP/fonts/NotoSansSC-Regular.otf" ]; then
+            brew install --cask font-noto-sans-cjk-sc >/dev/null 2>&1 || true
+            F=$(find "$HOME/Library/Fonts" /Library/Fonts -iname '*NotoSansCJK*sc*' -o -iname 'NotoSansCJKsc*' 2>/dev/null | head -1)
+            [ -n "$F" ] && cp "$F" "$APP/fonts/" && echo "字体来自 brew：$F"
+          fi
+          ls -la "$APP/fonts" || true
+          [ -n "$(ls -A "$APP/fonts" 2>/dev/null)" ] || echo "::warning::没拿到中文字体，中文字幕会显示方框"
           rm -rf "$APP/_CodeSignature" "$APP/embedded.mobileprovision"
           mkdir -p out/Payload
           cp -R "$APP" out/Payload/
