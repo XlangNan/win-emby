@@ -145,21 +145,27 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     let probe = '未探测';
     const url = curUrlRef.current;
     const at = Number(sp);
-    if (/^https?:\/\//i.test(url) && Number.isFinite(at)) {
+    const one = async (from: number): Promise<string> => {
       const t0 = performance.now();
       try {
         const ac = new AbortController();
         const to = window.setTimeout(() => ac.abort(), 8000);
-        const r = await httpFetch(url, { headers: { Range: `bytes=${at}-${at + 65535}` }, signal: ac.signal });
-        const n = (await r.arrayBuffer()).byteLength;
+        const r = await httpFetch(url, { headers: { Range: `bytes=${from}-${from + 65535}` }, signal: ac.signal });
+        const buf = await r.arrayBuffer();
         window.clearTimeout(to);
-        probe = `HTTP ${r.status} · ${n}B · ${Math.round(performance.now() - t0)}ms`;
+        let txt = '';
+        if (!r.ok) txt = ` 「${new TextDecoder().decode(buf.slice(0, 90)).replace(/\s+/g, ' ')}」`;
+        return `HTTP ${r.status} · ${buf.byteLength}B · ${Math.round(performance.now() - t0)}ms${txt}`;
       } catch (e) {
-        probe = `失败/超时（${e instanceof Error ? e.name : '错误'}）`;
+        return `失败/超时（${e instanceof Error ? e.name : '错误'}）`;
       }
+    };
+    if (/^https?:\/\//i.test(url) && Number.isFinite(at)) {
+      const [p1, p0] = await Promise.all([one(at), one(0)]);
+      probe = `读取位置 ${p1}\n文件开头 ${p0}`;
     }
     const via = /\/Videos\/.+\/stream/i.test(url) ? 'Emby 中转' : /^https?:/i.test(url) ? '直链' : '转码';
-    return `位置 ${tp}s · 解码 ${hwd} · 缓冲到 ${cache}s\n编码 ${codec} · 容器 ${fmt} · ${via}\n丢帧 ${drop} · 延迟帧 ${vdel} · idle ${idle} · eof ${eof}\n读到字节 ${sp} / ${fsz} · 速度 ${spd}\n片源探测：${probe}`;
+    return `位置 ${tp}s · 解码 ${hwd} · 缓冲到 ${cache}s\n编码 ${codec} · 容器 ${fmt} · ${via}\n丢帧 ${drop} · 延迟帧 ${vdel} · idle ${idle} · eof ${eof}\n读到字节 ${sp} / ${fsz} · 速度 ${spd}\n片源探测：\n${probe}`;
   };
   recoverRef.current = (why: string, diag?: string): void => {
     const s = sessRef.current;
@@ -172,14 +178,26 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     const tip = (t: string): void => { const m = diag ? `${t}\n${diag}` : t; setRecTip(m); window.setTimeout(() => setRecTip(''), diag ? 14000 : 6000); };
     void (async () => {
       try {
-        if (r.n === 1) {
+        const url = curUrlRef.current;
+        // 重新打开同一个地址：直链（含网盘 302 跳转）每次请求会拿到新的下载地址；播放器自己的断线重连只会反复请求
+        // 旧地址，旧地址过期 / 被拒（403）后就一直卡住，Emby 官方客户端每次都重新请求原地址所以没事
+        const reopen = async (): Promise<void> => {
+          const o: Record<string, string> = { start: Math.max(0, pos - 2).toFixed(1) };
+          if (aid != null) o.aid = String(aid);
+          o.sid = sid != null ? String(sid) : 'no';
+          await s.loadfile(url, o);
+        };
+        if (r.n === 1 && url && !transRef.current) {
+          tip(`${why}，已重新连接片源并从当前位置继续`);
+          await reopen();
+        } else if (r.n === 2 && url && !transRef.current) {
           if (!r.sw) { r.sw = true; await s.set('hwdec', 'no'); }
-          tip(`${why}，已切换软件解码并重试`);
-          await s.cmd('seek', [String(Math.max(0, pos - 1)), 'absolute']);
-        } else if (r.n === 2 && !transRef.current) {
+          tip(`${why}，已换软件解码并重新连接`);
+          await reopen();
+        } else if (r.n === 3 && !transRef.current) {
           toTranscodeRef.current(why);
-        } else if (r.n <= 4) {
-          const jump = r.n <= 3 ? 20 : 60;
+        } else if (r.n <= 5) {
+          const jump = r.n <= 4 ? 20 : 60;
           tip(`${why}，已跳过这段损坏的数据（${jump} 秒）`);
           await s.cmd('seek', [String(pos + jump), 'absolute+keyframes']);
         } else {
@@ -382,7 +400,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       case 'eof-reached':
         if (data === true && !endedRef.current) {
           // 离片尾还很远就读到「结尾」：是片源中间坏了，不是真的播完 → 先自救，救不了（试过 4 次）才按播完处理
-          if (durRef.current > 60 && posRef.current < durRef.current - 20 && recRef.current.n < 4) { recoverRef.current('播放被中断'); break; }
+          if (durRef.current > 60 && posRef.current < durRef.current - 20 && recRef.current.n < 5) { recoverRef.current('播放被中断'); break; }
           endedRef.current = true;
           void report('stop');
           const n = nextRef.current;
