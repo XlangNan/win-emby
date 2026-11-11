@@ -11,7 +11,8 @@ import { androidBridge, isIOS, isMobileApp } from '../lib/platform';
 import { getManual, setManual } from '../lib/introManual';
 import { syncSeriesMarkers } from '../lib/markerSync';
 import DanmakuLayer from '../components/DanmakuLayer';
-import { fetchDanmaku, loadDanmaku, saveDanmaku, type Dm } from '../lib/danmaku';
+import { clearDanmakuCache, fetchDanmaku, loadDanmaku, loadDmPick, saveDanmaku, saveDmPick, type Dm, type DmPick } from '../lib/danmaku';
+import DanmakuPicker from '../components/DanmakuPicker';
 import { fetchIntroDb, introDbOn, type IntroInfo } from '../lib/introdb';
 import { loadPlayPrefs, savePlayPrefs, setTrackMemory } from '../lib/prefs';
 import { applySubStyle, loadSubStyle, saveSubStyle, SUB_DEFAULT, type SubStyle } from '../lib/substyle';
@@ -78,6 +79,53 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const [err, setErr] = useState('');
   const [paused, setPaused] = useState(true);
   const [caching, setCaching] = useState(false);
+  const cachingRef = useRef(false);
+  const durRef = useRef(0);
+  // 损坏片段自救：卡住 / 中途被打断时，先换软解重试，再逐级跳过坏的一段
+  const recRef = useRef({ n: 0, still: 0, last: -1, at: 0, sw: false });
+  const [recTip, setRecTip] = useState('');
+  const recoverRef = useRef<(why: string) => void>(() => undefined);
+  recoverRef.current = (why: string): void => {
+    const s = sessRef.current;
+    const r = recRef.current;
+    if (!s || endedRef.current) return;
+    const pos = posRef.current;
+    r.n += 1;
+    r.at = Date.now();
+    r.still = 0;
+    const tip = (t: string): void => { setRecTip(t); window.setTimeout(() => setRecTip(''), 6000); };
+    void (async () => {
+      try {
+        if (r.n === 1) {
+          if (!r.sw) { r.sw = true; await s.set('hwdec', 'no'); }
+          tip(`${why}，已切换软件解码并重试`);
+          await s.cmd('seek', [String(Math.max(0, pos - 1)), 'absolute']);
+        } else if (r.n <= 4) {
+          const jump = r.n === 2 ? 8 : r.n === 3 ? 20 : 60;
+          tip(`${why}，已跳过这段损坏的数据（${jump} 秒）`);
+          await s.cmd('seek', [String(pos + jump), 'absolute+keyframes']);
+        } else {
+          tip(`${why}：这个位置没法继续播放，可以拖动进度条到后面`);
+        }
+      } catch { /* ignore */ }
+    })();
+  };
+  useEffect(() => {
+    const t = window.setInterval(() => {
+      if (!sessRef.current || !startedRef.current || endedRef.current) return;
+      const r = recRef.current;
+      if (pausedRef.current || cachingRef.current) { r.still = 0; return; }
+      const pos = posRef.current;
+      if (Math.abs(pos - r.last) < 0.05) r.still += 1;
+      else {
+        r.still = 0;
+        r.last = pos;
+        if (r.n > 0 && Date.now() - r.at > 30000) r.n = 0; // 之后连续正常播了 30 秒：恢复计数
+      }
+      if (r.still >= 6) recoverRef.current('画面卡住了');
+    }, 1000);
+    return () => window.clearInterval(t);
+  }, []);
   const [cur, setCur] = useState(0);
   const [dur, setDur] = useState(0);
   const [buffered, setBuffered] = useState(0);
@@ -105,6 +153,8 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const [dmCfg, setDmCfg] = useState(loadDanmaku);
   const [dmList, setDmList] = useState<Dm[]>([]);
   const [dmMsg, setDmMsg] = useState('');
+  const [dmSel, setDmSel] = useState(false);
+  const [dmPickVer, setDmPickVer] = useState(0);
   const [idb, setIdb] = useState<IntroInfo | null>(null);
   const synced = useRef(new Set<string>());
   const [manual, setManualS] = useState<{ st?: number; en?: number; tail?: number } | null>(null);
@@ -184,12 +234,12 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     const c = loadDanmaku();
     if (c.url.trim()) {
       setDmMsg('弹幕加载中…');
-      fetchDanmaku(c, ep ? item.SeriesName || item.Name : item.Name, ep ? item.IndexNumber : undefined, ep ? item.ParentIndexNumber : undefined)
+      fetchDanmaku(c, ep ? item.SeriesName || item.Name : item.Name, ep ? item.IndexNumber : undefined, ep ? item.ParentIndexNumber : undefined, loadDmPick(ep ? item.SeriesId || item.Id : item.Id))
         .then((l) => { if (!dead) { setDmList(l); setDmMsg(`${l.length} 条`); } })
         .catch((e: unknown) => { if (!dead) setDmMsg(e instanceof Error ? e.message : '弹幕加载失败'); });
     }
     return () => { dead = true; };
-  }, [item]);
+  }, [item, dmPickVer]);
 
   // ───────── 进度回报 ─────────
   const report = useCallback((kind: 'start' | 'progress' | 'stop'): Promise<void> => {
@@ -231,6 +281,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         break;
       case 'duration':
         if (typeof data === 'number') {
+          durRef.current = data;
           setDur(data);
           void syncPauseRef.current();
           const p = pendingSub.current;
@@ -243,7 +294,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       case 'container-fps': setFps(typeof data === 'number' ? data : 0); break;
       case 'video-bitrate': setVbr(typeof data === 'number' ? data : 0); break;
       case 'demuxer-cache-time': if (typeof data === 'number') setBuffered(data); break;
-      case 'paused-for-cache': setCaching(!!data); break;
+      case 'paused-for-cache': cachingRef.current = !!data; setCaching(!!data); break;
       case 'speed': if (typeof data === 'number') setRate(data); break;
       case 'volume': if (typeof data === 'number') setVol(data); break;
       case 'mute': setMuted(!!data); break;
@@ -252,6 +303,8 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       case 'hwdec-current': setHw(typeof data === 'string' ? data : ''); break;
       case 'eof-reached':
         if (data === true && !endedRef.current) {
+          // 离片尾还很远就读到「结尾」：是片源中间坏了，不是真的播完 → 先自救，救不了（试过 4 次）才按播完处理
+          if (durRef.current > 60 && posRef.current < durRef.current - 20 && recRef.current.n < 4) { recoverRef.current('播放被中断'); break; }
           endedRef.current = true;
           void report('stop');
           const n = nextRef.current;
@@ -280,6 +333,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     }
     let dead = false;
     endedRef.current = false;
+    recRef.current = { n: 0, still: 0, last: -1, at: 0, sw: false };
     startedRef.current = false;
     stoppedRef.current = false;
     posRef.current = 0;
@@ -676,6 +730,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           <button onClick={() => { setSleepAt(0); setSleepWarn(false); }}>取消定时，继续播放</button>
         </div>
       )}
+      {recTip && <div className="we-rectip">{recTip}</div>}
       <DanmakuLayer list={dmList} getTime={() => (pausedRef.current ? posRef.current : posRef.current + ((performance.now() - posAt.current) / 1000) * rateRef.current)} size={dmCfg.size} speed={dmCfg.speed} opacity={dmCfg.opacity} area={dmCfg.area} offset={dmCfg.offset} visible={dmCfg.on && scrub === null} />
       {(busy || caching) && !err && <div className="we-loading"><span className="spinner" aria-hidden="true" />{busy ? '正在加载…' : '缓冲中…'}</div>}
       {err && <div className="we-error">{err}</div>}
@@ -903,12 +958,19 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
             <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'danmu' ? '' : 'danmu')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="12" rx="2" /><path d="M7 9h6M10 13h7M8 21l3-4" /></svg><span>弹幕{dmCfg.on && dmList.length ? '' : dmCfg.on ? '' : '·关'}</span></button>
             {menu === 'danmu' && (
               <div className="we-menu we-dm" style={{ minWidth: 220, padding: 10 }} onClick={(e) => e.stopPropagation()}>
+                {dmSel ? (
+                  <DanmakuPicker cfg={dmCfg} keyword={item.Type === 'Episode' ? item.SeriesName || item.Name : item.Name} current={loadDmPick(item.Type === 'Episode' ? item.SeriesId || item.Id : item.Id)}
+                    onClose={() => setDmSel(false)}
+                    onPick={(p: DmPick | null) => { saveDmPick(item.Type === 'Episode' ? item.SeriesId || item.Id : item.Id, p); clearDanmakuCache(); setDmList([]); setDmPickVer((v) => v + 1); setDmSel(false); }} />
+                ) : (<>
                 <div className={`we-menu-item${dmCfg.on ? ' active' : ''}`} onClick={() => updDm({ on: !dmCfg.on })}>{dmCfg.on ? '弹幕：开' : '弹幕：关'}{dmMsg ? `（${dmMsg}）` : !dmCfg.url.trim() ? '（还没设置弹幕服务）' : ''}</div>
                 <label className="we-dm-row">透明度<input type="range" min={20} max={100} value={Math.round(dmCfg.opacity * 100)} onChange={(e) => updDm({ opacity: Number(e.target.value) / 100 })} /></label>
                 <label className="we-dm-row">字号<input type="range" min={16} max={40} value={dmCfg.size} onChange={(e) => updDm({ size: Number(e.target.value) })} /></label>
                 <label className="we-dm-row">速度<input type="range" min={80} max={300} step={10} value={dmCfg.speed} onChange={(e) => updDm({ speed: Number(e.target.value) })} /></label>
                 <label className="we-dm-row">上下位置<input type="range" min={0} max={40} value={Math.round(dmCfg.offset * 100)} onChange={(e) => updDm({ offset: Number(e.target.value) / 100 })} /></label>
                 <div className="we-dm-row">区域{[0.25, 0.5, 0.75, 1].map((a) => <button key={a} type="button" className={`we-dm-chip${dmCfg.area === a ? ' on' : ''}`} onClick={() => updDm({ area: a })}>{a === 1 ? '全屏' : `${a * 100}%`}</button>)}</div>
+                {dmCfg.url.trim() && <div className="we-menu-item" onClick={() => setDmSel(true)}>选择弹幕源…{loadDmPick(item.Type === 'Episode' ? item.SeriesId || item.Id : item.Id) ? '（已手动指定）' : ''}</div>}
+                </>)}
               </div>
             )}
           </div>

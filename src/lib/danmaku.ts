@@ -70,6 +70,24 @@ export async function testDanmaku(cfg: DanmakuCfg): Promise<string> {
 }
 
 const cache = new Map<string, Dm[]>();
+export function clearDanmakuCache(): void { cache.clear(); }
+
+/** 手动选定的弹幕条目（同名剧集自动匹配错了时用）：按「剧集 id / 电影 id」各记一条 */
+export interface DmPick { id: number; title: string }
+const PICK = 'wemby-dm-pick:';
+export function loadDmPick(key: string): DmPick | null {
+  try { const v = JSON.parse(localStorage.getItem(PICK + key) || 'null') as DmPick | null; return v && v.id ? v : null; } catch { return null; }
+}
+export function saveDmPick(key: string, p: DmPick | null): void {
+  try { if (p) localStorage.setItem(PICK + key, JSON.stringify(p)); else localStorage.removeItem(PICK + key); } catch { /* ignore */ }
+}
+
+export interface DmCand { id: number; title: string; type: string; eps: number }
+/** 按关键词搜弹幕库里的条目，让用户自己挑 */
+export async function searchDanmakuAnime(cfg: DanmakuCfg, keyword: string): Promise<DmCand[]> {
+  const r = await api<{ animes?: { animeId?: number; animeTitle?: string; type?: string; typeDescription?: string; episodeCount?: number; episodes?: unknown[] }[] }>(cfg, '/api/v2/search/anime?keyword=' + encodeURIComponent(keyword));
+  return (r.animes || []).filter((a) => a.animeId && a.animeTitle).map((a) => ({ id: Number(a.animeId), title: String(a.animeTitle), type: a.typeDescription || a.type || '', eps: a.episodeCount ?? a.episodes?.length ?? 0 }));
+}
 
 function hex(n: number): string {
   return '#' + (n & 0xffffff).toString(16).padStart(6, '0');
@@ -80,13 +98,34 @@ const CN = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九', '
 /** 第 N 季的常见写法：第二季 / 第2季 / Season 2 / S2 / 2nd Season */
 const seasonRe = (n: number): RegExp => new RegExp(`第\\s*(${CN[n] || n}|${n})\\s*[季期部]|season\\s*${n}\\b|\\bs0?${n}\\b|${n}(st|nd|rd|th)\\s*season`, 'i');
 
-export async function fetchDanmaku(cfg: DanmakuCfg, anime: string, episode?: number, season?: number): Promise<Dm[]> {
+/** 在手动选定的条目里找对应集：先查条目详情，没有这个接口就退回按名称搜 */
+async function epInPick(cfg: DanmakuCfg, pick: DmPick, episode?: number): Promise<number> {
+  try {
+    const r = await api<{ bangumi?: { episodes?: { episodeId: number; episodeNumber?: string; episodeTitle?: string }[] } }>(cfg, `/api/v2/bangumi/${pick.id}`);
+    const eps = r.bangumi?.episodes || [];
+    if (eps.length) {
+      if (!episode) return eps[0].episodeId;
+      const n = String(episode);
+      const f = eps.find((e) => e.episodeNumber === n) || eps.find((e) => new RegExp(`第\\s*0*${n}\\s*[话話集]`).test(e.episodeTitle || '')) || eps[episode - 1];
+      if (f) return f.episodeId;
+    }
+  } catch { /* 退回搜索 */ }
+  const r = await api<{ animes?: { animeId?: number; animeTitle?: string; episodes?: { episodeId: number }[] }[] }>(cfg, `/api/v2/search/episodes?anime=${encodeURIComponent(pick.title)}${episode ? `&episode=${episode}` : ''}`);
+  const a = (r.animes || []).find((x) => x.animeId === pick.id) || (r.animes || []).find((x) => x.animeTitle === pick.title);
+  return a?.episodes?.[0]?.episodeId || 0;
+}
+
+export async function fetchDanmaku(cfg: DanmakuCfg, anime: string, episode?: number, season?: number, pick?: DmPick | null): Promise<Dm[]> {
   const sn = season && season > 1 ? season : 1;
-  const key = `${base(cfg)}|${anime}|${sn}|${episode ?? ''}`;
+  const key = `${base(cfg)}|${anime}|${sn}|${episode ?? ''}|${pick?.id ?? ''}`;
   const hit = cache.get(key);
   if (hit) return hit;
   let epId = 0;
-  try {
+  if (pick) {
+    epId = await epInPick(cfg, pick, episode);
+    if (!epId) throw new Error(`「${pick.title}」里没有找到这一集的弹幕`);
+  }
+  if (!epId) try {
     const q = `/api/v2/search/episodes?anime=${encodeURIComponent(anime)}${episode ? `&episode=${episode}` : ''}`;
     const r = await api<{ animes?: { animeTitle?: string; episodes?: { episodeId: number }[] }[] }>(cfg, q);
     const withEp = (r.animes || []).filter((a) => a.episodes?.length);
