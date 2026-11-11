@@ -8,6 +8,9 @@ import { activeLine, useLrcOffset, useLyrics } from './lyrics';
 import { setLrcOffset } from './overrides';
 import { LYR_SIZES, LYR_SIZE_NAMES, saveOpts, useOpts } from './prefs';
 import { openMatch } from './MatchDialog';
+import PartyPanel from '../components/PartyPanel';
+import { partyUrl, usePartyStore } from '../lib/party';
+import { musicResync, toPartySong } from './musicParty';
 import { cycleRepeat, next, playIndex, prev, removeAt, seek, setOpen, setShuffle, setSleep, setStarred, notifyStarred, setVolume, stopMusic, togglePlay, useMusic, musicState, useMusicPos } from './player';
 
 const musicPos = (): number => musicState().pos;
@@ -20,6 +23,9 @@ export default function NowPlaying() {
   const lyr = useLyrics(m.open ? m.cur : null);
   const box = useRef<HTMLDivElement>(null);
   const [queueOpen, setQueueOpen] = useState(false);
+  const [partyOpen, setPartyOpen] = useState(false);
+  const party = usePartyStore();
+  const inMusicRoom = party.room?.type === 'music';
   const [star, setStar] = useState(false);
   const [lyrMode, setLyrMode] = useState(false); // 手机：点碟片切换歌词
   const [sleepOpen, setSleepOpen] = useState(false);
@@ -130,7 +136,17 @@ export default function NowPlaying() {
         </span>
         <button type="button" className={`mu-ib mu-np-lyrbtn${lyrMode ? ' on' : ''}`} aria-label="歌词" onClick={() => { setQueueOpen(false); setLyrMode((v) => !v); }}><span className="mu-ci">词</span></button>
         <button type="button" className="mu-ib" aria-label="播放队列" onClick={() => setQueueOpen((v) => !v)}><Ic n="list" /></button>
+        {partyUrl() && <button type="button" className={`mu-ib mu-np-party${inMusicRoom ? ' on' : ''}`} aria-label="一起听" title="一起听" onClick={() => setPartyOpen(true)}><span className="mu-ci">伴</span></button>}
+        {inMusicRoom && <button type="button" className="mu-np-sync" title="同步到房间现在的进度" onClick={musicResync}>同步播放</button>}
       </div>
+      {partyOpen && (
+        <div className="we-pdlg" onClick={() => setPartyOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="we-pdlg-x" aria-label="关闭" onClick={() => setPartyOpen(false)}>×</button>
+            <PartyPanel item={null} music={{ queue: m.queue.map(toPartySong), index: Math.max(0, m.index) }} getPos={() => musicPos()} started onClose={() => setPartyOpen(false)} onCreated={() => setPartyOpen(false)} />
+          </div>
+        </div>
+      )}
       <div className={`mu-np-body${lyrMode || queueOpen ? ' lyr-mode' : ''}`}>
         <div className="mu-np-left">
           <div className="mu-disc-wrap" role="button" tabIndex={0} aria-label="切换歌词" onClick={() => { if (window.matchMedia('(max-width: 899px)').matches) setLyrMode((v) => !v); }} onKeyDown={(e) => { if (e.key === 'Enter') setLyrMode((v) => !v); }}>

@@ -1,4 +1,5 @@
 // 音乐首页（网易云风格）：推荐 / 专辑 / 艺术家 / 排行榜 / 歌单 / 收藏 + 搜索
+import PartyRow from '../components/PartyRow';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCachedAsync } from '../lib/useAsync';
@@ -177,6 +178,7 @@ function Recommend({ k, go }: { k: string; go: (t: Tab) => void }) {
   const pl = usePlaylists(k);
   return (
     <>
+      <PartyRow music />
       <div className="mu-hero"><Banner k={k} /><GuessPanel k={k} pls={pl.list} /></div>
       <Shortcuts go={go} />
       <Picks go={go} />

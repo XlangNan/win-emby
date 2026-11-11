@@ -58,7 +58,7 @@ async function canSee(c, itemId) {
 const seeCached = (c, itemId) => { if (!EMBY_URL) return true; const h = accCache.get(c.userId + '|' + itemId); return h ? h.ok : true; };
 async function prefetch(c) { // 把所有公开房间的片子的权限先查好（有缓存，很快）
   if (!EMBY_URL) return;
-  const ids = new Set(); for (const r of rooms.values()) if (r.pub) ids.add(r.state.item.id);
+  const ids = new Set(); for (const r of rooms.values()) if (r.pub && r.kind !== 'music') ids.add(r.state.item.id);
   await Promise.all([...ids].map((id) => canSee(c, id)));
 }
 async function checkMembers(r) { // 房间换了一部片子：没有权限的成员自动退出
@@ -74,6 +74,10 @@ async function checkMembers(r) { // 房间换了一部片子：没有权限的�
 // ───────── 房间逻辑 ─────────
 const rid = () => { for (;;) { const s = String(crypto.randomInt(0, 1000000)).padStart(6, '0'); if (!rooms.has(s)) return s; } };
 const targetPos = (st, t = now()) => (st.paused || st.hold ? st.pos : st.pos + ((t - st.at) / 1000) * st.rate);
+const cap = (v, n) => String(v == null ? '' : v).slice(0, n);
+const songOf = (x) => ({ id: cap(x.id, 80), title: cap(x.title, 160), artist: cap(x.artist, 120), album: cap(x.album, 160), albumId: cap(x.albumId, 80), artistId: cap(x.artistId, 80), duration: Math.max(0, Number(x.duration) || 0), coverArt: cap(x.coverArt, 80), suffix: cap(x.suffix, 12) });
+const songItem = (sg) => ({ id: sg.id, name: sg.title, seriesId: '', seriesName: sg.artist, s: null, e: null });
+const cleanQueue = (q) => (Array.isArray(q) ? q.slice(0, 500).map(songOf).filter((x) => x.id) : []);
 const itemOf = (x) => ({ id: String(x.id || ''), name: String(x.name || '').slice(0, 120), seriesId: x.seriesId ? String(x.seriesId) : '', seriesName: String(x.seriesName || '').slice(0, 120), s: x.s == null ? null : Number(x.s), e: x.e == null ? null : Number(x.e) });
 
 function freeze(r) { // 把位置推进到「现在」再改状态
@@ -101,14 +105,14 @@ function sweep() {
 }
 setInterval(sweep, 3000).unref();
 
-const summary = (r) => ({ id: r.id, host: r.members.get(r.host)?.name || '', item: r.state.item, count: r.members.size, paused: r.state.paused });
+const summary = (r) => ({ type: r.kind, id: r.id, host: r.members.get(r.host)?.name || '', item: r.state.item, count: r.members.size, paused: r.state.paused });
 function snap(c) {
   const r = c.room && rooms.get(c.room);
   return {
     ver, now: now(),
-    rooms: [...rooms.values()].filter((x) => x.pub && seeCached(c, x.state.item.id)).map(summary),
+    rooms: [...rooms.values()].filter((x) => x.pub && (x.kind === 'music' || seeCached(c, x.state.item.id))).map(summary),
     room: r ? {
-      id: r.id, pub: r.pub, ctl: r.ctl, wait: r.wait, host: r.host,
+      type: r.kind, id: r.id, pub: r.pub, ctl: r.ctl, wait: r.wait, host: r.host,
       members: [...r.members.values()].map((m) => ({ cid: m.cid, name: m.name, buf: m.buf })),
       state: r.state,
     } : null,
@@ -120,14 +124,19 @@ function apply(c, o) {
   const k = o.kind;
   if (k === 'create') {
     leaveRoom(c);
-    const item = itemOf(o.item || {});
-    if (!item.id) return 'bad item';
-    const r = { id: rid(), pub: o.pub !== false, ctl: o.ctl === 'host' ? 'host' : 'all', wait: o.wait !== false, host: c.cid, created: now(), members: new Map(), log: [],
-      state: { item, paused: false, pos: Number(o.pos) || 0, rate: 1, at: now(), hold: false, seq: 1, by: c.cid, why: 'create' } };
+    const music = o.type === 'music';
+    let item, queue = [], index = 0;
+    if (music) {
+      queue = cleanQueue(o.queue); index = Math.min(Math.max(0, Number(o.index) || 0), queue.length - 1);
+      if (!queue.length) return 'bad queue';
+      item = songItem(queue[index]);
+    } else { item = itemOf(o.item || {}); if (!item.id) return 'bad item'; }
+    const r = { kind: music ? 'music' : 'video', queue, id: rid(), pub: o.pub !== false, ctl: o.ctl === 'host' ? 'host' : 'all', wait: o.wait !== false, host: c.cid, created: now(), members: new Map(), log: [],
+      state: { item, paused: false, pos: Number(o.pos) || 0, rate: 1, at: now(), hold: false, seq: 1, by: c.cid, why: 'create', qv: 1, index } };
     r.members.set(c.cid, { cid: c.cid, name: c.name, buf: !o.ready, bufAt: o.ready ? 0 : now(), joined: now(), pos: 0, lag: 0 });
     rooms.set(r.id, r); c.room = r.id; // 创建者如果还没开始播（ready 不为真），先算「加载中」
-    pushLog(r, c.name, '创建房间');
-    log('create', c.name, r.id, item.name);
+    pushLog(r, c.name, music ? '创建音乐房间' : '创建房间');
+    log('create', r.kind, c.name, r.id, item.name);
     return '';
   }
   if (k === 'join') {
@@ -163,7 +172,22 @@ function apply(c, o) {
   } else if (k === 'rate') {
     const rt = Math.min(4, Math.max(0.25, Number(o.rate) || 1));
     st.pos = Number.isFinite(+o.pos) ? Number(o.pos) : targetPos(st); st.at = at; st.rate = rt; pushLog(r, c.name, `倍速 ${rt}x`);
-  } else if (k === 'item') {
+  } else if (k === 'queue' && r.kind === 'music') {
+    const q = cleanQueue(o.queue); if (!q.length) return 'bad queue';
+    const idx = Math.min(Math.max(0, Number(o.index) || 0), q.length - 1);
+    const changedTrack = q[idx].id !== st.item.id;
+    r.queue = q; st.qv++; st.index = idx;
+    if (changedTrack) { st.item = songItem(q[idx]); st.pos = 0; st.at = now(); st.paused = false; st.hold = false; for (const x of r.members.values()) { x.buf = true; x.bufAt = now(); } }
+    pushLog(r, c.name, changedTrack ? `播放列表（${q.length} 首），切到 ${q[idx].title}` : `修改了播放列表（${q.length} 首）`);
+  } else if (k === 'track' && r.kind === 'music') {
+    const idx = Number(o.index);
+    if (!Number.isInteger(idx) || idx < 0 || idx >= r.queue.length) return 'bad index';
+    if (o.from != null && Number(o.from) !== st.index) return ''; // 别人已经先切了（大家几乎同时播完上一首）：只认第一个
+    if (idx === st.index) return '';
+    st.index = idx; st.item = songItem(r.queue[idx]); st.pos = 0; st.at = now(); st.paused = false; st.hold = false;
+    for (const x of r.members.values()) { x.buf = true; x.bufAt = now(); }
+    pushLog(r, c.name, '切到 ' + r.queue[idx].title);
+  } else if (k === 'item' && r.kind !== 'music') {
     const item = itemOf(o.item || {}); if (!item.id) return 'bad item';
     if (item.id === st.item.id) return ''; // 大家几乎同时播到片尾、都发来「下一集」：只认第一个
     st.item = item; st.pos = 0; st.at = now(); st.paused = false; st.hold = false; st.rate = 1;
@@ -204,7 +228,7 @@ const adminOk = (req) => {
 const adminState = () => ({
   now: now(), up: now() - STARTED, online: clients.size, ver,
   rooms: [...rooms.values()].map((r) => ({
-    id: r.id, pub: r.pub, ctl: r.ctl, wait: r.wait, host: r.host, created: r.created, state: r.state, target: targetPos(r.state),
+    type: r.kind, qlen: r.queue.length, id: r.id, pub: r.pub, ctl: r.ctl, wait: r.wait, host: r.host, created: r.created, state: r.state, target: targetPos(r.state),
     members: [...r.members.values()].map((m) => ({ cid: m.cid, name: m.name, buf: m.buf, joined: m.joined, pos: m.pos, host: m.cid === r.host })),
     log: r.log.slice(-30),
   })),
@@ -229,6 +253,13 @@ const server = http.createServer(async (req, res) => {
       waiters.add(w); req.on('close', () => { clearTimeout(t); waiters.delete(w); });
       return;
     }
+    if (p === '/api/queue') { // 音乐房间的播放列表（不放在同步快照里，太大；版本变了才来取）
+      const c = await client(req, url, {});
+      if (!c) return send(res, 401, { error: '登录验证失败' });
+      const r = rooms.get(String(url.searchParams.get('room') || ''));
+      if (!r || c.room !== r.id) return send(res, 404, { error: '不在这个房间里' });
+      return send(res, 200, { qv: r.state.qv, queue: r.queue });
+    }
     if (p === '/api/op' && req.method === 'POST') {
       const o = await body(req);
       const c = await client(req, url, o);
@@ -236,10 +267,10 @@ const server = http.createServer(async (req, res) => {
       const before = ver;
       if (o.kind === 'join') {
         const tr = rooms.get(String(o.room || '').trim());
-        if (tr && !(await canSee(c, tr.state.item.id))) return send(res, 200, { ...snap(c), error: '你的账号没有权限观看这部影片', was: before });
+        if (tr && tr.kind !== 'music' && !(await canSee(c, tr.state.item.id))) return send(res, 200, { ...snap(c), error: '你的账号没有权限观看这部影片', was: before });
       } else if (o.kind === 'create') {
         const iid = String((o.item && o.item.id) || '');
-        if (!(await canSee(c, iid))) return send(res, 200, { ...snap(c), error: '你的账号没有权限观看这部影片', was: before });
+        if (o.type !== 'music' && !(await canSee(c, iid))) return send(res, 200, { ...snap(c), error: '你的账号没有权限观看这部影片', was: before });
       }
       const err = apply(c, o);
       if (!err && o.kind === 'item') { const r0 = c.room && rooms.get(c.room); if (r0) void checkMembers(r0); }

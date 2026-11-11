@@ -6,13 +6,16 @@ import { deviceId, getSession } from '../emby/session';
 import type { EmbyItem } from '../emby/types';
 
 export interface PartyItem { id: string; name: string; seriesId: string; seriesName: string; s: number | null; e: number | null }
-export interface PartyState { item: PartyItem; paused: boolean; pos: number; rate: number; at: number; hold: boolean; seq: number; by: string; why: string }
+export interface PartyState { item: PartyItem; paused: boolean; pos: number; rate: number; at: number; hold: boolean; seq: number; by: string; why: string; qv?: number; index?: number }
+/** 音乐房间里的一首歌（只带显示和取流需要的字段） */
+export interface PartySong { id: string; title: string; artist: string; album: string; albumId: string; artistId: string; duration: number; coverArt: string; suffix: string }
 export interface PartyRoom {
+  type?: 'video' | 'music';
   id: string; pub: boolean; ctl: 'all' | 'host'; wait: boolean; host: string;
   members: { cid: string; name: string; buf: boolean }[];
   state: PartyState;
 }
-export interface RoomSummary { id: string; host: string; item: PartyItem; count: number; paused: boolean }
+export interface RoomSummary { type?: 'video' | 'music'; id: string; host: string; item: PartyItem; count: number; paused: boolean }
 interface Snap { ver: number; now: number; rooms: RoomSummary[]; room: PartyRoom | null; kicked: string; error?: string }
 
 export interface PartyStore {
@@ -43,6 +46,11 @@ export const toPartyItem = (it: EmbyItem): PartyItem => ({
   id: it.Id, name: it.Name || '', seriesId: it.SeriesId || '', seriesName: it.SeriesName || '',
   s: it.Type === 'Episode' ? it.ParentIndexNumber ?? null : null, e: it.Type === 'Episode' ? it.IndexNumber ?? null : null,
 });
+/** 房间卡片 / 面板里显示的标题：视频「剧名 S1E2」，音乐「歌名 - 歌手」 */
+export const roomTitle = (r: { type?: string; item?: PartyItem; state?: PartyState }): string => {
+  const it = (r.item || r.state?.item) as PartyItem;
+  return r.type === 'music' ? `${it.name} - ${it.seriesName}` : partyItemTitle(it);
+};
 export const partyItemTitle = (p: PartyItem): string =>
   `${p.seriesName ? p.seriesName + ' ' : ''}${p.s != null && p.e != null ? `S${p.s}E${p.e} ` : ''}${p.seriesName ? '' : p.name}`.trim() || p.name;
 
@@ -51,6 +59,8 @@ const subs = new Set<() => void>();
 const emit = (): void => { subs.forEach((f) => f()); };
 export const getParty = (): PartyStore => st;
 const subscribe = (f: () => void): (() => void) => { subs.add(f); return () => { subs.delete(f); }; };
+/** 非 React 代码订阅房间状态变化 */
+export const onParty = subscribe;
 export const usePartyStore = (): PartyStore => useSyncExternalStore(subscribe, getParty);
 function notice(t: string): void { st = { ...st, notice: t, noticeAt: Date.now() }; emit(); }
 export const partyNotice = notice;
@@ -176,8 +186,21 @@ export async function leaveRoom(): Promise<void> { cancelLeave(); if (st.room) a
 
 let leaveTimer = 0;
 /** 离开播放页时调用：稍等一下，如果马上又进了同一个房间的播放页（换集）就不退 */
-export function scheduleLeave(): void { cancelLeave(); if (st.room) leaveTimer = window.setTimeout(() => { leaveTimer = 0; void leaveRoom(); }, 2500); }
+export function scheduleLeave(): void { cancelLeave(); if (st.room && st.room.type !== 'music') leaveTimer = window.setTimeout(() => { leaveTimer = 0; void leaveRoom(); }, 2500); }
 export function cancelLeave(): void { if (leaveTimer) { window.clearTimeout(leaveTimer); leaveTimer = 0; } }
 
 export const iAmHost = (): boolean => !!st.room && st.room.host === st.cid;
 export const canControl = (): boolean => !st.room || st.room.ctl === 'all' || iAmHost();
+
+// ───────── 音乐房间 ─────────
+export async function createMusicRoom(queue: PartySong[], index: number, o: { pub: boolean; ctl: 'all' | 'host'; wait: boolean; pos: number }): Promise<string> {
+  cancelLeave();
+  return sendOp({ kind: 'create', type: 'music', queue, index, pub: o.pub, ctl: o.ctl, wait: o.wait, pos: o.pos, ready: true });
+}
+export async function fetchPartyQueue(room: string): Promise<{ qv: number; queue: PartySong[] } | null> {
+  try {
+    const r = await req(`/api/queue?room=${encodeURIComponent(room)}`);
+    if (!r.ok) return null;
+    return (await r.json()) as { qv: number; queue: PartySong[] };
+  } catch { return null; }
+}

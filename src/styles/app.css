@@ -669,3 +669,8 @@ html.android .we-menu.we-menu-party, html.ios .we-menu.we-menu-party {
 .we-menu-party .we-party { max-width: none; padding: 14px 16px; }
 .we-menu-party .we-party-list { max-height: none; overflow: visible; }
 .we-syncbtn { color: #fff; background: rgba(229, 9, 20, .85) !important; border-radius: 99px; padding: 5px 12px; font-size: 13px; margin-right: 6px; white-space: nowrap; }
+
+/* 一起听 */
+.pt-card img.pt-sq { width: 76px; height: 76px; }
+.mu-np-sync { color: #fff; background: rgba(229, 9, 20, .88); border: 0; border-radius: 99px; padding: 5px 12px; font-size: 13px; white-space: nowrap; cursor: pointer; margin-left: 4px; }
+.mu-np-party.on { color: #ff6b6b; }

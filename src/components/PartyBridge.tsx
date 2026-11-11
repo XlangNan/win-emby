@@ -2,24 +2,27 @@
 import { useEffect, useRef, useState } from 'react';
 import { matchPath, useLocation, useNavigate } from 'react-router-dom';
 import { usePartyStore } from '../lib/party';
+import { startMusicParty } from '../music/musicParty';
 
 export default function PartyBridge() {
   const p = usePartyStore();
   const nav = useNavigate();
   const loc = useLocation();
   const lastItem = useRef('');
-  const itemId = p.room?.state.item.id || '';
+  const isMusic = p.room?.type === 'music';
+  const itemId = isMusic ? '' : p.room?.state.item.id || '';
+  useEffect(() => startMusicParty(), []);
   const roomId = p.room?.id || '';
 
   useEffect(() => {
-    if (!roomId) { lastItem.current = ''; return; }
+    if (!roomId || isMusic) { lastItem.current = ''; return; }
     if (itemId === lastItem.current) return;
     const inPlayer = matchPath('/player/:id', loc.pathname);
     lastItem.current = itemId;
     if (inPlayer?.params.id === itemId) return;
     nav(`/player/${itemId}`, { replace: !!inPlayer });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomId, itemId]);
+  }, [roomId, itemId, isMusic]);
 
   const [shown, setShown] = useState('');
   useEffect(() => {

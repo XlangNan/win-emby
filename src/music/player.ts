@@ -86,7 +86,14 @@ function el(): HTMLAudioElement {
   a.addEventListener('pause', () => emit({ playing: false }));
   a.addEventListener('waiting', () => emit({ loading: true }));
   a.addEventListener('playing', () => emit({ loading: false, playing: true }));
-  a.addEventListener('canplay', () => emit({ loading: false }));
+  a.addEventListener('canplay', () => {
+    emit({ loading: false });
+    if (pendingStart) { // 一起听：加载好后跳到房间现在的进度 / 保持暂停
+      const ps = pendingStart; pendingStart = null;
+      if (ps.pos > 0.5) { a.currentTime = ps.pos; emit({ pos: ps.pos }); }
+      if (ps.paused) a.pause();
+    }
+  });
   a.addEventListener('ended', () => { next(true); });
   a.addEventListener('error', () => {
     const c = st.cur;
@@ -104,7 +111,8 @@ function el(): HTMLAudioElement {
   return a;
 }
 
-function load(i: number): void {
+let pendingStart: { pos: number; paused: boolean } | null = null;
+function load(i: number, autoplay = true): void {
   const a = el();
   const sg = st.queue[i];
   if (!sg) return;
@@ -112,7 +120,8 @@ function load(i: number): void {
   scrobbled = '';
   emit({ index: i, pos: 0, dur: sg.duration, loading: true, error: '' });
   a.src = streamUrl(sg.id);
-  void a.play().catch(() => emit({ playing: false, loading: false }));
+  if (autoplay) void a.play().catch(() => emit({ playing: false, loading: false }));
+  else a.load();
   void nd.scrobble(sg.id, false);
   updateSession();
 }
@@ -261,3 +270,24 @@ export function useMusic(): MusicState { return useSyncExternalStore(subscribe, 
 /** 含实时进度（pos / dur）：只给进度条、歌词、时间显示用 */
 export function useMusicPos(): MusicState { return useSyncExternalStore(subscribePos, () => st); }
 export const musicState = (): MusicState => st;
+
+// ───────── 一起听（由 musicParty.ts 调用）─────────
+/** 订阅播放器的每一次变化（含进度），回调里用 musicState() 读最新状态 */
+export function listenMusic(f: () => void): () => void { subs.add(f); posSubs.add(f); return () => { subs.delete(f); posSubs.delete(f); }; }
+/** 按房间状态装载：可选换整个队列；换歌时加载完成后跳到 pos，paused 为真则保持暂停 */
+export function partyApply(o: { songs?: Song[]; index: number; pos: number; paused: boolean }): void {
+  initThumb({ prev: () => prev(), toggle: () => togglePlay(), next: () => next() });
+  if (o.songs) { history = []; upNext = []; emit({ queue: o.songs }); }
+  if (!st.queue[o.index]) return;
+  pendingStart = { pos: o.pos, paused: o.paused };
+  load(o.index, !o.paused);
+}
+export function partyPlay(want: boolean): void {
+  const a = el();
+  if (!st.cur) return;
+  if (want && a.paused) void a.play().catch(() => undefined);
+  else if (!want && !a.paused) a.pause();
+}
+export function partyRate(r: number): void { if (audio) audio.playbackRate = r; }
+export const musicRate = (): number => (audio ? audio.playbackRate : 1);
+export const musicPaused = (): boolean => (audio ? audio.paused : true);

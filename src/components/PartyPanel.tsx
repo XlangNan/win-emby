@@ -1,7 +1,7 @@
 // 「一起看」面板：创建房间 / 输入房间号加入 / 房间里的成员和退出。播放页菜单和详情页弹窗共用。
 import { useState } from 'react';
 import type { EmbyItem } from '../emby/types';
-import { createRoom, joinRoom, leaveRoom, partyItemTitle, partyUrl, usePartyStore } from '../lib/party';
+import { createMusicRoom, createRoom, joinRoom, leaveRoom, partyUrl, roomTitle, usePartyStore, type PartySong } from '../lib/party';
 
 interface Opts { pub: boolean; ctl: 'all' | 'host'; wait: boolean }
 const OPT_KEY = 'wemby-party-opts';
@@ -9,8 +9,10 @@ const loadOpts = (): Opts => {
   try { return { pub: true, ctl: 'all', wait: true, ...(JSON.parse(localStorage.getItem(OPT_KEY) || '{}') as Partial<Opts>) }; } catch { return { pub: true, ctl: 'all', wait: true }; }
 };
 
-export default function PartyPanel({ item, getPos, started, onCreated, onClose }: {
+export default function PartyPanel({ item, music, getPos, started, onCreated, onClose }: {
   item: EmbyItem | null;
+  /** 音乐：用当前播放队列开一个「一起听」房间 */
+  music?: { queue: PartySong[]; index: number } | null;
   getPos: () => number;
   /** 播放器已经在出画面（创建房间时按当前位置开始，不让别人等） */
   started: boolean;
@@ -34,9 +36,9 @@ export default function PartyPanel({ item, getPos, started, onCreated, onClose }
     const me = p.cid;
     return (
       <div className="we-party">
-        <div className="we-party-h">房间号</div>
+        <div className="we-party-h">{room.type === 'music' ? '一起听 · 房间号' : '房间号'}</div>
         <div className="we-party-code" title="点击复制" onClick={() => { try { void navigator.clipboard.writeText(room.id); setMsg('已复制房间号'); } catch { /* ignore */ } }}>{room.id}</div>
-        <div className="we-party-sub">{partyItemTitle(room.state.item)} · {room.pub ? '公开' : '私密'} · {room.ctl === 'host' ? '仅房主控制' : '所有人可控制'}{room.wait ? ' · 等待缓冲' : ''}</div>
+        <div className="we-party-sub">{roomTitle(room)} · {room.pub ? '公开' : '私密'} · {room.ctl === 'host' ? '仅房主控制' : '所有人可控制'}{room.wait ? ' · 等待缓冲' : ''}</div>
         <div className="we-party-list">
           {room.members.slice(0, 5).map((m) => (
             <div key={m.cid} className="we-party-m">
@@ -54,9 +56,9 @@ export default function PartyPanel({ item, getPos, started, onCreated, onClose }
   }
 
   const create = async (): Promise<void> => {
-    if (!item) return;
+    if (!item && !music) return;
     setBusy(true); setMsg('');
-    const e = await createRoom(item, { ...o, pos: getPos(), ready: started });
+    const e = music ? await createMusicRoom(music.queue, music.index, { ...o, pos: getPos() }) : await createRoom(item as EmbyItem, { ...o, pos: getPos(), ready: started });
     setBusy(false);
     if (e) setMsg(e); else onCreated?.();
   };
@@ -69,10 +71,10 @@ export default function PartyPanel({ item, getPos, started, onCreated, onClose }
   };
   return (
     <div className="we-party">
-      {item && (
+      {(item || music) && (
         <>
-          <div className="we-party-h">开一个房间，一起看</div>
-          <div className="we-party-sub">{item.Type === 'Episode' ? `${item.SeriesName || ''} ` : ''}{item.Name}</div>
+          <div className="we-party-h">{music ? '开一个房间，一起听' : '开一个房间，一起看'}</div>
+          <div className="we-party-sub">{music ? `当前播放列表 ${music.queue.length} 首，从「${music.queue[music.index]?.title || ''}」开始` : `${item?.Type === 'Episode' ? `${item.SeriesName || ''} ` : ''}${item?.Name || ''}`}</div>
           <div className="we-party-row"><span>谁能看到</span>
             <button type="button" className={o.pub ? 'on' : ''} onClick={() => upd({ pub: true })}>公开（出现在首页）</button>
             <button type="button" className={!o.pub ? 'on' : ''} onClick={() => upd({ pub: false })}>私密（凭房间号）</button></div>

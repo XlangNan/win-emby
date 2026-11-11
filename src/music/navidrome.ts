@@ -89,6 +89,10 @@ export const nd = {
     const r = await call<{ version?: string; type?: string; serverVersion?: string }>('ping', {}, { ...cfg, server: normalizeNdServer(cfg.server) });
     return { version: s(r.serverVersion || r.version), server: s(r.type || 'Subsonic') };
   },
+  async song(id: string): Promise<Song> {
+    const r = await call<{ song: Obj }>('getSong', { id });
+    return song(r.song);
+  },
   async albumList(type: AlbumListType, size = 30, offset = 0, genre?: string): Promise<Album[]> {
     const r = await call<{ albumList2?: { album?: Obj[] } }>('getAlbumList2', { type, size, offset, genre });
     return arr(r.albumList2?.album).map(album);
