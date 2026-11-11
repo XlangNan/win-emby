@@ -67,6 +67,15 @@ class MainActivity : TauriActivity() {
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
         window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.BLACK))
+        // 所有安卓版本统一成「内容铺满全屏 + 透明系统栏」。不设的话，部分手机（Android 14 及以下 / 国产 ROM）
+        // 会用系统主题色涂状态栏（紫色）和导航栏（白色）
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.statusBarColor = Color.TRANSPARENT
+        window.navigationBarColor = Color.TRANSPARENT
+        if (android.os.Build.VERSION.SDK_INT >= 29) {
+            window.isStatusBarContrastEnforced = false
+            window.isNavigationBarContrastEnforced = false
+        }
         // 手机音量键始终调「媒体音量」
         volumeControlStream = AudioManager.STREAM_MUSIC
         // 和主流流媒体 App 一样：平时锁竖屏，只有播放时才横屏

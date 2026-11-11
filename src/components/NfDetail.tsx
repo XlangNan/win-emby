@@ -153,7 +153,7 @@ export default function NfDetail(p: NfDetailProps) {
                       </div>
                       <div className="nfd-ep-info">
                         <div className="nfd-ep-top">
-                          <span className="nfd-ep-title">{e.Name}{e.UserData?.Played ? ' ✓' : ''}</span>
+                          <span className="nfd-ep-title"><span className="nfd-ep-no">{e.IndexNumber ?? i + 1}. </span>{e.Name}{e.UserData?.Played ? ' ✓' : ''}</span>
                           <span className="nfd-ep-rt">{fmtRuntime(e.RunTimeTicks)}</span>
                         </div>
                         {e.Overview && <div className="nfd-ep-ov">{e.Overview}</div>}

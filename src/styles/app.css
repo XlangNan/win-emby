@@ -616,3 +616,7 @@ html, html * { scrollbar-width: none !important; }
 
 /* 播放中遇到损坏片段时的自救提示 */
 .we-rectip { position: absolute; left: 50%; top: 16%; transform: translateX(-50%); z-index: 30; max-width: 86%; padding: 8px 14px; border-radius: 14px; white-space: pre-line; line-height: 1.5; background: rgba(0, 0, 0, .72); color: #fff; font-size: 13px; text-align: center; pointer-events: none; }
+
+/* 集号：桌面有左侧大号数字，手机上隐藏了大号数字，改在标题前显示 */
+.nfd-ep-no{display:none}
+:root.android[data-shell] .nfd-ep-no,:root.ios[data-shell] .nfd-ep-no{display:inline;opacity:.75;font-variant-numeric:tabular-nums}
