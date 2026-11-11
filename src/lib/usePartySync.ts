@@ -13,6 +13,8 @@ export interface PartyAdapter {
   seek(sec: number): void;
   setPause(p: boolean): void;
   setRate(r: number): void;
+  /** 向播放器核对一次真实的暂停状态（本地记录可能落后） */
+  sync?(): void;
 }
 
 export function usePartySync(id: string, adapter: React.MutableRefObject<PartyAdapter>) {
@@ -30,6 +32,7 @@ export function usePartySync(id: string, adapter: React.MutableRefObject<PartyAd
   // 直链上拖动进度要几秒才完成：这段时间里「位置跳了」是我们自己刚做的跳转，不能当成用户拖动再发回房间（否则两台设备互相来回拖，片源被反复请求）
   const expect = useRef<{ to: number; until: number } | null>(null);
   const lastDriftSeek = useRef(0);
+  const mism = useRef(0);
   const doSeek = (sec: number): void => { expect.current = { to: sec, until: performance.now() + 8000 }; quiet(); adapter.current.seek(Math.max(0, sec)); };
 
   const quiet = (ms = 1500): void => { suppress.current = performance.now() + ms; };
@@ -50,7 +53,7 @@ export function usePartySync(id: string, adapter: React.MutableRefObject<PartyAd
     const ad = adapter.current;
     quiet();
     const wantPause = s.paused || s.hold;
-    if (ad.paused() !== wantPause) ad.setPause(wantPause);
+    ad.setPause(wantPause); // 不比较本地记录，直接下发：本地记录可能落后于播放器真实状态
     if (Math.abs(ad.rate() - s.rate) > 0.001) { appliedRate.current = s.rate; ad.setRate(s.rate); }
     if (withSeek) {
       const tgt = targetPos(s);
@@ -89,6 +92,10 @@ export function usePartySync(id: string, adapter: React.MutableRefObject<PartyAd
       const room = getParty().room; if (!room) return;
       const s = room.state, ad = adapter.current;
       if (expect.current && performance.now() > expect.current.until) expect.current = null; // 跳转超时没等到结果：不再等
+      ad.sync?.();
+      // 房间在播放而本机是暂停（或反过来）并且连续两次检查都这样：本机没有跟上，补一次
+      const wantPause = s.paused || s.hold;
+      if (ad.paused() !== wantPause && !ad.caching()) { if (++mism.current >= 2) { mism.current = 0; quiet(); ad.setPause(wantPause); } } else mism.current = 0;
       if (s.paused || s.hold || ad.paused() || ad.caching() || expect.current) return;
       const diff = targetPos(s) - ad.pos();
       const a = Math.abs(diff);

@@ -250,9 +250,14 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       }
       if (r.still >= 6) {
         r.still = -8;
-        // 已经确认是 403 的话，后面的重试不再做探测（探测本身也是两次额外请求）
-        if (r.deny > 0) recoverRef.current('画面卡住了', '[403重试]');
-        else void diagRef.current().then((d) => { console.warn('[weave] 播放卡住', d); recoverRef.current('画面卡住了', d); });
+        void (async () => {
+          // 先向播放器核对一次「到底是不是暂停了」：本地记录的暂停状态可能落后（比如一起看时被房间暂停），那不是卡住
+          await syncPauseRef.current();
+          if (pausedRef.current) { r.still = 0; return; }
+          // 已经确认是 403 的话，后面的重试不再做探测（探测本身也是两次额外请求）
+          if (r.deny > 0) recoverRef.current('画面卡住了', '[403重试]');
+          else { const d = await diagRef.current(); console.warn('[weave] 播放卡住', d); recoverRef.current('画面卡住了', d); }
+        })();
       }
     }, 1000);
     return () => window.clearInterval(t);
@@ -304,7 +309,8 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     caching: () => cachingRef.current,
     rate: () => rateRef.current,
     seek: (sec) => { void sessRef.current?.cmd('seek', [String(sec), 'absolute+exact']); }, // exact：落在准确位置，不退回到前一个关键帧（否则会一直落后、反复纠偏）
-    setPause: (v) => { void sessRef.current?.set('pause', v ? 'yes' : 'no'); },
+    setPause: (v) => { void sessRef.current?.set('pause', v ? 'yes' : 'no').then(() => syncPauseRef.current()); },
+    sync: () => { void syncPauseRef.current(); },
     setRate: (r) => { void sessRef.current?.set('speed', r); },
   });
   const party = usePartySync(id, partyAd);
@@ -480,7 +486,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     }
     let dead = false;
     endedRef.current = false;
-    recRef.current = { n: 0, still: 0, last: -1, at: 0, sw: false };
+    recRef.current = { n: 0, still: 0, last: -1, at: 0, sw: false, deny: 0 };
     transRef.current = false;
     startedRef.current = false;
     stoppedRef.current = false;
