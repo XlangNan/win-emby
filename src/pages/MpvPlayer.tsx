@@ -279,8 +279,6 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const shownRate = party.inRoom && party.room ? party.room.state.rate : rate; // 房间里：同步微调时显示房间的倍速，不跟着抖
   const partyRef = useRef(party);
   partyRef.current = party;
-  const rateRef = useRef(1);
-  rateRef.current = rate;
   const updDm = (p: Partial<typeof dmCfg>): void => setDmCfg(saveDanmaku(p));
   // 定时关闭（手机）：sleepAt=到点时间戳；sleepEnd=播完本集/本部后退出
   const [sleepAt, setSleepAt] = useState(0);
