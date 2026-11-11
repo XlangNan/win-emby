@@ -27,6 +27,10 @@ export function usePartySync(id: string, adapter: React.MutableRefObject<PartyAd
   const last = useRef<{ pos: number; wall: number } | null>(null);
   const bufSent = useRef(false);
   const bufTimer = useRef(0);
+  // 直链上拖动进度要几秒才完成：这段时间里「位置跳了」是我们自己刚做的跳转，不能当成用户拖动再发回房间（否则两台设备互相来回拖，片源被反复请求）
+  const expect = useRef<{ to: number; until: number } | null>(null);
+  const lastDriftSeek = useRef(0);
+  const doSeek = (sec: number): void => { expect.current = { to: sec, until: performance.now() + 8000 }; quiet(); adapter.current.seek(Math.max(0, sec)); };
 
   const quiet = (ms = 1500): void => { suppress.current = performance.now() + ms; };
   const act = (): boolean => aligned.current && inRoomRef.current && performance.now() > suppress.current;
@@ -50,7 +54,7 @@ export function usePartySync(id: string, adapter: React.MutableRefObject<PartyAd
     if (Math.abs(ad.rate() - s.rate) > 0.001) { appliedRate.current = s.rate; ad.setRate(s.rate); }
     if (withSeek) {
       const tgt = targetPos(s);
-      if (Math.abs(tgt - ad.pos()) > (aligned.current ? 0.8 : 1.5)) ad.seek(Math.max(0, tgt));
+      if (Math.abs(tgt - ad.pos()) > (aligned.current ? 0.8 : 1.5)) doSeek(tgt);
     }
   }, [adapter]);
 
@@ -84,10 +88,11 @@ export function usePartySync(id: string, adapter: React.MutableRefObject<PartyAd
       if (!aligned.current) return;
       const room = getParty().room; if (!room) return;
       const s = room.state, ad = adapter.current;
-      if (s.paused || s.hold || ad.paused() || ad.caching()) return;
+      if (expect.current && performance.now() > expect.current.until) expect.current = null; // 跳转超时没等到结果：不再等
+      if (s.paused || s.hold || ad.paused() || ad.caching() || expect.current) return;
       const diff = targetPos(s) - ad.pos();
       const a = Math.abs(diff);
-      if (a > 1.5) { quiet(); ad.seek(Math.max(0, targetPos(s))); return; }
+      if (a > 1.5) { if (performance.now() - lastDriftSeek.current > 6000) { lastDriftSeek.current = performance.now(); doSeek(targetPos(s)); } return; }
       const want = a > 0.35 ? s.rate * (diff > 0 ? 1.06 : 0.94) : s.rate;
       if (Math.abs(ad.rate() - want) > 0.001) { quiet(800); appliedRate.current = want; ad.setRate(want); }
     }, 1000);
@@ -126,6 +131,11 @@ export function usePartySync(id: string, adapter: React.MutableRefObject<PartyAd
     const now = performance.now();
     const l = last.current;
     last.current = { pos, wall: now };
+    const ex = expect.current;
+    if (ex) { // 正在等自己发起的跳转完成
+      if (now > ex.until || Math.abs(pos - ex.to) < 3.5) expect.current = null;
+      return;
+    }
     if (!l || !act()) return;
     const ad = adapter.current;
     const playing = !ad.paused() && !ad.caching();

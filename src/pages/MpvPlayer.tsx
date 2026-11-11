@@ -17,7 +17,7 @@ import DanmakuPicker from '../components/DanmakuPicker';
 import PartyPanel from '../components/PartyPanel';
 import { usePartySync, type PartyAdapter } from '../lib/usePartySync';
 import { partyUrl } from '../lib/party';
-import { loadHw, saveHw, type HwPref } from '../lib/hwpref';
+import { loadHw, loadViaEmby, saveHw, saveViaEmby, type HwPref } from '../lib/hwpref';
 import { fetchIntroDb, introDbOn, type IntroInfo } from '../lib/introdb';
 import { loadPlayPrefs, savePlayPrefs, setTrackMemory } from '../lib/prefs';
 import { applySubStyle, loadSubStyle, saveSubStyle, SUB_DEFAULT, type SubStyle } from '../lib/substyle';
@@ -134,6 +134,25 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     })();
   };
   const curUrlRef = useRef('');
+  const embyUrlRef = useRef('');
+  /** 直链被服务器拒绝（403）/ 反复卡住：改经 Emby 服务器中转取流，从当前位置继续 */
+  const toEmbyRef = useRef<(why: string, persist?: boolean) => void>(() => undefined);
+  toEmbyRef.current = (why: string, persist = false): void => {
+    const s = sessRef.current;
+    const url = embyUrlRef.current;
+    if (!s || !url || curUrlRef.current === url) return;
+    if (persist) saveViaEmby(true);
+    const pos = posRef.current;
+    curUrlRef.current = url;
+    recRef.current.still = 0;
+    recRef.current.last = -1;
+    setRecTip(`${why}，已改经 Emby 服务器中转播放，从当前位置继续`);
+    window.setTimeout(() => setRecTip(''), 8000);
+    const o: Record<string, string> = { start: Math.max(0, pos - 2).toFixed(1) };
+    if (aid != null) o.aid = String(aid);
+    o.sid = sid != null ? String(sid) : 'no';
+    void s.loadfile(url, o).catch(() => undefined);
+  };
   const diagRef = useRef<() => Promise<string>>(async () => '');
   diagRef.current = async (): Promise<string> => {
     const s = sessRef.current;
@@ -514,7 +533,9 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           if (ei >= 0) opts.sid = String(ei + 1);
           else pendingSub.current = mst.find((x) => x.Index === pick.sub) || null; // 外挂字幕：载入后再挂
         }
-        const playUrl = remoteUrl(psrc.Path ? psrc : src) || directStreamUrl(id, psrc, info.PlaySessionId);
+        const embyUrl = directStreamUrl(id, psrc, info.PlaySessionId);
+        embyUrlRef.current = embyUrl;
+        const playUrl = (loadViaEmby() ? '' : remoteUrl(psrc.Path ? psrc : src)) || embyUrl;
         curUrlRef.current = playUrl;
         await sess.loadfile(playUrl, opts);
         if (loadPlayPrefs().autoSkipIntro) autoSkipArmed.current = true;
@@ -1125,6 +1146,11 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
                   window.setTimeout(() => setRecTip(''), 5000);
                 }}>解码方式：{loadHw() === 'sw' ? '软件解码（点此换回硬解）' : '硬件解码（卡死时点此换软解）'}</div>
                 <div className="we-menu-item" onClick={() => { setMenu(''); toTranscodeRef.current('手动切换'); }}>卡住 / 花屏？改用服务器转码</div>
+                {embyUrlRef.current && <div className="we-menu-item" onClick={() => {
+                  setMenu('');
+                  if (loadViaEmby() && curUrlRef.current === embyUrlRef.current) { saveViaEmby(false); setRecTip('已恢复为直链取流（下次播放生效）'); window.setTimeout(() => setRecTip(''), 4000); }
+                  else toEmbyRef.current('手动切换', true);
+                }}>{loadViaEmby() ? '取流方式：经 Emby 服务器中转（点此换回直链）' : '直链 403 / 卡住？改经 Emby 服务器中转'}</div>}
               </div>
             )}
           </div>

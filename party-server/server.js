@@ -41,6 +41,36 @@ async function verify(token, userId) {
   } catch (e) { log('verify fail', e.message); return null; }
 }
 
+// ───────── 媒体库权限：没有权限看这部片子的人，看不到房间、也加不进去 ─────────
+const accCache = new Map(); // userId|itemId -> {ok, exp}
+async function canSee(c, itemId) {
+  if (!EMBY_URL || !itemId) return true;
+  const k = c.userId + '|' + itemId;
+  const hit = accCache.get(k);
+  if (hit && hit.exp > now()) return hit.ok;
+  try {
+    const r = await fetch(`${EMBY_URL}/emby/Users/${encodeURIComponent(c.userId)}/Items/${encodeURIComponent(itemId)}`, { headers: { 'X-Emby-Token': c.token }, signal: AbortSignal.timeout(5000) });
+    const ok = r.ok; // 有权限 200；没有权限 / 不存在 404 或 403
+    accCache.set(k, { ok, exp: now() + (ok ? 60000 : 30000) });
+    return ok;
+  } catch (e) { return hit ? hit.ok : true; } // Emby 暂时连不上：沿用上次结果，没有就放行
+}
+const seeCached = (c, itemId) => { if (!EMBY_URL) return true; const h = accCache.get(c.userId + '|' + itemId); return h ? h.ok : true; };
+async function prefetch(c) { // 把所有公开房间的片子的权限先查好（有缓存，很快）
+  if (!EMBY_URL) return;
+  const ids = new Set(); for (const r of rooms.values()) if (r.pub) ids.add(r.state.item.id);
+  await Promise.all([...ids].map((id) => canSee(c, id)));
+}
+async function checkMembers(r) { // 房间换了一部片子：没有权限的成员自动退出
+  if (!EMBY_URL) return;
+  let changed = false;
+  for (const m of [...r.members.values()]) {
+    const c = clients.get(m.cid); if (!c || m.cid === r.host) continue;
+    if (!(await canSee(c, r.state.item.id))) { leaveRoom(c, 'no access'); c.kicked = '房间换到了你没有权限观看的影片，已退出房间'; changed = true; }
+  }
+  if (changed) bump();
+}
+
 // ───────── 房间逻辑 ─────────
 const rid = () => { for (;;) { const s = String(crypto.randomInt(0, 1000000)).padStart(6, '0'); if (!rooms.has(s)) return s; } };
 const targetPos = (st, t = now()) => (st.paused || st.hold ? st.pos : st.pos + ((t - st.at) / 1000) * st.rate);
@@ -76,7 +106,7 @@ function snap(c) {
   const r = c.room && rooms.get(c.room);
   return {
     ver, now: now(),
-    rooms: [...rooms.values()].filter((x) => x.pub).map(summary),
+    rooms: [...rooms.values()].filter((x) => x.pub && seeCached(c, x.state.item.id)).map(summary),
     room: r ? {
       id: r.id, pub: r.pub, ctl: r.ctl, wait: r.wait, host: r.host,
       members: [...r.members.values()].map((m) => ({ cid: m.cid, name: m.name, buf: m.buf })),
@@ -128,6 +158,7 @@ function apply(c, o) {
     st.pos = Number.isFinite(+o.pos) ? Number(o.pos) : targetPos(st); st.at = at; st.paused = k === 'pause';
     pushLog(r, c.name, (k === 'pause' ? '暂停 ' : '播放 ') + fmt(st.pos));
   } else if (k === 'seek') {
+    if (Math.abs((Number(o.pos) || 0) - targetPos(st)) < 1.5) return ''; // 和房间进度几乎一样：不算拖动（防止设备之间互相回声）
     st.pos = Math.max(0, Number(o.pos) || 0); st.at = at; pushLog(r, c.name, '拖到 ' + fmt(st.pos));
   } else if (k === 'rate') {
     const rt = Math.min(4, Math.max(0.25, Number(o.rate) || 1));
@@ -161,7 +192,7 @@ async function client(req, url, o) {
   if (!v) return null;
   let c = clients.get(cid);
   if (!c) { c = { cid, name: v.name, userId, room: '', seen: now(), kicked: '' }; clients.set(cid, c); }
-  c.name = v.name; c.seen = now();
+  c.name = v.name; c.seen = now(); c.token = String(token); // 令牌只放内存，用于替这个用户查询权限
   return c;
 }
 
@@ -184,15 +215,17 @@ const server = http.createServer(async (req, res) => {
   const p = url.pathname;
   try {
     if (req.method === 'OPTIONS') return cors(res);
+    if (p === '/') { res.writeHead(302, { Location: '/admin' }); return res.end(); }
     if (p === '/api/time') return send(res, 200, { now: now() });
     if (p === '/api/health') return send(res, 200, { ok: true, rooms: rooms.size, emby: !!EMBY_URL });
     if (p === '/api/sync') { // 长轮询：版本有变化（或 20 秒到）才返回
       const c = await client(req, url, {});
       if (!c) return send(res, 401, { error: '登录验证失败（Emby 令牌无效，或服务端的 EMBY_URL 填错）' });
       const since = Number(url.searchParams.get('ver') || 0);
+      await prefetch(c);
       if (since !== ver || c.kicked) { const s = snap(c); c.kicked = ''; return send(res, 200, s); }
-      const w = { fire: () => { clearTimeout(t); waiters.delete(w); c.seen = now(); const s = snap(c); c.kicked = ''; if (!res.writableEnded) send(res, 200, s); } };
-      const t = setTimeout(() => { waiters.delete(w); c.seen = now(); if (!res.writableEnded) send(res, 200, snap(c)); }, 20000);
+      const w = { fire: async () => { clearTimeout(t); waiters.delete(w); c.seen = now(); await prefetch(c); const s = snap(c); c.kicked = ''; if (!res.writableEnded) send(res, 200, s); } };
+      const t = setTimeout(async () => { waiters.delete(w); c.seen = now(); await prefetch(c); if (!res.writableEnded) send(res, 200, snap(c)); }, 20000);
       waiters.add(w); req.on('close', () => { clearTimeout(t); waiters.delete(w); });
       return;
     }
@@ -201,7 +234,16 @@ const server = http.createServer(async (req, res) => {
       const c = await client(req, url, o);
       if (!c) return send(res, 401, { error: '登录验证失败' });
       const before = ver;
+      if (o.kind === 'join') {
+        const tr = rooms.get(String(o.room || '').trim());
+        if (tr && !(await canSee(c, tr.state.item.id))) return send(res, 200, { ...snap(c), error: '你的账号没有权限观看这部影片', was: before });
+      } else if (o.kind === 'create') {
+        const iid = String((o.item && o.item.id) || '');
+        if (!(await canSee(c, iid))) return send(res, 200, { ...snap(c), error: '你的账号没有权限观看这部影片', was: before });
+      }
       const err = apply(c, o);
+      if (!err && o.kind === 'item') { const r0 = c.room && rooms.get(c.room); if (r0) void checkMembers(r0); }
+      await prefetch(c);
       if (o.kind !== 'hb') bump();
       const s = snap(c); c.kicked = '';
       return send(res, 200, { ...s, error: err, was: before });

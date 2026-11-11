@@ -80,8 +80,6 @@ function openAndroid(o: MpvOpenOpts): Promise<MpvSession> {
       cache: 'yes',
       // 容错：片源中间有损坏的数据包时丢掉坏包继续播；网络断一下自动重连，不卡死
       'demuxer-lavf-o': 'fflags=+discardcorrupt',
-      'stream-lavf-o': 'reconnect=1,reconnect_streamed=1,reconnect_delay_max=5',
-      'network-timeout': '30',
       'demuxer-max-bytes': '64MiB',
       'demuxer-max-back-bytes': '32MiB',
       'demuxer-readahead-secs': '60',
@@ -181,8 +179,6 @@ export function openMpv(o: MpvOpenOpts): Promise<MpvSession> {
         ytdl: 'no',
         // 容错：片源中间有损坏的数据包时丢掉坏包继续播；网络断一下自动重连，不卡死
         'demuxer-lavf-o': 'fflags=+discardcorrupt',
-        'stream-lavf-o': 'reconnect=1,reconnect_streamed=1,reconnect_delay_max=5',
-        'network-timeout': '30',
         // 局域网大文件：多缓冲一点
         cache: 'yes',
         'demuxer-max-bytes': '400MiB',
