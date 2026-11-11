@@ -38,13 +38,14 @@ export default function PartyPanel({ item, getPos, started, onCreated, onClose }
         <div className="we-party-code" title="点击复制" onClick={() => { try { void navigator.clipboard.writeText(room.id); setMsg('已复制房间号'); } catch { /* ignore */ } }}>{room.id}</div>
         <div className="we-party-sub">{partyItemTitle(room.state.item)} · {room.pub ? '公开' : '私密'} · {room.ctl === 'host' ? '仅房主控制' : '所有人可控制'}{room.wait ? ' · 等待缓冲' : ''}</div>
         <div className="we-party-list">
-          {room.members.map((m) => (
+          {room.members.slice(0, 5).map((m) => (
             <div key={m.cid} className="we-party-m">
               <span>{m.name}{m.cid === me ? '（我）' : ''}</span>
               {m.cid === room.host && <i>房主</i>}
               {m.buf && <i className="w">加载 / 缓冲中</i>}
             </div>
           ))}
+          {room.members.length > 5 && <div className="we-party-m"><span>…等共 {room.members.length} 人</span></div>}
         </div>
         {(msg || p.error) && <div className="we-party-msg">{msg || p.error}</div>}
         <button type="button" className="we-party-btn danger" onClick={() => { void leaveRoom(); onClose?.(); }}>退出房间</button>

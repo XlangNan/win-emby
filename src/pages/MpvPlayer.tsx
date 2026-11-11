@@ -906,6 +906,11 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
             {[vstream?.Width && vstream?.Height ? `${vstream.Width}×${vstream.Height}` : '', badge, vstream?.Codec?.toUpperCase(), fpsShow > 0 ? `${Number(fpsShow.toFixed(3))} fps` : '', vbr > 0 ? `${(vbr / 1e6).toFixed(1)} Mbps` : '', `MPV${hw && hw !== 'no' ? ` · ${hw}` : ''}`].filter(Boolean).join('  ·  ')}
           </div>
         </div>
+        {party.inRoom && (
+          <button className="we-btn we-txt we-syncbtn" title="同步到房间现在的进度" onClick={(e) => { e.stopPropagation(); party.resync(); poke(); }}>
+            同步播放
+          </button>
+        )}
         <button className="we-btn we-txt" title="简介 / 演职员 / 选集（I）" onClick={(e) => { e.stopPropagation(); setDrawer((v) => !v); }}>
           {drawer ? '收起' : '信息'}
         </button>
@@ -1139,7 +1144,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
             <div className="we-menu-wrap">
               <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'party' ? '' : 'party')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.2" /><circle cx="17" cy="9.5" r="2.5" /><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5M16 14.2c2.9-.3 5 1.5 5 4.3" /></svg><span>{party.inRoom ? '一起看 ●' : '一起看'}</span></button>
               {menu === 'party' && (
-                <div className="we-menu" onClick={(e) => e.stopPropagation()}>
+                <div className="we-menu we-menu-party" onClick={(e) => e.stopPropagation()}>
                   <PartyPanel item={item} getPos={() => partyAd.current.pos()} started={startedRef.current} onClose={() => setMenu('')} onCreated={() => setMenu('')} />
                 </div>
               )}

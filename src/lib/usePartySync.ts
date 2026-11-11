@@ -46,7 +46,7 @@ export function usePartySync(id: string, adapter: React.MutableRefObject<PartyAd
   }, []);
 
   /** 把房间状态应用到本机 */
-  const applyState = useCallback((withSeek: boolean): void => {
+  const applyState = useCallback((withSeek: boolean, force = false): void => {
     const room = getParty().room;
     if (!room) return;
     const s = room.state;
@@ -57,7 +57,7 @@ export function usePartySync(id: string, adapter: React.MutableRefObject<PartyAd
     if (Math.abs(ad.rate() - s.rate) > 0.001) { appliedRate.current = s.rate; ad.setRate(s.rate); }
     if (withSeek) {
       const tgt = targetPos(s);
-      if (Math.abs(tgt - ad.pos()) > (aligned.current ? 0.8 : 1.5)) doSeek(tgt);
+      if (Math.abs(tgt - ad.pos()) > (force ? 0.3 : aligned.current ? 0.8 : 1.5)) doSeek(tgt);
     }
   }, [adapter]);
 
@@ -121,6 +121,14 @@ export function usePartySync(id: string, adapter: React.MutableRefObject<PartyAd
     window.setTimeout(() => applyState(true), 50);
   }, [applyState]);
 
+  /** 手动「同步播放」：马上对齐到房间现在的进度和播放状态 */
+  const resync = useCallback((): void => {
+    if (!inRoomRef.current) return;
+    aligned.current = true;
+    applyState(true, true);
+    partyNotice('已同步到房间进度');
+  }, [applyState]);
+
   const onPause = useCallback((paused: boolean): void => {
     if (!act()) return;
     if (!canControl()) return revert();
@@ -172,5 +180,5 @@ export function usePartySync(id: string, adapter: React.MutableRefObject<PartyAd
     return true;
   }, []);
 
-  return useMemo(() => ({ inRoom, room: p.room, onStarted, onPause, onRate, onTime, onCache, switchTo }), [inRoom, p.room, onStarted, onPause, onRate, onTime, onCache, switchTo]);
+  return useMemo(() => ({ inRoom, room: p.room, onStarted, onPause, onRate, onTime, onCache, switchTo, resync }), [inRoom, p.room, onStarted, onPause, onRate, onTime, onCache, switchTo, resync]);
 }
