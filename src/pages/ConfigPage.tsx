@@ -1,4 +1,7 @@
 // 设置：账号 / 皮肤 / 播放偏好
+import { httpFetch } from '../emby/http';
+import PartyPanel from '../components/PartyPanel';
+import { partyUrl, setPartyUrl, usePartyStore } from '../lib/party';
 import { useEffect, useRef, useState } from 'react';
 import { emby } from '../emby/client';
 import { getSession, listAccounts, removeAccount, sameAccount, saveSession } from '../emby/session';
@@ -336,6 +339,38 @@ function MpSettings() {
   );
 }
 
+function PartySettings() {
+  const [url, setUrl] = useState(partyUrl());
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  const p = usePartyStore();
+  const save = (): void => { setPartyUrl(url); setUrl(partyUrl()); setMsg(url.trim() ? '已保存' : '已清除，一起看功能关闭'); };
+  const test = async (): Promise<void> => {
+    const u = url.trim().replace(/\/+$/, '');
+    if (!u) { setMsg('先填服务地址'); return; }
+    setBusy(true); setMsg('');
+    try {
+      const r = await httpFetch(`${/^https?:\/\//i.test(u) ? u : 'http://' + u}/api/health`);
+      const j = (await r.json()) as { ok?: boolean; rooms?: number; emby?: boolean };
+      setMsg(j.ok ? `连接正常（现有 ${j.rooms ?? 0} 个房间${j.emby ? '，已启用 Emby 登录验证' : '，⚠ 服务端没设置 EMBY_URL，不验证身份'}）` : '服务有响应，但不像一起看服务');
+    } catch (e) { setMsg(`连不上：${e instanceof Error ? e.message : '网络错误'}`); }
+    setBusy(false);
+  };
+  return (
+    <div className="card we-set" style={{ marginBottom: 14 }}>
+      <h3>一起看</h3>
+      <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>多个人同步看同一部片子。需要先部署「一起看服务」（项目里的 party-server 文件夹），再把它的地址填在这里，例如 http://192.168.1.2:8787</div>
+      <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+        <input style={{ flex: '1 1 220px', minWidth: 0 }} placeholder="服务地址" value={url} onChange={(e) => setUrl(e.target.value)} />
+        <button onClick={save}>保存</button>
+        <button disabled={busy} onClick={() => void test()}>{busy ? '测试中…' : '测试连接'}</button>
+      </div>
+      {(msg || (p.url && p.error)) && <div className="muted" style={{ fontSize: 12, marginTop: 8 }}>{msg || p.error}</div>}
+      {p.url && <div style={{ marginTop: 12 }}><PartyPanel item={null} getPos={() => 0} started={false} /></div>}
+    </div>
+  );
+}
+
 function ModeSettings() {
   const [m, setM] = useState<ModePref>(loadMode);
   const pick = (v: ModePref): void => { setM(v); applyMode(v); };
@@ -513,6 +548,7 @@ export default function ConfigPage() {
         <MpSettings />
         <DanmakuSettings />
 
+        <PartySettings />
         <ModeSettings />
         <FontSettings />
 

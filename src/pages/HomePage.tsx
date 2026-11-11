@@ -13,6 +13,7 @@ import { loadPlayPrefs } from '../lib/prefs';
 import { isMobileApp } from '../lib/platform';
 import { getSession } from '../emby/session';
 import MobileHero from '../mobile/MobileHero';
+import PartyRow from '../components/PartyRow';
 
 let homeScroll = 0;
 
@@ -168,6 +169,7 @@ export default function HomePage() {
       {isMobileApp && <div className="m-home-top" />}
       {isMobileApp && data && data.spot.length > 0 && <MobileHero items={data.spot} onOpen={open} onPlay={play} />}
       {!isMobileApp && data && data.spot.length > 0 && <HomeSpotlight items={data.spot} landscape={nf && !isMobileApp} onOpen={open} onPlay={play} />}
+      <PartyRow />
       {loading && !data ? (
         <div className="empty"><span className="spinner" aria-hidden="true" />加载中…</div>
       ) : error ? (

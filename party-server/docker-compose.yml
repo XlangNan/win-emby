@@ -1,0 +1,13 @@
+services:
+  weave-party:
+    build: .
+    container_name: weave-party
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
+    environment:
+      # 改成群晖上能访问到 Emby 的地址（用来验证登录），末尾不要加斜杠
+      EMBY_URL: "http://192.168.1.2:8096"
+      # 管理网页密码：改成你自己的
+      ADMIN_PASSWORD: "改成你的密码"
+      TZ: Asia/Shanghai

@@ -9,6 +9,7 @@ import { emby } from './emby/client';
 import { SESSION_EVENT, clearSession, getSession } from './emby/session';
 import ConfigPage from './pages/ConfigPage';
 import ScrollIndicator from './components/ScrollIndicator';
+import PartyBridge from './components/PartyBridge';
 import MediaPage from './pages/MediaPage';
 import PersonPage from './pages/PersonPage';
 import DetailPage from './pages/DetailPage';
@@ -118,6 +119,7 @@ export default function App() {
   return (
     <>
       {session ? <AppShell key={session.userId + session.server} /> : <LoginPage />}
+      {session && <PartyBridge />}
       <ScrollIndicator />
     </>
   );

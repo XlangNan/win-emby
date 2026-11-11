@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>织影 · 一起看 · 管理</title>
+<style>
+:root{--bg:#0e0e10;--card:#18181c;--line:#2a2a30;--t:#ececf0;--d:#9a9aa6;--ac:#e50914;--ok:#3ecf8e;--wn:#f5a623}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:14px/1.5 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+header{display:flex;gap:16px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5;flex-wrap:wrap}
+h1{font-size:17px;margin:0;flex:1;white-space:nowrap}.stat{color:var(--d)}.stat b{color:var(--t);font-size:16px;margin:0 2px}
+main{padding:16px 18px;max-width:1100px;margin:0 auto}
+.room{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:12px;overflow:hidden}
+.rh{display:flex;gap:12px;align-items:center;padding:12px 14px;cursor:pointer;flex-wrap:wrap}
+.id{font:600 16px ui-monospace,Menlo,Consolas,monospace;letter-spacing:1px}
+.tag{font-size:12px;padding:1px 8px;border-radius:99px;border:1px solid var(--line);color:var(--d)}.tag.pub{color:var(--ok);border-color:#235a43}.tag.pri{color:var(--wn);border-color:#5a4423}
+.title{flex:1;min-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.d{color:var(--d)}
+.rb{display:none;border-top:1px solid var(--line);padding:12px 14px}.room.open .rb{display:block}
+table{width:100%;border-collapse:collapse;margin:6px 0 12px}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);font-size:13px}th{color:var(--d);font-weight:500}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+button{background:#25252b;color:var(--t);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer}button:hover{border-color:#555}button.danger{color:#ff6b6b}
+.log{font-size:12.5px;color:var(--d);max-height:180px;overflow:auto;background:#121215;border-radius:8px;padding:8px 10px}.log div{padding:1px 0}
+.empty{text-align:center;color:var(--d);padding:60px 0}
+#login{max-width:320px;margin:90px auto;text-align:center}#login input{width:100%;padding:10px 12px;margin:14px 0;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--t);font:inherit}
+#login button{width:100%;background:var(--ac);border-color:var(--ac);padding:10px}.err{color:#ff6b6b;min-height:20px}
+.buf{color:var(--wn)}
+</style></head><body>
+<div id="login" hidden><h1>织影 · 一起看 · 管理</h1><input id="pw" type="password" placeholder="管理密码" autofocus><div class="err" id="err"></div><button id="go">进入</button></div>
+<div id="app" hidden>
+<header><h1>织影 · 一起看</h1><span class="stat">房间 <b id="nr">0</b></span><span class="stat">在线 <b id="no">0</b></span><span class="stat">运行 <b id="up">-</b></span><button id="out">退出</button></header>
+<main id="list"></main></div>
+<script>
+const $=s=>document.querySelector(s);let PW=sessionStorage.getItem('pw')||'',open=new Set(),skew=0,timer=0,data=null;
+const fmt=s=>{s=Math.max(0,Math.round(s));const h=Math.floor(s/3600),m=Math.floor(s/60)%60,x=s%60;return(h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0')};
+const dur=ms=>{const m=Math.floor(ms/60000);return m<60?m+' 分钟':Math.floor(m/60)+' 小时 '+m%60+' 分'};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function api(p,b){const r=await fetch('/admin/api/'+p,{method:b?'POST':'GET',headers:{'x-admin-password':PW,'content-type':'application/json'},body:b?JSON.stringify(b):undefined});if(r.status===401){const j=await r.json().catch(()=>({}));throw new Error(j.error||'未授权')}return r.json()}
+function name(it){return (it.seriesName?it.seriesName+' ':'')+(it.s!=null&&it.e!=null?`S${it.s}E${it.e} `:'')+it.name}
+function render(){
+  const d=data;$('#nr').textContent=d.rooms.length;$('#no').textContent=d.online;$('#up').textContent=dur(d.up);
+  if(!d.rooms.length){$('#list').innerHTML='<div class="empty">现在没有人在开房间</div>';return}
+  $('#list').innerHTML=d.rooms.map(r=>{const st=r.state,host=r.members.find(m=>m.host);
+    const state=st.hold?'<span class="buf">⏸ 等待缓冲</span>':st.paused?'⏸ 暂停':'▶ 播放中';
+    return `<div class="room${open.has(r.id)?' open':''}" data-id="${r.id}"><div class="rh"><span class="id">${r.id}</span><span class="tag ${r.pub?'pub':'pri'}">${r.pub?'公开':'私密'}</span><span class="title">${esc(name(st.item))}</span><span class="d">${state} ${fmt(r.target)}</span><span class="d">${r.members.length} 人 · 房主 ${esc(host?.name||'-')} · 已开 ${dur(d.now-r.created)}</span></div>
+    <div class="rb"><div class="btns"><button data-a="vis" data-v="${r.pub?0:1}">改为${r.pub?'私密':'公开'}</button><button class="danger" data-a="close">关闭房间</button></div>
+    <table><tr><th>成员</th><th>状态</th><th>进度</th><th>与房间差</th><th>加入</th><th></th></tr>${r.members.map(m=>{const df=m.pos-r.target;return `<tr><td>${esc(m.name)}${m.host?' <span class="tag">房主</span>':''}</td><td>${m.buf?'<span class="buf">缓冲/加载中</span>':'正常'}</td><td>${fmt(m.pos)}</td><td>${st.paused||st.hold?'-':(df>=0?'+':'')+df.toFixed(1)+'s'}</td><td class="d">${dur(d.now-m.joined)}前</td><td><button class="danger" data-a="kick" data-c="${esc(m.cid)}">踢出</button></td></tr>`}).join('')}</table>
+    <div class="log">${r.log.slice().reverse().map(l=>`<div>${new Date(l.t).toLocaleTimeString()}　${esc(l.who)}　${esc(l.what)}</div>`).join('')}</div></div></div>`}).join('');
+}
+async function tick(){try{data=await api('state');$('#login').hidden=true;$('#app').hidden=false;render()}catch(e){stop();PW='';sessionStorage.removeItem('pw');$('#app').hidden=true;$('#login').hidden=false;$('#err').textContent=e.message}}
+function start(){stop();tick();timer=setInterval(tick,2000)}function stop(){clearInterval(timer)}
+$('#go').onclick=()=>{PW=$('#pw').value;sessionStorage.setItem('pw',PW);$('#err').textContent='';start()};
+$('#pw').onkeydown=e=>{if(e.key==='Enter')$('#go').click()};
+$('#out').onclick=()=>{stop();PW='';sessionStorage.removeItem('pw');location.reload()};
+$('#list').onclick=async e=>{const b=e.target.closest('button'),rm=e.target.closest('.room');if(!rm)return;const id=rm.dataset.id;
+  if(!b){if(e.target.closest('.rb'))return;open.has(id)?open.delete(id):open.add(id);render();return}
+  const a=b.dataset.a;
+  if(a==='close'&&confirm('确定关闭房间 '+id+'？里面所有人会被退出。'))await api('close',{room:id});
+  else if(a==='kick'&&confirm('确定把这个人移出房间？'))await api('kick',{room:id,cid:b.dataset.c});
+  else if(a==='vis'&&confirm('确定修改房间的公开状态？'))await api('vis',{room:id,pub:b.dataset.v==='1'});
+  tick()};
+if(PW)start();else $('#login').hidden=false;
+</script></body></html>

@@ -620,3 +620,42 @@ html, html * { scrollbar-width: none !important; }
 /* 集号：桌面有左侧大号数字，手机上隐藏了大号数字，改在标题前显示 */
 .nfd-ep-no{display:none}
 :root.android[data-shell] .nfd-ep-no,:root.ios[data-shell] .nfd-ep-no{display:inline;opacity:.75;font-variant-numeric:tabular-nums}
+
+/* ── 一起看 ── */
+.we-party { min-width: 280px; max-width: 340px; padding: 12px 14px; color: #f2f2f3; font-size: 13px; white-space: normal; }
+.we-party-h { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.we-party-sub { color: #a9a9b2; font-size: 12px; margin-bottom: 10px; }
+.we-party-hint, .we-party-msg { color: #f5a623; font-size: 12.5px; margin: 8px 0 2px; line-height: 1.5; }
+.we-party-code { font: 700 30px/1.2 ui-monospace, Menlo, Consolas, monospace; letter-spacing: 4px; padding: 4px 0 2px; cursor: pointer; }
+.we-party-row { display: flex; align-items: center; gap: 6px; margin: 8px 0; flex-wrap: wrap; }
+.we-party-row > span { width: 56px; color: #a9a9b2; flex: none; }
+.we-party-row button { background: rgba(255, 255, 255, .08); border: 1px solid transparent; color: #ddd; border-radius: 99px; padding: 4px 11px; font-size: 12.5px; cursor: pointer; }
+.we-party-row button.on { border-color: #e50914; color: #fff; background: rgba(229, 9, 20, .25); }
+.we-party-btn { background: #e50914; color: #fff; border: 0; border-radius: 8px; padding: 8px 16px; font-size: 14px; cursor: pointer; margin-top: 6px; }
+.we-party-btn:disabled { opacity: .5; }
+.we-party-btn.danger { background: rgba(255, 255, 255, .12); color: #ff7b7b; width: 100%; margin-top: 10px; }
+.we-party-sep { height: 1px; background: rgba(255, 255, 255, .12); margin: 14px 0 10px; }
+.we-party-join { display: flex; gap: 8px; align-items: center; }
+.we-party-join input { flex: 1; min-width: 0; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .16); border-radius: 8px; padding: 8px 10px; color: #fff; font: 600 16px ui-monospace, Menlo, Consolas, monospace; letter-spacing: 2px; }
+.we-party-join .we-party-btn { margin-top: 0; }
+.we-party-list { margin: 6px 0 4px; max-height: 200px; overflow: auto; }
+.we-party-m { display: flex; gap: 8px; align-items: center; padding: 4px 0; }
+.we-party-m i { font-style: normal; font-size: 11px; color: #a9a9b2; border: 1px solid rgba(255, 255, 255, .2); border-radius: 99px; padding: 0 7px; }
+.we-party-m i.w { color: #f5a623; border-color: rgba(245, 166, 35, .5); }
+.we-pdlg { position: fixed; inset: 0; z-index: 9000; background: rgba(0, 0, 0, .6); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.we-pdlg > div { background: #1c1c20; border-radius: 14px; max-width: 360px; width: 100%; position: relative; box-shadow: 0 12px 40px rgba(0, 0, 0, .5); }
+.we-pdlg .we-party { max-width: none; padding: 18px 18px 16px; }
+.we-pdlg-x { position: absolute; top: 6px; right: 10px; background: none; border: 0; color: #aaa; font-size: 22px; cursor: pointer; }
+.we-ptoast { position: fixed; left: 50%; top: calc(var(--sat, 0px) + 18px); transform: translateX(-50%); z-index: 9500; background: rgba(28, 28, 32, .95); color: #fff; padding: 9px 16px; border-radius: 99px; font-size: 13.5px; box-shadow: 0 6px 24px rgba(0, 0, 0, .45); pointer-events: none; max-width: 86vw; text-align: center; }
+/* 首页「正在一起看」 */
+.pt-row { margin-bottom: 22px; }
+.pt-head { display: flex; align-items: baseline; gap: 12px; }
+.pt-head h3 { margin: 0 0 10px; }
+.pt-head button { background: none; border: 0; color: var(--text-dim, #a9a9b2); font-size: 13px; cursor: pointer; padding: 0; margin-left: auto; }
+.pt-cards { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px; }
+.pt-card { flex: 0 0 280px; display: flex; gap: 12px; align-items: center; padding: 10px; border-radius: 12px; background: var(--surface-2, rgba(255, 255, 255, .07)); cursor: pointer; min-width: 0; }
+.pt-card img { width: 64px; height: 92px; object-fit: cover; border-radius: 8px; flex: none; background: rgba(128, 128, 128, .2); }
+.pt-card > div { min-width: 0; flex: 1; }
+.pt-t { font-weight: 600; font-size: 14px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.pt-s { font-size: 12.5px; color: var(--text-dim, #a9a9b2); margin-top: 4px; }
+.pt-live { display: inline-block; font-size: 11px; color: #fff; background: #e50914; border-radius: 4px; padding: 0 6px; margin-right: 6px; }

@@ -1,4 +1,6 @@
 // 网飞皮肤的电影 / 剧集详情：整幅背景大图 + 大标题 + 白色播放按钮，下方剧集列表、更多类似内容、详细信息
+import PartyPanel from './PartyPanel';
+import { partyUrl } from '../lib/party';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BackButton from './BackButton';
@@ -43,6 +45,7 @@ const resBadge = (it: EmbyItem): string => {
 export default function NfDetail(p: NfDetailProps) {
   const { it } = p;
   const [more, setMore] = useState(false);
+  const [partyOpen, setPartyOpen] = useState(false);
   useBackClose(more, () => setMore(false));
   const tp = !!p.target?.UserData?.Played;
   const nav = useNavigate();
@@ -111,6 +114,7 @@ export default function NfDetail(p: NfDetailProps) {
                         <button role="menuitem" onClick={() => { setMore(false); p.onMarkTarget(!tp); }}>{tp ? '本集标记为未观看' : '本集标记为已观看'}</button>
                       )}
                       <button role="menuitem" onClick={() => { setMore(false); p.onFav(); }}>{p.fav ? '取消收藏' : '加入收藏'}</button>
+                      {partyUrl() && <button role="menuitem" onClick={() => { setMore(false); setPartyOpen(true); }} disabled={!p.target}>一起看…</button>}
                     </div>
                   </>
                 )}
@@ -118,6 +122,14 @@ export default function NfDetail(p: NfDetailProps) {
             </div>
           </div>
         </div>
+        {partyOpen && (
+          <div className="we-pdlg" onClick={() => setPartyOpen(false)}>
+            <div onClick={(e) => e.stopPropagation()}>
+              <button type="button" className="we-pdlg-x" aria-label="关闭" onClick={() => setPartyOpen(false)}>×</button>
+              <PartyPanel item={p.target || null} getPos={() => 0} started={false} onClose={() => setPartyOpen(false)} onCreated={() => setPartyOpen(false)} />
+            </div>
+          </div>
+        )}
         <div className="nfd-side">
           {actors.length > 0 && <div><span>主演：</span>{actors.slice(0, 5).map((x) => x.Name).join('、')}</div>}
           {it.Genres && it.Genres.length > 0 && <div><span>类型：</span>{it.Genres.join('、')}</div>}

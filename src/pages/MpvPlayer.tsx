@@ -14,6 +14,9 @@ import { syncSeriesMarkers } from '../lib/markerSync';
 import DanmakuLayer from '../components/DanmakuLayer';
 import { clearDanmakuCache, fetchDanmaku, loadDanmaku, loadDmPick, saveDanmaku, saveDmPick, type Dm, type DmPick } from '../lib/danmaku';
 import DanmakuPicker from '../components/DanmakuPicker';
+import PartyPanel from '../components/PartyPanel';
+import { usePartySync, type PartyAdapter } from '../lib/usePartySync';
+import { partyUrl } from '../lib/party';
 import { loadHw, saveHw, type HwPref } from '../lib/hwpref';
 import { fetchIntroDb, introDbOn, type IntroInfo } from '../lib/introdb';
 import { loadPlayPrefs, savePlayPrefs, setTrackMemory } from '../lib/prefs';
@@ -233,7 +236,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const [hw, setHw] = useState('');
   const [full, setFull] = useState(false);
   const [uiShown, setUiShown] = useState(true);
-  const [menu, setMenu] = useState<'' | 'audio' | 'sub' | 'speed' | 'eps' | 'substyle' | 'sleep' | 'danmu' | 'intro'>('');
+  const [menu, setMenu] = useState<'' | 'audio' | 'sub' | 'speed' | 'party' | 'eps' | 'substyle' | 'sleep' | 'danmu' | 'intro'>('');
   const seekRef = useRef<HTMLDivElement | null>(null);
   const [scrub, setScrub] = useState<number | null>(null);
   const scrubDrag = useRef(false);
@@ -260,6 +263,22 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   useEffect(() => { const t = window.setInterval(() => setClockNow(new Date()), 15000); return () => window.clearInterval(t); }, []);
 
   const posAt = useRef(0);
+  // ───────── 一起看 ─────────
+  const rateRef = useRef(1);
+  rateRef.current = rate;
+  const partyAd = useRef<PartyAdapter>({
+    pos: () => posRef.current + (pausedRef.current || cachingRef.current ? 0 : ((performance.now() - posAt.current) / 1000) * rateRef.current),
+    paused: () => pausedRef.current,
+    caching: () => cachingRef.current,
+    rate: () => rateRef.current,
+    seek: (sec) => { void sessRef.current?.cmd('seek', [String(sec), 'absolute']); },
+    setPause: (v) => { void sessRef.current?.set('pause', v ? 'yes' : 'no'); },
+    setRate: (r) => { void sessRef.current?.set('speed', r); },
+  });
+  const party = usePartySync(id, partyAd);
+  const shownRate = party.inRoom && party.room ? party.room.state.rate : rate; // 房间里：同步微调时显示房间的倍速，不跟着抖
+  const partyRef = useRef(party);
+  partyRef.current = party;
   const rateRef = useRef(1);
   rateRef.current = rate;
   const updDm = (p: Partial<typeof dmCfg>): void => setDmCfg(saveDanmaku(p));
@@ -362,16 +381,18 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   // ───────── mpv 属性回调 ─────────
   const onProp = useCallback((name: string, data: unknown) => {
     switch (name) {
-      case 'pause': pausedRef.current = !!data; setPaused(!!data); if (data) void report('progress'); break;
+      case 'pause': pausedRef.current = !!data; setPaused(!!data); if (data) void report('progress'); partyRef.current.onPause(!!data); break;
       case 'time-pos':
         if (typeof data === 'number') {
           posRef.current = data;
           posAt.current = performance.now();
+          partyRef.current.onTime(data);
           setCur(data);
           setBusy(false);
           if (!startedRef.current) {
             startedRef.current = true;
             void syncPauseRef.current(); // 初始 pause 事件可能没送达：起播后主动读一次
+            partyRef.current.onStarted();
           }
         }
         break;
@@ -390,8 +411,8 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       case 'container-fps': setFps(typeof data === 'number' ? data : 0); break;
       case 'video-bitrate': setVbr(typeof data === 'number' ? data : 0); break;
       case 'demuxer-cache-time': if (typeof data === 'number') setBuffered(data); break;
-      case 'paused-for-cache': cachingRef.current = !!data; setCaching(!!data); break;
-      case 'speed': if (typeof data === 'number') setRate(data); break;
+      case 'paused-for-cache': cachingRef.current = !!data; setCaching(!!data); partyRef.current.onCache(!!data); break;
+      case 'speed': if (typeof data === 'number') { rateRef.current = data; setRate(data); partyRef.current.onRate(data); } break;
       case 'volume': if (typeof data === 'number') setVol(data); break;
       case 'mute': setMuted(!!data); break;
       case 'aid': setAid(typeof data === 'number' ? data : null); break;
@@ -405,7 +426,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           void report('stop');
           const n = nextRef.current;
           // 有下一集且开了自动连播 → 接着播；否则播完直接退出播放页（同时解除常亮，不会一直停在片尾）
-          if (!sleepEndRef.current && loadPlayPrefs().autoNext && n) nav(`/player/${n.Id}`, { replace: true });
+          if (!sleepEndRef.current && loadPlayPrefs().autoNext && n) { if (partyRef.current.switchTo(n)) nav(`/player/${n.Id}`, { replace: true }); }
           else void exitRef.current();
         }
         break;
@@ -592,7 +613,8 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     return true;
   };
   const goNext = useCallback(() => {
-    if (nextRef.current) nav(`/player/${nextRef.current.Id}`, { replace: true });
+    const n = nextRef.current;
+    if (n && partyRef.current.switchTo(n)) nav(`/player/${n.Id}`, { replace: true });
   }, [nav]);
 
   const pickAudio = (i: number): void => {
@@ -887,7 +909,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           episodes={episodes}
           currentId={id}
           onClose={() => setDrawer(false)}
-          onPickEpisode={(e) => nav(`/player/${e.Id}`, { replace: true })}
+          onPickEpisode={(e) => { if (party.switchTo(e)) nav(`/player/${e.Id}`, { replace: true }); }}
         />
       )}
 
@@ -1008,7 +1030,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
                       key={e.Id}
                       ref={e.Id === id ? scrollToActive : undefined}
                       className={`we-menu-item${e.Id === id ? ' active' : ''}`}
-                      onClick={() => { setMenu(''); if (e.Id !== id) nav(`/player/${e.Id}`, { replace: true }); }}
+                      onClick={() => { setMenu(''); if (e.Id !== id && party.switchTo(e)) nav(`/player/${e.Id}`, { replace: true }); }}
                     >
                       {`S${e.ParentIndexNumber ?? 1}E${e.IndexNumber ?? 0} · ${e.Name}`}{e.Id === id ? '（正在播放）' : ''}
                     </div>
@@ -1075,12 +1097,22 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
               </div>
             )}
           </div>
+          {partyUrl() && (
+            <div className="we-menu-wrap">
+              <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'party' ? '' : 'party')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.2" /><circle cx="17" cy="9.5" r="2.5" /><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5M16 14.2c2.9-.3 5 1.5 5 4.3" /></svg><span>{party.inRoom ? '一起看 ●' : '一起看'}</span></button>
+              {menu === 'party' && (
+                <div className="we-menu" onClick={(e) => e.stopPropagation()}>
+                  <PartyPanel item={item} getPos={() => partyAd.current.pos()} started={startedRef.current} onClose={() => setMenu('')} onCreated={() => setMenu('')} />
+                </div>
+              )}
+            </div>
+          )}
           <div className="we-menu-wrap">
-            <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'speed' ? '' : 'speed')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg><span>{rate === 1 ? '倍速' : `${rate}x`}</span></button>
+            <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'speed' ? '' : 'speed')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg><span>{shownRate === 1 ? '倍速' : `${shownRate}x`}</span></button>
             {menu === 'speed' && (
               <div className="we-menu">
                 {[0.5, 0.75, 1, 1.25, 1.5, 2, 3].map((r) => (
-                  <div key={r} className={`we-menu-item${r === rate ? ' active' : ''}`} onClick={() => setSpeed(r)}>{r}x</div>
+                  <div key={r} className={`we-menu-item${r === shownRate ? ' active' : ''}`} onClick={() => setSpeed(r)}>{r}x</div>
                 ))}
                 <div className="we-menu-item" style={{ borderTop: '1px solid rgba(255,255,255,.15)', marginTop: 4, paddingTop: 10 }} onClick={() => {
                   const next: HwPref = loadHw() === 'sw' ? 'auto' : 'sw';
