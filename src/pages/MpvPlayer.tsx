@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import PlayerDrawer from '../components/PlayerDrawer';
+import { httpFetch } from '../emby/http';
 import { absUrl, directStreamUrl, emby, posterUrl, subtitleUrl, thumbUrl } from '../emby/client';
 import { fmtDuration, ticksToSec } from '../emby/format';
 import type { EmbyItem, MediaSource, MediaStream } from '../emby/types';
@@ -120,6 +121,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         playRef.current = { source: { ...src, MediaStreams: src.MediaStreams || playRef.current?.source.MediaStreams }, playSessionId: info.PlaySessionId };
         recRef.current.still = 0;
         recRef.current.last = -1;
+        curUrlRef.current = url;
         await s.loadfile(url, pos > 1 ? { start: pos.toFixed(1) } : {});
         tip('已改用服务器转码播放（音轨以服务器默认为准）');
       } catch (e) {
@@ -128,6 +130,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       }
     })();
   };
+  const curUrlRef = useRef('');
   const diagRef = useRef<() => Promise<string>>(async () => '');
   diagRef.current = async (): Promise<string> => {
     const s = sessRef.current;
@@ -137,7 +140,26 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       g('hwdec-current', 'string'), g('video-codec', 'string'), g('decoder-frame-drop-count', 'int64'), g('vo-delayed-frame-count', 'int64'),
       g('core-idle', 'flag'), g('eof-reached', 'flag'), g('demuxer-cache-time', 'double'), g('time-pos', 'double'),
     ]);
-    return `位置 ${tp}s · 解码 ${hwd} · 缓冲到 ${cache}s\n编码 ${codec}\n丢帧 ${drop} · 延迟帧 ${vdel} · idle ${idle} · eof ${eof}`;
+    const [fmt, sp, fsz, spd] = await Promise.all([g('file-format', 'string'), g('stream-pos', 'int64'), g('stream-end', 'int64'), g('cache-speed', 'int64')]);
+    // 直接向片源发一个 64KB 的范围请求：能区分「片源本身不给数据」和「播放器解析 / 解码出了问题」
+    let probe = '未探测';
+    const url = curUrlRef.current;
+    const at = Number(sp);
+    if (/^https?:\/\//i.test(url) && Number.isFinite(at)) {
+      const t0 = performance.now();
+      try {
+        const ac = new AbortController();
+        const to = window.setTimeout(() => ac.abort(), 8000);
+        const r = await httpFetch(url, { headers: { Range: `bytes=${at}-${at + 65535}` }, signal: ac.signal });
+        const n = (await r.arrayBuffer()).byteLength;
+        window.clearTimeout(to);
+        probe = `HTTP ${r.status} · ${n}B · ${Math.round(performance.now() - t0)}ms`;
+      } catch (e) {
+        probe = `失败/超时（${e instanceof Error ? e.name : '错误'}）`;
+      }
+    }
+    const via = /\/Videos\/.+\/stream/i.test(url) ? 'Emby 中转' : /^https?:/i.test(url) ? '直链' : '转码';
+    return `位置 ${tp}s · 解码 ${hwd} · 缓冲到 ${cache}s\n编码 ${codec} · 容器 ${fmt} · ${via}\n丢帧 ${drop} · 延迟帧 ${vdel} · idle ${idle} · eof ${eof}\n读到字节 ${sp} / ${fsz} · 速度 ${spd}\n片源探测：${probe}`;
   };
   recoverRef.current = (why: string, diag?: string): void => {
     const s = sessRef.current;
@@ -178,7 +200,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         r.last = pos;
         if (r.n > 0 && Date.now() - r.at > 30000) r.n = 0; // 之后连续正常播了 30 秒：恢复计数
       }
-      if (r.still >= 6) { void diagRef.current().then((d) => { console.warn('[weave] 播放卡住', d); recoverRef.current('画面卡住了', d); }); }
+      if (r.still >= 6) { r.still = -8; void diagRef.current().then((d) => { console.warn('[weave] 播放卡住', d); recoverRef.current('画面卡住了', d); }); }
     }, 1000);
     return () => window.clearInterval(t);
   }, []);
@@ -455,7 +477,9 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           if (ei >= 0) opts.sid = String(ei + 1);
           else pendingSub.current = mst.find((x) => x.Index === pick.sub) || null; // 外挂字幕：载入后再挂
         }
-        await sess.loadfile(remoteUrl(psrc.Path ? psrc : src) || directStreamUrl(id, psrc, info.PlaySessionId), opts);
+        const playUrl = remoteUrl(psrc.Path ? psrc : src) || directStreamUrl(id, psrc, info.PlaySessionId);
+        curUrlRef.current = playUrl;
+        await sess.loadfile(playUrl, opts);
         if (loadPlayPrefs().autoSkipIntro) autoSkipArmed.current = true;
         void report('start');
         void syncPauseRef.current();
