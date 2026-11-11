@@ -92,9 +92,12 @@ export function usePartySync(id: string, adapter: React.MutableRefObject<PartyAd
       if (s.paused || s.hold || ad.paused() || ad.caching() || expect.current) return;
       const diff = targetPos(s) - ad.pos();
       const a = Math.abs(diff);
-      if (a > 1.5) { if (performance.now() - lastDriftSeek.current > 6000) { lastDriftSeek.current = performance.now(); doSeek(targetPos(s)); } return; }
-      const want = a > 0.35 ? s.rate * (diff > 0 ? 1.06 : 0.94) : s.rate;
-      if (Math.abs(ad.rate() - want) > 0.001) { quiet(800); appliedRate.current = want; ad.setRate(want); }
+      // 直链上每次跳转都是一次新的片源请求：请求太密片源会拒绝（403）。所以只有偏差很大才跳转（且有冷却），
+      // 平时用微调播放速度慢慢追（落后 3 秒约 25 秒追上）
+      if (a > 10) { if (performance.now() - lastDriftSeek.current > 20000) { lastDriftSeek.current = performance.now(); doSeek(targetPos(s)); } return; }
+      const adj = a > 0.35 ? Math.max(-0.12, Math.min(0.12, diff / 10)) : 0;
+      const want = s.rate * (1 + adj);
+      if (Math.abs(ad.rate() - want) > 0.005) { quiet(800); appliedRate.current = want; ad.setRate(want); }
     }, 1000);
     return () => window.clearInterval(t);
   }, [inRoom, adapter]);

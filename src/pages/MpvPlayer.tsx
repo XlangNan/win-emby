@@ -103,7 +103,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const cachingRef = useRef(false);
   const durRef = useRef(0);
   // 损坏片段自救：卡住 / 中途被打断时，先换软解重试，再逐级跳过坏的一段
-  const recRef = useRef({ n: 0, still: 0, last: -1, at: 0, sw: false });
+  const recRef = useRef({ n: 0, still: 0, last: -1, at: 0, sw: false, deny: 0 });
   const [recTip, setRecTip] = useState('');
   const recoverRef = useRef<(why: string, diag?: string) => void>(() => undefined);
   const transRef = useRef(false);
@@ -197,7 +197,12 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     r.n += 1;
     r.at = Date.now();
     r.still = 0;
-    const tip = (t: string): void => { const m = diag ? `${t}\n${diag}` : t; setRecTip(m); window.setTimeout(() => setRecTip(''), diag ? 14000 : 6000); };
+    // 片源返回 403（常见原因：同一个文件正被别的设备同时播放，片源限制了并发）：不要升级成软解 / 转码 / 跳过，
+    // 只是每隔几秒重新连一次，等对方释放连接后自动继续
+    const deny = !!diag && /HTTP 403|\[403重试\]/.test(diag);
+    if (deny) { r.deny += 1; r.n = 1; }
+    const shown = diag && !diag.startsWith('[') ? diag : '';
+    const tip = (t: string): void => { const m = shown ? `${t}\n${shown}` : t; setRecTip(m); window.setTimeout(() => setRecTip(''), shown ? 14000 : 6000); };
     void (async () => {
       try {
         const url = curUrlRef.current;
@@ -209,7 +214,10 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           o.sid = sid != null ? String(sid) : 'no';
           await s.loadfile(url, o);
         };
-        if (r.n === 1 && url && !transRef.current) {
+        if (deny && url && !transRef.current) {
+          tip(`片源拒绝访问（403）。如果同一个文件正被别的设备同时播放，片源可能限制了同时观看的数量。已自动重试 ${r.deny} 次，对方释放后会自动继续`);
+          await reopen();
+        } else if (r.n === 1 && url && !transRef.current) {
           tip(`${why}，已重新连接片源并从当前位置继续`);
           await reopen();
         } else if (r.n === 2 && url && !transRef.current) {
@@ -238,9 +246,14 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       else {
         r.still = 0;
         r.last = pos;
-        if (r.n > 0 && Date.now() - r.at > 30000) r.n = 0; // 之后连续正常播了 30 秒：恢复计数
+        if (r.n > 0 && Date.now() - r.at > 30000) { r.n = 0; r.deny = 0; } // 之后连续正常播了 30 秒：恢复计数
       }
-      if (r.still >= 6) { r.still = -8; void diagRef.current().then((d) => { console.warn('[weave] 播放卡住', d); recoverRef.current('画面卡住了', d); }); }
+      if (r.still >= 6) {
+        r.still = -8;
+        // 已经确认是 403 的话，后面的重试不再做探测（探测本身也是两次额外请求）
+        if (r.deny > 0) recoverRef.current('画面卡住了', '[403重试]');
+        else void diagRef.current().then((d) => { console.warn('[weave] 播放卡住', d); recoverRef.current('画面卡住了', d); });
+      }
     }, 1000);
     return () => window.clearInterval(t);
   }, []);
@@ -290,7 +303,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     paused: () => pausedRef.current,
     caching: () => cachingRef.current,
     rate: () => rateRef.current,
-    seek: (sec) => { void sessRef.current?.cmd('seek', [String(sec), 'absolute']); },
+    seek: (sec) => { void sessRef.current?.cmd('seek', [String(sec), 'absolute+exact']); }, // exact：落在准确位置，不退回到前一个关键帧（否则会一直落后、反复纠偏）
     setPause: (v) => { void sessRef.current?.set('pause', v ? 'yes' : 'no'); },
     setRate: (r) => { void sessRef.current?.set('speed', r); },
   });
@@ -438,7 +451,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       case 'eof-reached':
         if (data === true && !endedRef.current) {
           // 离片尾还很远就读到「结尾」：是片源中间坏了，不是真的播完 → 先自救，救不了（试过 4 次）才按播完处理
-          if (durRef.current > 60 && posRef.current < durRef.current - 20 && recRef.current.n < 5) { recoverRef.current('播放被中断'); break; }
+          if (durRef.current > 60 && posRef.current < durRef.current - 20 && recRef.current.n < 5) { recoverRef.current('播放被中断', recRef.current.deny > 0 ? '[403重试]' : undefined); break; }
           endedRef.current = true;
           void report('stop');
           const n = nextRef.current;
