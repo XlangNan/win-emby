@@ -64,6 +64,9 @@ export interface MediaSource {
   DefaultSubtitleStreamIndex?: number;
   MediaStreams?: MediaStream[];
   Path?: string;
+  /** strm / 网络源：Emby 记的是远端地址，客户端可以直接去取 */
+  Protocol?: string;
+  IsRemote?: boolean;
   Chapters?: Chapter[];
 }
 

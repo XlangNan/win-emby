@@ -615,4 +615,4 @@ html, html * { scrollbar-width: none !important; }
 .we-dmpick-i span { font-size: 12px; color: rgba(255, 255, 255, .6); }
 
 /* 播放中遇到损坏片段时的自救提示 */
-.we-rectip { position: absolute; left: 50%; top: 16%; transform: translateX(-50%); z-index: 30; max-width: 86%; padding: 8px 14px; border-radius: 999px; background: rgba(0, 0, 0, .72); color: #fff; font-size: 13px; text-align: center; pointer-events: none; }
+.we-rectip { position: absolute; left: 50%; top: 16%; transform: translateX(-50%); z-index: 30; max-width: 86%; padding: 8px 14px; border-radius: 14px; white-space: pre-line; line-height: 1.5; background: rgba(0, 0, 0, .72); color: #fff; font-size: 13px; text-align: center; pointer-events: none; }

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import PlayerDrawer from '../components/PlayerDrawer';
-import { directStreamUrl, emby, posterUrl, subtitleUrl, thumbUrl } from '../emby/client';
+import { absUrl, directStreamUrl, emby, posterUrl, subtitleUrl, thumbUrl } from '../emby/client';
 import { fmtDuration, ticksToSec } from '../emby/format';
 import type { EmbyItem, MediaSource, MediaStream } from '../emby/types';
 import { openMpv, type MpvSession } from '../lib/mpv';
@@ -13,6 +13,7 @@ import { syncSeriesMarkers } from '../lib/markerSync';
 import DanmakuLayer from '../components/DanmakuLayer';
 import { clearDanmakuCache, fetchDanmaku, loadDanmaku, loadDmPick, saveDanmaku, saveDmPick, type Dm, type DmPick } from '../lib/danmaku';
 import DanmakuPicker from '../components/DanmakuPicker';
+import { loadHw, saveHw, type HwPref } from '../lib/hwpref';
 import { fetchIntroDb, introDbOn, type IntroInfo } from '../lib/introdb';
 import { loadPlayPrefs, savePlayPrefs, setTrackMemory } from '../lib/prefs';
 import { applySubStyle, loadSubStyle, saveSubStyle, SUB_DEFAULT, type SubStyle } from '../lib/substyle';
@@ -28,6 +29,22 @@ const DIRECT_ALL_PROFILE = {
   DirectPlayProfiles: [{ Type: 'Video' }, { Type: 'Audio' }],
   TranscodingProfiles: [],
   SubtitleProfiles: [],
+};
+
+/** 直连播放出问题（片源中间有损坏）时的兜底：让 Emby 服务器自己转封装 / 转码成 HLS 再播，和 Emby 官方客户端的做法一样 */
+const TRANSCODE_PROFILE = {
+  Name: 'Weave MPV Transcode',
+  MaxStreamingBitrate: 40_000_000,
+  MaxStaticBitrate: 40_000_000,
+  DirectPlayProfiles: [],
+  TranscodingProfiles: [{ Type: 'Video', Container: 'ts', Protocol: 'hls', VideoCodec: 'h264', AudioCodec: 'aac,mp3', Context: 'Streaming', MaxAudioChannels: '6', BreakOnNonKeyFrames: true }],
+  SubtitleProfiles: [],
+};
+
+/** strm / 网络源：Path 就是远端直链，和 Emby 官方客户端一样让播放器直接去取，不经过 Emby 服务器中转 */
+const remoteUrl = (s?: MediaSource): string => {
+  const p = (s?.Path || '').trim();
+  return /^https?:\/\//i.test(p) ? p : '';
 };
 
 const audioLabel = (s: MediaStream): string =>
@@ -84,8 +101,45 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   // 损坏片段自救：卡住 / 中途被打断时，先换软解重试，再逐级跳过坏的一段
   const recRef = useRef({ n: 0, still: 0, last: -1, at: 0, sw: false });
   const [recTip, setRecTip] = useState('');
-  const recoverRef = useRef<(why: string) => void>(() => undefined);
-  recoverRef.current = (why: string): void => {
+  const recoverRef = useRef<(why: string, diag?: string) => void>(() => undefined);
+  const transRef = useRef(false);
+  const toTranscodeRef = useRef<(why: string) => void>(() => undefined);
+  toTranscodeRef.current = (why: string): void => {
+    const s = sessRef.current;
+    if (!s || transRef.current) return;
+    transRef.current = true;
+    const pos = posRef.current;
+    const tip = (t: string): void => { setRecTip(t); window.setTimeout(() => setRecTip(''), 7000); };
+    tip(`${why}，正在改用服务器转码播放…`);
+    void (async () => {
+      try {
+        const info = await emby.playbackInfo(id, { deviceProfile: TRANSCODE_PROFILE, maxBitrate: 40_000_000 });
+        const src = info.MediaSources?.[0];
+        const url = src?.TranscodingUrl ? absUrl(src.TranscodingUrl) : '';
+        if (!src || !url) throw new Error('服务器没有给出转码地址（检查 Emby 的转码设置 / ffmpeg 是否可用）');
+        playRef.current = { source: { ...src, MediaStreams: src.MediaStreams || playRef.current?.source.MediaStreams }, playSessionId: info.PlaySessionId };
+        recRef.current.still = 0;
+        recRef.current.last = -1;
+        await s.loadfile(url, pos > 1 ? { start: pos.toFixed(1) } : {});
+        tip('已改用服务器转码播放（音轨以服务器默认为准）');
+      } catch (e) {
+        transRef.current = false;
+        tip(`转码播放失败：${e instanceof Error ? e.message : '未知错误'}`);
+      }
+    })();
+  };
+  const diagRef = useRef<() => Promise<string>>(async () => '');
+  diagRef.current = async (): Promise<string> => {
+    const s = sessRef.current;
+    if (!s) return '';
+    const g = async (n: string, t: string): Promise<string> => { try { const v = await s.get(n, t); return v == null ? '-' : typeof v === 'number' ? String(Math.round(v * 100) / 100) : String(v); } catch { return '?'; } };
+    const [hwd, codec, drop, vdel, idle, eof, cache, tp] = await Promise.all([
+      g('hwdec-current', 'string'), g('video-codec', 'string'), g('decoder-frame-drop-count', 'int64'), g('vo-delayed-frame-count', 'int64'),
+      g('core-idle', 'flag'), g('eof-reached', 'flag'), g('demuxer-cache-time', 'double'), g('time-pos', 'double'),
+    ]);
+    return `位置 ${tp}s · 解码 ${hwd} · 缓冲到 ${cache}s\n编码 ${codec}\n丢帧 ${drop} · 延迟帧 ${vdel} · idle ${idle} · eof ${eof}`;
+  };
+  recoverRef.current = (why: string, diag?: string): void => {
     const s = sessRef.current;
     const r = recRef.current;
     if (!s || endedRef.current) return;
@@ -93,15 +147,17 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     r.n += 1;
     r.at = Date.now();
     r.still = 0;
-    const tip = (t: string): void => { setRecTip(t); window.setTimeout(() => setRecTip(''), 6000); };
+    const tip = (t: string): void => { const m = diag ? `${t}\n${diag}` : t; setRecTip(m); window.setTimeout(() => setRecTip(''), diag ? 14000 : 6000); };
     void (async () => {
       try {
         if (r.n === 1) {
           if (!r.sw) { r.sw = true; await s.set('hwdec', 'no'); }
           tip(`${why}，已切换软件解码并重试`);
           await s.cmd('seek', [String(Math.max(0, pos - 1)), 'absolute']);
+        } else if (r.n === 2 && !transRef.current) {
+          toTranscodeRef.current(why);
         } else if (r.n <= 4) {
-          const jump = r.n === 2 ? 8 : r.n === 3 ? 20 : 60;
+          const jump = r.n <= 3 ? 20 : 60;
           tip(`${why}，已跳过这段损坏的数据（${jump} 秒）`);
           await s.cmd('seek', [String(pos + jump), 'absolute+keyframes']);
         } else {
@@ -122,7 +178,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         r.last = pos;
         if (r.n > 0 && Date.now() - r.at > 30000) r.n = 0; // 之后连续正常播了 30 秒：恢复计数
       }
-      if (r.still >= 6) recoverRef.current('画面卡住了');
+      if (r.still >= 6) { void diagRef.current().then((d) => { console.warn('[weave] 播放卡住', d); recoverRef.current('画面卡住了', d); }); }
     }, 1000);
     return () => window.clearInterval(t);
   }, []);
@@ -334,6 +390,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     let dead = false;
     endedRef.current = false;
     recRef.current = { n: 0, still: 0, last: -1, at: 0, sw: false };
+    transRef.current = false;
     startedRef.current = false;
     stoppedRef.current = false;
     posRef.current = 0;
@@ -371,12 +428,14 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         await applySubStyle(sess, loadSubStyle());
         const mst = psrc.MediaStreams || src.MediaStreams || [];
         // 杜比视界 Profile 5（没有 HDR10 / SDR 兼容层）：硬解拿不到 RPU 元数据，画面会偏紫偏绿 → 改软解，交给 libplacebo 重塑
+        const forceSw = loadHw() === 'sw';
+        if (forceSw && !isMobileApp) await sess.set('hwdec', 'no');
         if (isMobileApp) {
           const v = mst.find((x) => x.Type === 'Video');
           const tag = `${v?.VideoRangeType ?? ''} ${v?.ExtendedVideoSubType ?? ''} ${v?.ExtendedVideoSubTypeDescription ?? ''} ${v?.DvProfile ?? ''}`.toLowerCase();
           const p5 = /profile\s*5|doviprofile50|dovi50/.test(tag) || String(v?.VideoRangeType ?? '').toLowerCase() === 'dovi' || Number(v?.DvProfile) === 5;
           // iOS 用 VideoToolbox（先零拷贝，不行退到拷贝模式）；mediacodec 是安卓专用，iOS 上写它会变成 CPU 软解。杜比 P5 两端都改软解（硬解丢 RPU，颜色会偏紫偏绿）
-          await sess.set('hwdec', p5 ? 'no' : isIOS ? 'videotoolbox,videotoolbox-copy' : 'mediacodec-copy');
+          await sess.set('hwdec', p5 || forceSw ? 'no' : isIOS ? 'videotoolbox,videotoolbox-copy' : 'mediacodec-copy');
         }
         const pick = pickInitialTracks(id, mst, loadPlayPrefs(), {
           audio: qs.get('aud') ? Number(qs.get('aud')) : undefined,
@@ -396,7 +455,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           if (ei >= 0) opts.sid = String(ei + 1);
           else pendingSub.current = mst.find((x) => x.Index === pick.sub) || null; // 外挂字幕：载入后再挂
         }
-        await sess.loadfile(directStreamUrl(id, psrc, info.PlaySessionId), opts);
+        await sess.loadfile(remoteUrl(psrc.Path ? psrc : src) || directStreamUrl(id, psrc, info.PlaySessionId), opts);
         if (loadPlayPrefs().autoSkipIntro) autoSkipArmed.current = true;
         void report('start');
         void syncPauseRef.current();
@@ -981,6 +1040,19 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
                 {[0.5, 0.75, 1, 1.25, 1.5, 2, 3].map((r) => (
                   <div key={r} className={`we-menu-item${r === rate ? ' active' : ''}`} onClick={() => setSpeed(r)}>{r}x</div>
                 ))}
+                <div className="we-menu-item" style={{ borderTop: '1px solid rgba(255,255,255,.15)', marginTop: 4, paddingTop: 10 }} onClick={() => {
+                  const next: HwPref = loadHw() === 'sw' ? 'auto' : 'sw';
+                  saveHw(next);
+                  const sess = sessRef.current;
+                  if (sess) {
+                    const def = isIOS ? 'videotoolbox,videotoolbox-copy' : isMobileApp ? 'mediacodec-copy' : 'auto-safe';
+                    void sess.set('hwdec', next === 'sw' ? 'no' : def).then(() => sess.cmd('seek', [String(Math.max(0, posRef.current - 1)), 'absolute'])).catch(() => undefined);
+                  }
+                  setMenu('');
+                  setRecTip(next === 'sw' ? '已切换为软件解码（以后都用软解，可再点一次换回）' : '已切换回硬件解码');
+                  window.setTimeout(() => setRecTip(''), 5000);
+                }}>解码方式：{loadHw() === 'sw' ? '软件解码（点此换回硬解）' : '硬件解码（卡死时点此换软解）'}</div>
+                <div className="we-menu-item" onClick={() => { setMenu(''); toTranscodeRef.current('手动切换'); }}>卡住 / 花屏？改用服务器转码</div>
               </div>
             )}
           </div>
