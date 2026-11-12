@@ -137,7 +137,7 @@ export default function NowPlaying() {
         <button type="button" className={`mu-ib mu-np-lyrbtn${lyrMode ? ' on' : ''}`} aria-label="歌词" onClick={() => { setQueueOpen(false); setLyrMode((v) => !v); }}><span className="mu-ci">词</span></button>
         <button type="button" className="mu-ib" aria-label="播放队列" onClick={() => setQueueOpen((v) => !v)}><Ic n="list" /></button>
         {partyUrl() && <button type="button" className={`mu-ib mu-np-party${inMusicRoom ? ' on' : ''}`} aria-label="一起听" title="一起听" onClick={() => setPartyOpen(true)}><span className="mu-ci">伴</span></button>}
-        {inMusicRoom && <button type="button" className="mu-np-sync" title="同步到房间现在的进度" onClick={musicResync}><span className="mu-np-sync-i" aria-hidden="true">⟳</span><span className="mu-np-sync-t">同步播放</span></button>}
+        {inMusicRoom && <button type="button" className="mu-np-sync" title="同步到房间现在的进度" onClick={musicResync}><svg className="mu-np-sync-i" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9" /><path d="M20 4v5h-5" /></svg><span className="mu-np-sync-t">同步播放</span></button>}
       </div>
       {partyOpen && (
         <div className="we-pdlg" onClick={() => setPartyOpen(false)}>

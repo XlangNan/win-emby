@@ -599,11 +599,25 @@ html.android .we-menu.we-menu-party, html.ios .we-menu.we-menu-party{
 .mu-np .mu-np-top .mu-np-top-t{ flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
 .mu-np .mu-np-top .mu-ib:last-child{ grid-column: auto !important; }
 .mu-np .mu-np-top .mu-np-sync{ display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 32px; padding: 0 14px; margin: 0 0 0 6px; border: 0; border-radius: 99px; color: #fff; background: rgba(229, 9, 20, .9); font-size: 13px; line-height: 1; white-space: nowrap; cursor: pointer; width: max-content; }
-.mu-np .mu-np-top .mu-np-sync .mu-np-sync-i{ display: none; font-size: 16px; }
+.mu-np .mu-np-top .mu-np-sync .mu-np-sync-i{ display: none; flex: none; }
 @media (hover: hover) and (pointer: fine) { .mu-np .mu-np-top .mu-np-sync:hover{ background: #ff2230; } }
 /* 窗口窄：只留图标，免得挤掉标题 */
 @media (max-width: 520px){
-.mu-np .mu-np-top .mu-np-sync{ width: 36px; padding: 0; margin-left: 4px; }
+.mu-np .mu-np-top .mu-np-sync{ width: 36px; height: 36px; padding: 0; margin-left: 4px; border-radius: 50%; }
 .mu-np .mu-np-top .mu-np-sync .mu-np-sync-t{ display: none; }
-.mu-np .mu-np-top .mu-np-sync .mu-np-sync-i{ display: inline; }
+.mu-np .mu-np-top .mu-np-sync .mu-np-sync-i{ display: block; }
 }
+
+/* 播放页黑胶 / 小播放条封面的旋转：是「正在播放」的状态提示，不跟着系统「减弱动效」被压成一帧（Windows 关了动画效果就会这样）。
+   仍然尊重应用内明确设置为「关」的情况。暂停时由 .spin / .paused 控制，不转。 */
+html:not([data-motion='off']) .mu-disc{ animation-duration: 22s !important; animation-iteration-count: infinite !important; }
+html:not([data-motion='off']) .mu-spin{ animation-duration: 12s !important; animation-iteration-count: infinite !important; }
+
+/* 「一起听」弹窗放在 .mu-np 里面，被 `.mu-np > *:not(.mu-np-bg){position:relative}` 压成了普通流内元素，把播放页内容挤开；
+   这里明确写回悬浮（盖在最上层，不占位置）。 */
+.mu-np > .we-pdlg{ position: fixed !important; inset: 0; z-index: 9000; }
+
+/* 歌词区：只允许上下滚动。overflow-y:auto 会让 overflow-x 也变成 auto；当前这句放大 1.2 倍（从左边起）后比容器宽，
+   就能按住歌词左右拖动。这里禁用横向滚动，并让歌词行预留放大后的宽度，放大后刚好不超出。 */
+.mu-np-right{ overflow-x: hidden; touch-action: pan-y; overscroll-behavior-x: none; }
+.mu-np .mu-lyr-l:not(.plain){ max-width: calc(100% / 1.2); overflow-wrap: anywhere; }
