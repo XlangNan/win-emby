@@ -899,7 +899,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       {(busy || caching) && !err && <div className="we-loading"><span className="spinner" aria-hidden="true" />{busy ? '正在加载…' : '缓冲中…'}</div>}
       {err && <div className="we-error">{err}</div>}
 
-      <div className="we-top" onMouseEnter={() => { hoverUi.current = true; }} onMouseLeave={() => { hoverUi.current = false; poke(); }}>
+      <div className="we-top" onPointerEnter={(e) => { if (e.pointerType === 'mouse') hoverUi.current = true; }} onPointerLeave={(e) => { if (e.pointerType === 'mouse') { hoverUi.current = false; poke(); } }}>
         <button className="we-btn we-back" title="返回（Esc）" aria-label="返回" onClick={(e) => { e.stopPropagation(); void exit(); }}>
           <svg width="26" height="26" viewBox="0 0 24 24"><path d="M15.5 5l-7 7 7 7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </button>
@@ -984,7 +984,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         </button>
       )}
 
-      <div className="we-bottom" onClick={(e) => e.stopPropagation()} onMouseEnter={() => { hoverUi.current = true; }} onMouseLeave={() => { hoverUi.current = false; poke(); }}>
+      <div className="we-bottom" onClick={(e) => e.stopPropagation()} onPointerEnter={(e) => { if (e.pointerType === 'mouse') hoverUi.current = true; }} onPointerLeave={(e) => { if (e.pointerType === 'mouse') { hoverUi.current = false; poke(); } }}>
         <div className="we-seekrow">
           <span className="we-time we-time-l">{fmtDuration(shownCur)}</span>
           <div

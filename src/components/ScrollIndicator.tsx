@@ -106,8 +106,8 @@ export default function ScrollIndicator() {
     <div
       className={`we-sbar${isMobileApp ? ' phone' : ''}`}
       ref={bar}
-      onMouseEnter={() => { hover.current = true; window.clearTimeout(timer.current); }}
-      onMouseLeave={() => { hover.current = false; hideLater(400); }}
+      onPointerEnter={(e) => { if (e.pointerType !== 'mouse') return; hover.current = true; window.clearTimeout(timer.current); }}
+      onPointerLeave={(e) => { if (e.pointerType !== 'mouse') return; hover.current = false; hideLater(400); }}
       onPointerDown={(e) => {
         const el = cur.current;
         if (!el) return;
