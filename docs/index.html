@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>织影 Weave 使用与搭建手册</title>
+<meta name="description" content="织影 Weave：Emby 多端播放器的功能说明，以及每个依赖服务（Emby、TMDB、追更、MoviePilot、弹幕、Navidrome、一起看…）的联动搭建方法。">
+<style>
+:root{--bg:#fafaf8;--panel:#fff;--ink:#1c1c1a;--mut:#6b6b66;--line:#e6e6e0;--acc:#d6232e;--acc2:#fdecee;--code:#f3f3ee;--ok:#1d7a46;--warn:#9a6200;--warnbg:#fff6e0;--okbg:#e9f6ee;--side:260px}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#121212;--panel:#1a1a1a;--ink:#ececE8;--mut:#9a9a94;--line:#2b2b2a;--acc:#ff5560;--acc2:#2a1618;--code:#222221;--ok:#5fcf8a;--warn:#f0b450;--warnbg:#2b2312;--okbg:#14261b}}
+:root[data-theme=dark]{--bg:#121212;--panel:#1a1a1a;--ink:#ececE8;--mut:#9a9a94;--line:#2b2b2a;--acc:#ff5560;--acc2:#2a1618;--code:#222221;--ok:#5fcf8a;--warn:#f0b450;--warnbg:#2b2312;--okbg:#14261b}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--bg);color:var(--ink);font:15.5px/1.75 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif}
+a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
+header.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;height:54px;padding:0 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+header.top b{font-size:17px}header.top .sp{flex:1}
+header.top button{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:5px 11px;cursor:pointer;font:inherit;font-size:13px}
+#burger{display:none}
+.wrap{display:flex;max-width:1280px;margin:0 auto}
+nav.side{position:sticky;top:54px;align-self:flex-start;width:var(--side);flex:none;height:calc(100vh - 54px);overflow:auto;padding:18px 10px 40px 16px;font-size:14px}
+nav.side h4{margin:16px 8px 4px;font-size:12px;color:var(--mut);letter-spacing:.08em}
+nav.side a{display:block;padding:4px 10px;border-radius:7px;color:var(--ink);border-left:2px solid transparent}
+nav.side a:hover{background:var(--acc2);text-decoration:none}
+nav.side a.on{background:var(--acc2);color:var(--acc);border-left-color:var(--acc);font-weight:600}
+main{flex:1;min-width:0;padding:28px 28px 80px;max-width:900px}
+h1{font-size:34px;margin:6px 0 6px;line-height:1.25}
+h2{font-size:24px;margin:52px 0 12px;padding-top:8px;border-top:1px solid var(--line)}
+h3{font-size:18px;margin:30px 0 8px}
+h4{font-size:15.5px;margin:20px 0 4px}
+p{margin:8px 0}
+.lead{font-size:17px;color:var(--mut)}
+code{background:var(--code);padding:1px 6px;border-radius:5px;font:13.5px ui-monospace,Menlo,Consolas,monospace}
+pre{position:relative;background:var(--code);border:1px solid var(--line);border-radius:10px;padding:14px 14px;overflow:auto;margin:10px 0;line-height:1.6}
+pre code{background:none;padding:0;font-size:13px;white-space:pre}
+.cp{position:absolute;top:7px;right:7px;border:1px solid var(--line);background:var(--panel);color:var(--mut);border-radius:6px;font-size:12px;padding:2px 8px;cursor:pointer}
+.cp:hover{color:var(--acc)}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px;display:block;overflow:auto}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--code);white-space:nowrap}
+.box{border:1px solid var(--line);border-left:4px solid var(--acc);background:var(--panel);border-radius:8px;padding:10px 14px;margin:14px 0}
+.box.ok{border-left-color:var(--ok);background:var(--okbg)}.box.warn{border-left-color:var(--warn);background:var(--warnbg)}
+.box p:first-child{margin-top:0}.box p:last-child{margin-bottom:0}
+.tag{display:inline-block;font-size:12px;border-radius:99px;padding:0 9px;margin-left:6px;border:1px solid var(--line);color:var(--mut);vertical-align:middle;font-weight:400}
+.tag.must{color:#fff;background:var(--acc);border-color:var(--acc)}.tag.opt{color:var(--ok);border-color:var(--ok)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:14px 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.card b{display:block;margin-bottom:2px}.card span{color:var(--mut);font-size:14px}
+ol.steps{counter-reset:s;list-style:none;padding:0}
+ol.steps>li{counter-increment:s;position:relative;padding:2px 0 8px 40px}
+ol.steps>li::before{content:counter(s);position:absolute;left:0;top:1px;width:26px;height:26px;border-radius:50%;background:var(--acc);color:#fff;font-size:13px;display:grid;place-items:center;font-weight:700}
+details{border:1px solid var(--line);border-radius:10px;background:var(--panel);margin:8px 0;padding:2px 14px}
+summary{cursor:pointer;padding:9px 0;font-weight:600}
+svg text{font-family:inherit}
+.arch{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px;overflow:auto}
+footer{color:var(--mut);font-size:13px;margin-top:60px;border-top:1px solid var(--line);padding-top:14px}
+@media (max-width:900px){
+ #burger{display:inline-block}
+ nav.side{position:fixed;left:0;top:54px;bottom:0;height:auto;z-index:15;background:var(--panel);border-right:1px solid var(--line);transform:translateX(-100%);transition:transform .2s;width:260px}
+ nav.side.open{transform:none}
+ main{padding:20px 16px 70px}h1{font-size:27px}
+}
+</style>
+</head>
+<body>
+<header class="top">
+ <button id="burger" aria-label="目录">☰</button>
+ <b>织影 Weave</b><span style="color:var(--mut);font-size:13px">使用与搭建手册</span>
+ <span class="sp"></span>
+ <button id="theme">深色 / 浅色</button>
+</header>
+<div class="wrap">
+<nav class="side" id="side">
+ <h4>开始</h4>
+ <a href="#overview">它是什么</a>
+ <a href="#arch">整体架构</a>
+ <a href="#deps">依赖一览</a>
+ <a href="#install">安装到设备</a>
+ <a href="#first">第一次使用</a>
+ <h4>功能</h4>
+ <a href="#f-home">首页与媒体库</a>
+ <a href="#f-detail">详情页</a>
+ <a href="#f-player">播放器</a>
+ <a href="#f-live">电视直播</a>
+ <a href="#f-discover">片库（发现）</a>
+ <a href="#f-music">音乐</a>
+ <a href="#f-party">一起看 / 一起听</a>
+ <a href="#f-misc">其他功能</a>
+ <h4>依赖搭建</h4>
+ <a href="#d-emby">Emby</a>
+ <a href="#d-tmdb">TMDB 与代理</a>
+ <a href="#d-kg">追更服务</a>
+ <a href="#d-mp">MoviePilot</a>
+ <a href="#d-dm">弹幕服务</a>
+ <a href="#d-intro">TheIntroDB 片头库</a>
+ <a href="#d-nd">Navidrome</a>
+ <a href="#d-lrc">在线歌词 / 封面</a>
+ <a href="#d-epg">直播源与节目单</a>
+ <a href="#d-party">一起看服务</a>
+ <h4>网络</h4>
+ <a href="#net">外网访问方案</a>
+ <a href="#proxy">国内镜像与代理</a>
+ <h4>开发</h4>
+ <a href="#build">自己编译</a>
+ <a href="#data">数据存在哪</a>
+ <a href="#faq">排错 FAQ</a>
+</nav>
+<main>
+
+<h1>织影 Weave</h1>
+<p class="lead">一个把你家的 Emby、音乐库、追更工具、弹幕、一起看…串起来的播放器，一套代码出 Windows、安卓、iPad / iPhone 三个版本。本页讲清楚：每个功能怎么用，每个外部服务怎么搭、怎么接进来。</p>
+<div class="box warn"><p><b>先说明白：</b>织影本身只是「客户端」。能不能看片，取决于你有没有 Emby 服务器；下面带「可选」标记的依赖都不装也能用，装了才会多出对应功能。每个可选功能的设置入口都在 App 里的 <b>设置</b> 页。</p></div>
+
+<h2 id="overview">它是什么</h2>
+<div class="grid">
+<div class="card"><b>Emby 播放器</b><span>登录 Emby，首页 / 媒体库 / 详情 / 播放，进度与 Emby 账号双向同步。</span></div>
+<div class="card"><b>MPV 内核</b><span>直接解码原文件：HDR10、杜比视界、MKV、DTS / TrueHD，不依赖服务器转码。</span></div>
+<div class="card"><b>片库发现</b><span>读 TMDB 看热门影视，一键交给追更服务或 MoviePilot 自动找资源。</span></div>
+<div class="card"><b>音乐</b><span>对接 Navidrome，歌词、封面、随机推荐、迷你播放条。</span></div>
+<div class="card"><b>一起看 / 一起听</b><span>多人同步播放视频和音乐，自带中转服务和网页管理后台。</span></div>
+<div class="card"><b>电视直播</b><span>M3U 订阅或本地文件、多线路自动切换、节目单。</span></div>
+</div>
+<p>由 <a href="https://github.com/yagami-hue/Win-box" target="_blank" rel="noopener">Win-box</a> 重构而来，框架是 Tauri 2 + React 19（Windows / 安卓 / iOS 共用同一套界面）。界面有四套皮肤，并支持深色 / 浅色。</p>
+
+<h2 id="arch">整体架构</h2>
+<p>织影在你的设备上运行，<b>设备直接连</b>各个服务（局域网或你自己的域名），没有任何官方云端。唯一需要你自己再多搭一个的，是「一起看」中转服务。</p>
+<div class="arch">
+<svg viewBox="0 0 860 430" width="100%" role="img" aria-label="架构图">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#9a9a94"/></marker></defs>
+<g font-size="14" text-anchor="middle">
+<rect x="330" y="150" width="200" height="110" rx="14" fill="#d6232e"/>
+<text x="430" y="188" fill="#fff" font-size="20" font-weight="700">织影 App</text>
+<text x="430" y="214" fill="#fff" opacity=".9">Windows · 安卓 · iOS</text>
+<text x="430" y="236" fill="#fff" opacity=".9">设备直连各服务</text>
+
+<g fill="#f3f3ee" stroke="#c9c9c2"><rect x="30" y="20" width="170" height="54" rx="10"/><rect x="30" y="100" width="170" height="54" rx="10"/><rect x="30" y="180" width="170" height="54" rx="10"/><rect x="30" y="260" width="170" height="54" rx="10"/><rect x="30" y="340" width="170" height="54" rx="10"/>
+<rect x="660" y="20" width="170" height="54" rx="10"/><rect x="660" y="100" width="170" height="54" rx="10"/><rect x="660" y="180" width="170" height="54" rx="10"/><rect x="660" y="260" width="170" height="54" rx="10"/><rect x="660" y="340" width="170" height="54" rx="10"/></g>
+<g fill="#1c1c1a">
+<text x="115" y="44" font-weight="700">Emby ★必需</text><text x="115" y="63" font-size="12">片源 · 账号 · 进度</text>
+<text x="115" y="124" font-weight="700">TMDB</text><text x="115" y="143" font-size="12">热门 · 片头库(TheIntroDB)</text>
+<text x="115" y="204" font-weight="700">追更服务</text><text x="115" y="223" font-size="12">kuakego-plus → 网盘</text>
+<text x="115" y="284" font-weight="700">MoviePilot</text><text x="115" y="303" font-size="12">搜索下载到本地</text>
+<text x="115" y="364" font-weight="700">弹幕聚合服务</text><text x="115" y="383" font-size="12">danmu_api / 弹弹play</text>
+<text x="745" y="44" font-weight="700">Navidrome</text><text x="745" y="63" font-size="12">音乐库</text>
+<text x="745" y="124" font-weight="700">歌词 / 封面接口</text><text x="745" y="143" font-size="12">NeteaseApi / Meting</text>
+<text x="745" y="204" font-weight="700">M3U + XMLTV</text><text x="745" y="223" font-size="12">直播源 · 节目单</text>
+<text x="745" y="284" font-weight="700">一起看服务</text><text x="745" y="303" font-size="12">自带 · Node / Docker</text>
+<text x="745" y="364" font-weight="700">HTTP 代理</text><text x="745" y="383" font-size="12">Clash 等（TMDB 用）</text>
+</g></g>
+<g stroke="#9a9a94" stroke-width="1.6" fill="none" marker-end="url(#ar)">
+<path d="M200 47L330 165"/><path d="M200 127L330 185"/><path d="M200 207L330 205"/><path d="M200 287L330 225"/><path d="M200 367L330 245"/>
+<path d="M660 47L530 165"/><path d="M660 127L530 185"/><path d="M660 207L530 205"/><path d="M660 287L530 225"/><path d="M660 367L530 245"/></g>
+</svg>
+</div>
+<div class="box"><p><b>关键原则：</b>App 里填的地址由<b>设备本机</b>去访问。所以在外网用手机时，凡是你填了 <code>192.168.x.x</code> 的地方都连不上，需要换成能从外网访问的地址，详见 <a href="#net">外网访问方案</a>。</p></div>
+
+<h2 id="deps">依赖一览</h2>
+<table>
+<tr><th>服务</th><th>用途</th><th>是否必需</th><th>设置入口</th><th>默认端口</th></tr>
+<tr><td><a href="#d-emby">Emby</a></td><td>片源、账号、观看进度</td><td><span class="tag must">必需</span></td><td>登录页 / 设置 → 账号与服务器</td><td>8096</td></tr>
+<tr><td><a href="#d-tmdb">TMDB</a></td><td>片库（发现）、片头库查询</td><td><span class="tag opt">可选</span></td><td>设置 → TMDB</td><td>—（国内需代理）</td></tr>
+<tr><td><a href="#d-kg">kuakego-plus</a></td><td>订阅后自动找资源存入网盘</td><td><span class="tag opt">可选</span></td><td>设置 → 追更服务</td><td>8088</td></tr>
+<tr><td><a href="#d-mp">MoviePilot v2</a></td><td>订阅后搜索并下载到本地</td><td><span class="tag opt">可选</span></td><td>设置 → MoviePilot</td><td>3000</td></tr>
+<tr><td><a href="#d-dm">弹幕聚合服务</a></td><td>播放时加载弹幕</td><td><span class="tag opt">可选</span></td><td>设置 → 弹幕</td><td>9321</td></tr>
+<tr><td><a href="#d-intro">TheIntroDB</a></td><td>在线查片头 / 片尾时间</td><td><span class="tag opt">可选</span></td><td>设置 → 播放 → 自动跳过片头</td><td>公网服务</td></tr>
+<tr><td><a href="#d-nd">Navidrome</a></td><td>音乐库</td><td><span class="tag opt">可选</span></td><td>设置 → 音乐</td><td>4533</td></tr>
+<tr><td><a href="#d-lrc">NeteaseCloudMusicApi / Meting</a></td><td>在线匹配歌词、封面</td><td><span class="tag opt">可选</span></td><td>设置 → 音乐选项</td><td>3000 / 自定</td></tr>
+<tr><td><a href="#d-epg">M3U / XMLTV</a></td><td>电视直播源与节目单</td><td><span class="tag opt">可选</span></td><td>直播页</td><td>—</td></tr>
+<tr><td><a href="#d-party">一起看服务</a></td><td>多人同步看片 / 听歌</td><td><span class="tag opt">可选</span></td><td>设置 → 一起看</td><td>8787</td></tr>
+</table>
+
+<h2 id="install">安装到设备</h2>
+<p>三个平台都用 GitHub Actions 自动编译，你不需要在本地装任何开发环境。把项目推到你自己的 GitHub 仓库后：</p>
+<h3>Windows</h3>
+<ol class="steps">
+<li>仓库 → <b>Actions</b> → 左侧 <b>build-windows</b> → <b>Run workflow</b>。（推送到 <code>main</code> 也会自动编译。）</li>
+<li>跑完后进入这次运行页面，最下面 <b>Artifacts</b> 下载 <code>Weave-setup</code>，解压得到 <code>织影_x.x.x_x64-setup.exe</code>，双击安装。</li>
+<li>想要正式发布页：打一个 <code>v</code> 开头的标签，安装包会自动挂到 Releases。</li>
+</ol>
+<pre><code>git tag v0.2.0
+git push origin v0.2.0</code></pre>
+<p>系统需要 WebView2（Win10 / 11 基本都自带）。要让显示器真正点亮 HDR，请在 Windows「设置 → 显示 → 使用 HDR」里打开；不打开时 MPV 会把 HDR 片源映射成 SDR，颜色不会发灰。</p>
+
+<h3>安卓</h3>
+<ol class="steps">
+<li>Actions → <b>build-android</b> → <b>Run workflow</b>（也可推标签 <code>android-v1.0.0</code> 触发）。第一次约 20–40 分钟。</li>
+<li>Artifacts 下载 <code>织影-android</code>，解压得到 <code>织影.apk</code>，发到手机安装。</li>
+</ol>
+<p>只编译 64 位 ARM。APK 用仓库里的 <code>android/winemby.keystore</code> 签名，之后每次更新直接覆盖安装；想换签名，就同时换这个文件和工作流里的口令。</p>
+
+<h3>iPad / iPhone</h3>
+<ol class="steps">
+<li>Actions → <b>build-ios</b> → <b>Run workflow</b>。</li>
+<li>Artifacts 下载 <code>Weave-ios</code>，解压得到 <code>Weave-ios-unsigned.ipa</code>（未签名）。</li>
+<li>用 <b>爱思助手 → 工具箱 → IPA 签名</b>，登录自己的 Apple ID 重签后安装。</li>
+</ol>
+<div class="box warn"><p>免费 Apple ID 签名 7 天过期，到期重新签一次；同时最多 3 个自签应用。iOS 版使用 MPVKit，目前未在大量真机上验证，MPVKit 不可用时会自动退回网页播放器。构建失败请看 Actions 里红色那一步的末尾 50 行日志。</p></div>
+
+<h3>确认装的是哪一版</h3>
+<p>打开 <b>设置</b> 页，拉到最底部，会显示构建编号（如 <code>1110-A</code>）。反馈问题时请带上它。</p>
+
+<h2 id="first">第一次使用</h2>
+<ol class="steps">
+<li>打开 App，登录页填 <b>Emby 地址</b>（如 <code>http://192.168.1.2:8096</code>，用域名就写完整的 <code>https://…</code>）、用户名、密码。App 只保存令牌，不保存密码。</li>
+<li>进入首页后，到 <b>设置</b> 页，从上往下按需配置：<br>TMDB → 追更服务 → 弹幕 → MoviePilot → 一起看 → 音乐。每一项都有「保存并测试连接」按钮，显示「连接成功」才算接通。</li>
+<li>不需要的功能留空即可，对应入口会自动隐藏或提示未配置。</li>
+</ol>
+
+<h2 id="f-home">功能 · 首页与媒体库</h2>
+<ul>
+<li><b>首页：</b>最近添加聚光卡 / 轮播、横版「继续观看」、「下一集」、各媒体库「最近添加」。在 <b>设置 → 首页显示的媒体库</b> 里可勾选显示哪些库、调整顺序，在 <b>首页轮播</b> 里调轮播内容。</li>
+<li><b>「正在一起看」行：</b>配置了一起看服务且有人开房时，首页最上方会出现房间卡片，点一下加入。</li>
+<li><b>媒体库：</b>排序、类型、未看 / 已看 / 收藏筛选，分页加载。</li>
+<li><b>右键 / 长按海报：</b>标记已看 / 未看、收藏。</li>
+<li><b>搜索、收藏、观看历史：</b>都走 Emby 账号，与其它 Emby 客户端互通。</li>
+</ul>
+
+<h2 id="f-detail">功能 · 详情页</h2>
+<ul>
+<li>简介、季与单集列表（带剧照、进度、<b>集号</b>）、演职员、相关推荐。</li>
+<li>文件信息：大小、帧率、分辨率、编码等。</li>
+<li>播放前可选 <b>版本 / 音轨 / 字幕</b>（一部片有多个版本时）。</li>
+<li>「更多」菜单：标记已看、收藏、<b>一起看…</b>（配置了一起看服务才出现）。</li>
+<li>剧集详情页可 <b>手动扫描片头数据</b>，查看 TheIntroDB 里有没有这一集。</li>
+</ul>
+
+<h2 id="f-player">功能 · 播放器</h2>
+<h3>两个内核</h3>
+<table>
+<tr><th></th><th>MPV（推荐）</th><th>内置网页播放器</th></tr>
+<tr><td>原理</td><td>libmpv 直接解码原文件</td><td><code>&lt;video&gt;</code> + hls.js</td></tr>
+<tr><td>支持</td><td>HDR10 / HLG / 杜比视界、MKV、DTS、TrueHD、外挂字幕</td><td>系统 WebView 能解的格式；其余由 Emby 转封装 / 转码</td></tr>
+<tr><td>对服务器</td><td>不转码，带宽要够跑原画</td><td>服务器要能正常调用 ffmpeg</td></tr>
+<tr><td>切换</td><td colspan="2">设置 → 播放 → 播放内核。MPV 起不来时会自动改用内置播放器。</td></tr>
+</table>
+<h3>播放设置（设置 → 播放）</h3>
+<table>
+<tr><th>选项</th><th>说明</th></tr>
+<tr><td>MPV：HDR 直通显示器</td><td>需在系统里开 HDR；关闭则自动映射成 SDR</td></tr>
+<tr><td>画质上限（内置播放器）</td><td>限制转码码率；默认原画</td></tr>
+<tr><td>允许 HEVC 直接播放（内置播放器）</td><td>电脑装了 HEVC 解码再开；关闭时服务器转成 H.264</td></tr>
+<tr><td>默认音轨语言 / 默认字幕</td><td>跟随文件默认、或指定语言、或不显示字幕</td></tr>
+<tr><td>记住每部片上次选的音轨字幕</td><td>下次自动沿用</td></tr>
+<tr><td>自动跳过片头</td><td>优先用 Emby 的「片头」章节标记；没有时可开 TheIntroDB</td></tr>
+<tr><td>显示「下一集」/ 播完自动下一集</td><td>有片尾标记时以标记为准，否则按整片比例</td></tr>
+</table>
+<h3>播放页操作</h3>
+<ul>
+<li>渐隐控制条、帧率 / 分辨率 / 码率信息抽屉、简介 / 演职员 / 选集抽屉、倍速、滚轮调音量。</li>
+<li>弹幕（配置了弹幕服务后）：开关、透明度、字号、速度、显示区域、顶部留白都可调。</li>
+</ul>
+<table>
+<tr><th>快捷键</th><th>作用</th></tr>
+<tr><td>空格</td><td>播放 / 暂停</td></tr><tr><td>← / →</td><td>快退 / 快进 10 秒（Shift 为 30 秒）</td></tr>
+<tr><td>↑ / ↓</td><td>音量</td></tr><tr><td>F / M / N / I / Esc</td><td>全屏 / 静音 / 下一集 / 信息抽屉 / 返回</td></tr>
+</table>
+<h3>片源直连遇到 403 怎么办</h3>
+<p>如果你的 Emby 片源是 strm / 网盘直链，MPV 会直接去连那个直链地址。个别直链会校验请求头或时效，出现 403 时 App 会自动重试几次；仍然不行，在播放页的菜单里打开「<b>经 Emby 转发</b>」，让这部片走 Emby 的流（这是手动开关，默认不启用，原则上设备直连）。</p>
+
+<h2 id="f-live">功能 · 电视直播</h2>
+<ul>
+<li>订阅 M3U / M3U8 链接，或导入本地文件；同名频道自动合并多条线路，卡住时自动切线。</li>
+<li>收藏频道；可配置 <b>XMLTV 节目单</b> 地址，按 <code>tvg-id</code> 或频道名匹配节目。源和收藏只存本机。</li>
+<li>搭建见 <a href="#d-epg">直播源与节目单</a>。</li>
+</ul>
+
+<h2 id="f-discover">功能 · 片库（发现）</h2>
+<p>MoviePilot 风格的发现页：直接读 TMDB，浏览热门 / 推荐电影与剧集、查看详情与演职员。每部片可以点「想看 / 订阅」，把需求交给两种后端之一：</p>
+<table>
+<tr><th>后端</th><th>结果</th><th>需要</th></tr>
+<tr><td>追更服务 kuakego-plus</td><td>自动找资源并转存到网盘（再由 Emby 读到）</td><td><a href="#d-kg">追更服务</a></td></tr>
+<tr><td>MoviePilot</td><td>搜索资源并下载到本地</td><td><a href="#d-mp">MoviePilot</a></td></tr>
+</table>
+<p>片库本身只需要 <a href="#d-tmdb">TMDB</a>；没配订阅后端时只能浏览，点订阅会提示去设置。</p>
+
+<h2 id="f-music">功能 · 音乐</h2>
+<ul>
+<li>对接 <a href="#d-nd">Navidrome</a>：专辑 / 艺人 / 歌单、随机推荐、「随心听」、搜索。</li>
+<li>歌词（服务器没有时可自动从 <a href="#d-lrc">在线来源</a> 匹配）、封面、底部迷你播放条（可显示当前歌词）、全屏播放页。</li>
+<li>歌曲「···」菜单：<b>匹配 / 编辑 歌词与封面</b>，修改仅保存在本机。</li>
+<li>音乐选项：随机推荐歌曲数（5–300）、随心听歌曲数（10–300）。</li>
+</ul>
+
+<h2 id="f-party">功能 · 一起看 / 一起听</h2>
+<p>多人同步播放同一部视频，或同步听同一份歌单。需要自行部署一个很小的中转服务（零依赖 Node 程序），搭建见 <a href="#d-party">一起看服务</a>。</p>
+<h3>怎么用</h3>
+<ol class="steps">
+<li>设置 → 一起看 → 填服务地址 → 保存 → 测试连接。</li>
+<li><b>视频：</b>详情页 → 更多 → 一起看… → 创建房间（可选公开或私密、是否「等待所有人缓冲」）。播放页里也有「一起看」按钮。</li>
+<li><b>音乐：</b>全屏播放页的「伴」按钮 → 创建房间。</li>
+<li>别人在首页「正在一起看」行点房间加入，或在设置里输入房间号加入。</li>
+<li>在房间里时，播放页右上角会出现红色 <b>同步播放</b> 按钮，点一下强制对齐到房间当前进度。</li>
+</ol>
+<h3>规则</h3>
+<ul>
+<li>同步内容：播放 / 暂停、进度、倍速、换集；音乐还同步播放列表和当前歌曲。</li>
+<li><b>权限：</b>没有该影片所在媒体库权限的用户，看不到这个房间，也无法用房间号加入；房主中途换到他没权限的片子，他会被自动移出（判断依据是 Emby 自己的媒体库权限，不用另外配置）。</li>
+<li>一起听：每个人用自己的 Navidrome 账号取歌，所以大家必须连<b>同一个音乐服务器</b>；本机找不到房间里的歌，会自动退出并提示。</li>
+<li>房主离开会自动转交；房间无人时自动删除；成员 30 秒无心跳视为离线。</li>
+<li>房主可以是任何人；是否所有人都能操作由房间设置决定。</li>
+</ul>
+
+<h2 id="f-misc">功能 · 其他</h2>
+<ul>
+<li><b>多服务器 / 多账号：</b>设置里添加，顶栏一键切换。</li>
+<li><b>四套皮肤 + 深浅色：</b>设置 → 外观；<b>界面字体</b>可自定义。</li>
+<li><b>安卓：</b>系统栏沉浸式透明；TMDB 没有代理时可在设置里写 hosts（域名 → IP）绕过解析问题。</li>
+<li><b>手机 / 平板：</b>悬停样式只在有鼠标的设备上生效，触屏不会出现「点了就一直高亮」。</li>
+</ul>
+
+<h2 id="d-emby">依赖搭建 · Emby <span class="tag must">必需</span></h2>
+<p>织影不提供片源，需要你已有一个 Emby Server（或兼容的 Jellyfin 接口，未专门测试）。</p>
+<h3>要求</h3>
+<ul>
+<li>Emby Server 4.7+，已建好媒体库、已创建用户账号。</li>
+<li>设备能访问 Emby 的地址：局域网用 <code>http://IP:8096</code>；外网见 <a href="#net">外网访问方案</a>。</li>
+</ul>
+<h3>用 Docker 装 Emby（群晖等）</h3>
+<pre><code>services:
+  emby:
+    image: docker.m.daocloud.io/emby/embyserver:latest
+    container_name: emby
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      UID: 1000
+      GID: 100
+      TZ: Asia/Shanghai
+    volumes:
+      - /volume1/docker/emby:/config
+      - /volume1/video:/data/video</code></pre>
+<p>启动后浏览器打开 <code>http://群晖IP:8096</code> 完成初始化向导，添加媒体库指向 <code>/data/video</code>。若 DaoCloud 镜像拉不动，把前缀换成你可用的其它国内镜像站（见 <a href="#proxy">国内镜像与代理</a>）。</p>
+<h3>织影怎么用到它</h3>
+<table>
+<tr><th>功能</th><th>用到的 Emby 能力</th></tr>
+<tr><td>登录 / 多账号</td><td>用户名密码换令牌，只存令牌</td></tr>
+<tr><td>媒体库 / 详情 / 搜索</td><td>标准 Items 接口</td></tr>
+<tr><td>播放进度</td><td>播放开始 / 进度 / 结束上报，与其它客户端互通</td></tr>
+<tr><td>跳过片头</td><td>读取 Emby 章节里的「片头 / 片尾」标记</td></tr>
+<tr><td>MPV 播放</td><td>直接取原文件流（Static 直连）</td></tr>
+<tr><td>内置播放器</td><td>请求 HLS / 转码流，需要服务器能跑 ffmpeg</td></tr>
+<tr><td>一起看权限</td><td>一起看服务用你的令牌向 Emby 查询某部片你能不能看</td></tr>
+</table>
+<div class="box"><p><b>Emby 里最好开：</b>元数据保存片头标记的插件（如章节检测）能让「跳过片头」更准；strm 片源建议给媒体库勾选「保存媒体信息」，这样详情页能显示分辨率和编码。</p></div>
+
+<h2 id="d-tmdb">依赖搭建 · TMDB 与代理 <span class="tag opt">可选</span></h2>
+<p>用途：片库（发现）页的数据、TheIntroDB 的查询编号。</p>
+<ol class="steps">
+<li>打开 <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">themoviedb.org</a> 注册账号，在「设置 → API」申请。填 v3「API 密钥」或 v4「API 读访问令牌」都行。</li>
+<li>App：设置 → TMDB → 粘贴密钥。</li>
+<li><b>国内直连通常不通</b>，在「代理」里填 HTTP 或 SOCKS 代理，例如 Clash 默认：
+<pre><code>http://127.0.0.1:7890</code></pre>
+</li>
+<li>点「保存并测试连接」，提示「连接成功（搜到 N 条）」即可。</li>
+</ol>
+<h3>手机没有代理怎么办</h3>
+<p>安卓设置页多出一个 <b>hosts</b> 文本框，写「IP 域名」每行一条，点「插入示例」可以看到格式。填了代理就以代理为准，hosts 不再生效。</p>
+<h3>有自己的反代 / 镜像域名</h3>
+<p>点「自定义域名（有反代时用）」，把 <b>API 地址</b>（默认 <code>https://api.themoviedb.org/3</code>）和 <b>图片地址</b>（默认 <code>https://image.tmdb.org</code>）改成你的反代地址。</p>
+
+<h2 id="d-kg">依赖搭建 · 追更服务 kuakego-plus <span class="tag opt">可选</span></h2>
+<p>用途：在片库里点「想看 / 订阅」，由追更服务自动找资源转存到网盘，再由 Emby 扫入库。织影只负责订阅、取消订阅、查看订阅状态。</p>
+<ol class="steps">
+<li>先按 kuakego-plus 自己的说明部署好（建议 <b>1.45.0 及以上</b>，旧版缺少织影用到的接口），记下它的地址端口和 Web 登录账号密码（<code>WEBUI_USERNAME</code> / <code>WEBUI_PASSWORD</code>）。</li>
+<li>App：设置 → 追更服务，填：
+<table><tr><th>项</th><th>示例</th></tr>
+<tr><td>地址</td><td><code>192.168.1.10:8088</code>（不写 http:// 会自动补）</td></tr>
+<tr><td>用户名</td><td><code>admin</code>（默认）</td></tr>
+<tr><td>密码</td><td>你的 <code>WEBUI_PASSWORD</code></td></tr></table></li>
+<li>点「保存并测试连接」，显示「连接成功（kuakego-plus x.y.z）」。</li>
+</ol>
+<div class="box ok"><p><b>联动路径：</b>织影「订阅」→ kuakego-plus 找资源 → 存入网盘 → 网盘挂载到 Emby（strm 或挂载）→ Emby 入库 → 织影首页「最近添加」出现。其中「网盘 → Emby」这段需要你自己在 NAS 上配置好。</p></div>
+
+<h2 id="d-mp">依赖搭建 · MoviePilot <span class="tag opt">可选</span></h2>
+<p>用途：订阅后由 MoviePilot 搜索 PT / BT 资源并下载到本地。要求 <b>MoviePilot v2</b>。</p>
+<ol class="steps">
+<li>部署 MoviePilot v2（官方镜像 <code>jxxghp/moviepilot-v2</code>），完成它自己的站点、下载器、媒体库目录配置，并确认它的 Web 界面能正常手动订阅下载。</li>
+<li>App：设置 → MoviePilot，地址填 <code>192.168.1.10:3000</code>（<b>不用</b>加 <code>/api/v1</code>）。</li>
+<li>鉴权二选一：
+<ul><li>用户名 + 密码（推荐，填 <code>admin</code> 和你的密码）；</li>
+<li>或只填 <b>API 令牌</b>，此时「用户名」要留空。</li></ul></li>
+<li>点「保存并测试连接」，会显示 MoviePilot 里现有的订阅数。</li>
+</ol>
+<div class="box"><p>同时配了追更服务和 MoviePilot 时，订阅时可以选择交给哪一个。想保存到网盘选追更，想下载到本机 / NAS 选 MoviePilot。</p></div>
+
+<h2 id="d-dm">依赖搭建 · 弹幕聚合服务 <span class="tag opt">可选</span></h2>
+<p>用途：播放时按片名自动匹配 B 站、腾讯、爱奇艺、优酷等平台的弹幕。织影对接的是<b>兼容弹弹play v2 接口</b>的聚合服务，例如自建的 danmu_api。</p>
+<ol class="steps">
+<li>部署一个弹幕聚合服务（以 danmu_api 为例，镜像名以你实际能拉到的为准）：
+<pre><code>services:
+  danmu-api:
+    image: docker.m.daocloud.io/logvar/danmu-api:latest
+    container_name: danmu-api
+    restart: unless-stopped
+    ports:
+      - "9321:9321"
+    environment:
+      TOKEN: "87654321"</code></pre></li>
+<li>App：设置 → 弹幕，服务地址填 <code>192.168.1.10:9321</code>。如果服务设置了 token 路径，就写成带 token 的完整地址，例如 <code>http://192.168.1.10:9321/87654321</code>。</li>
+<li>AppId / AppSecret：<b>自建服务留空</b>；只有用弹弹play 官方接口才需要填。</li>
+<li>点「保存并测试连接」。成功后，播放页就会自动加载弹幕，样式（透明度、字号、速度、区域）在播放页里调。</li>
+</ol>
+<div class="box warn"><p>弹幕匹配靠「片名」。Emby 里的片名越规范（中文名 + 年份 + 集号），匹配越准；匹配错了先检查 Emby 元数据。</p></div>
+
+<h2 id="d-intro">依赖搭建 · TheIntroDB 片头库 <span class="tag opt">可选</span></h2>
+<p>用途：Emby 里没有「片头」章节标记时，用 TMDB 编号 + 季集去在线库查片头 / 片尾时间，用于「自动跳过片头」和「下一集」提示。查询结果缓存在本机，查不到也会缓存，避免反复请求。</p>
+<ol class="steps">
+<li>先配好 <a href="#d-tmdb">TMDB</a>（需要它做编号映射）。</li>
+<li>设置 → 播放：打开「自动跳过片头」和「用 TheIntroDB 查片头时间」。</li>
+<li>TheIntroDB 代理：<b>留空 = 沿用 TMDB 的代理</b>；安卓的 hosts 设置对它同样生效。</li>
+<li>到某个剧集详情页，可手动「扫描」查看这一部有没有数据。</li>
+</ol>
+<p>优先级：Emby 章节标记 ＞ TheIntroDB ＞ 手动在播放器里标记的片头。</p>
+
+<h2 id="d-nd">依赖搭建 · Navidrome <span class="tag opt">可选</span></h2>
+<p>用途：音乐库。织影通过 Subsonic 接口对接。</p>
+<ol class="steps">
+<li>用 Docker 部署：
+<pre><code>services:
+  navidrome:
+    image: docker.m.daocloud.io/deluan/navidrome:latest
+    container_name: navidrome
+    restart: unless-stopped
+    ports:
+      - "4533:4533"
+    environment:
+      ND_SCANSCHEDULE: 1h
+      ND_LOGLEVEL: info
+      TZ: Asia/Shanghai
+    volumes:
+      - /volume1/docker/navidrome:/data
+      - /volume1/music:/music:ro</code></pre></li>
+<li>浏览器打开 <code>http://群晖IP:4533</code>，第一次进入先创建管理员账号，再等它扫描完 <code>/music</code>。</li>
+<li>App：设置 → 音乐 → 地址填 <code>192.168.1.10:4533</code>（不写端口默认 4533；用域名 / https 请写完整），再填用户名密码，点「测试并保存」。</li>
+<li>「代理」一般局域网不用填。</li>
+</ol>
+<div class="box"><p><b>歌词建议：</b>在歌曲文件旁放同名 <code>.lrc</code> 文件，或在标签里嵌入歌词，Navidrome 就会提供歌词；没有的由织影从 <a href="#d-lrc">在线来源</a> 匹配。</p></div>
+
+<h2 id="d-lrc">依赖搭建 · 在线歌词 / 封面 <span class="tag opt">可选</span></h2>
+<p>用途：歌曲菜单里的「匹配 / 编辑 歌词与封面」、以及「服务器没有歌词时自动匹配」。<b>两个来源二选一</b>，都填时优先 NeteaseCloudMusicApi。</p>
+<h3>方案 A：NeteaseCloudMusicApi</h3>
+<pre><code>git clone https://gitee.com/mirrors/NeteaseCloudMusicApi.git
+cd NeteaseCloudMusicApi
+npm install --registry=https://registry.npmmirror.com
+node app.js</code></pre>
+<p>默认监听 3000 端口。也可以用社区提供的现成 Docker 镜像（名称以你能拉到的为准）。App：设置 → 音乐选项 → 填 <code>http://192.168.1.10:3000</code>。</p>
+<h3>方案 B：Meting API</h3>
+<p>填一个可用的 Meting 接口地址，例如 <code>https://api.example.com/meting/</code>。可自建，也可用别人提供的公共接口（公共接口稳定性自行判断）。</p>
+<p>填完点「保存并测试」，成功会提示「在线来源可用（搜到 N 条）」。</p>
+<p>另有两个开关：<b>在底部播放条显示当前歌词</b>、<b>服务器没有歌词时自动从在线来源匹配</b>。</p>
+
+<h2 id="d-epg">依赖搭建 · 直播源与节目单 <span class="tag opt">可选</span></h2>
+<ol class="steps">
+<li>准备一个 M3U / M3U8 订阅链接，或一个本地 <code>.m3u</code> 文件。</li>
+<li>App：电视直播页 → 添加订阅（填名称和链接），或导入本地文件。同名频道自动合并多条线路。</li>
+<li>节目单：填 <b>XMLTV</b> 地址（<code>.xml</code> 或 <code>.xml.gz</code>），织影下载后只保留近期节目缓存在本机。频道通过 M3U 里的 <code>tvg-id</code> 或频道名对上节目。</li>
+</ol>
+<p>织影不提供任何直播源，请使用你有权使用的源。</p>
+
+<h2 id="d-party">依赖搭建 · 一起看服务 <span class="tag opt">可选</span></h2>
+<p>这是织影<b>自带</b>的中转服务，在仓库的 <code>party-server/</code> 目录。零依赖，只需要 Node 18+，不用 <code>npm install</code>。同时提供网页管理后台。</p>
+<h3>它做什么</h3>
+<ul>
+<li>所有设备通过它交换「播放 / 暂停 / 进度 / 换片」等指令；它<b>不转发视频流</b>，每个设备仍然直接从 Emby 取流。</li>
+<li>登录验证：App 把 Emby 令牌发给它，它用 <code>EMBY_URL</code> 去 Emby 验证身份、并查询媒体库权限。令牌只存在内存里，不落盘，重启即清空。</li>
+<li>房间只存在内存里，服务重启后清空。</li>
+</ul>
+<h3>方式一：群晖 / 任意 Docker（推荐）</h3>
+<ol class="steps">
+<li>把仓库里的 <code>party-server</code> 文件夹放到群晖 <code>/volume1/docker/weave-party/</code>。</li>
+<li>编辑里面的 <code>docker-compose.yml</code>，改两处：
+<pre><code>environment:
+  # 群晖上能访问到 Emby 的地址（仅服务端自己用），末尾不要加斜杠
+  EMBY_URL: "http://192.168.1.2:8096"
+  # 管理网页密码，改成你自己的
+  ADMIN_PASSWORD: "改成你的密码"
+  TZ: Asia/Shanghai</code></pre></li>
+<li>SSH 登录群晖，执行：
+<pre><code>cd /volume1/docker/weave-party
+sudo docker compose up -d --build</code></pre></li>
+<li>如果拉基础镜像失败（Dockerfile 默认用国内镜像站），可以改用本机已有的 node 镜像：
+<pre><code>sudo docker compose build --build-arg BASE=node:20-alpine
+sudo docker compose up -d</code></pre></li>
+<li>浏览器打开 <code>http://群晖IP:8787/admin</code>，输入管理密码，能看到空的房间列表就成功了。（直接访问根地址会自动跳到 <code>/admin</code>。）</li>
+<li>App：设置 → 一起看 → 填 <code>http://群晖IP:8787</code> → 保存 → 测试连接。显示「连接正常…已启用 Emby 登录验证」才对；如果提示「服务端没设置 EMBY_URL」，说明环境变量没生效。</li>
+</ol>
+<h3>方式二：不用 Docker</h3>
+<pre><code>cd party-server
+EMBY_URL=http://192.168.1.2:8096 ADMIN_PASSWORD=你的密码 node server.js</code></pre>
+<p>Windows PowerShell：</p>
+<pre><code>cd party-server
+$env:EMBY_URL="http://192.168.1.2:8096"; $env:ADMIN_PASSWORD="你的密码"; node server.js</code></pre>
+<h3>环境变量</h3>
+<table>
+<tr><th>变量</th><th>说明</th><th>默认</th></tr>
+<tr><td><code>EMBY_URL</code></td><td>服务端访问 Emby 的地址，用来验证令牌和查权限；不设则不验证身份（不推荐）</td><td>空</td></tr>
+<tr><td><code>ADMIN_PASSWORD</code></td><td>管理网页密码</td><td>必须自己设</td></tr>
+<tr><td><code>TZ</code></td><td>时区</td><td><code>Asia/Shanghai</code></td></tr>
+<tr><td>端口</td><td>容器内 8787，映射由 compose 的 <code>ports</code> 决定</td><td>8787</td></tr>
+</table>
+<h3>管理网页</h3>
+<p>地址 <code>http://服务IP:8787/admin</code>。可看所有房间、成员、操作记录；可关闭房间、踢人、切换公开 / 私密；每 2 秒自动刷新。音乐房间带「♪ 音乐」标记。反馈同步问题时，附上这里的<b>操作记录</b>最有用。</p>
+<h3>外网朋友加入</h3>
+<p>朋友在外网也要能访问这个服务：把 8787 端口映射出去，或放到反向代理 / 内网穿透后面，朋友的 App 里填外网地址。注意：<code>EMBY_URL</code> 是<b>服务端自己用的内网地址</b>，不要填成外网域名（除非服务端本来就走外网访问 Emby）。</p>
+<p>反代示例（Nginx，长轮询需要关闭缓冲和放宽超时）：</p>
+<pre><code>location / {
+    proxy_pass http://127.0.0.1:8787;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_buffering off;
+    proxy_read_timeout 60s;
+}</code></pre>
+<h3>更新服务</h3>
+<p>只有 <code>party-server</code> 目录里的文件变了才需要重新构建：<code>sudo docker compose up -d --build</code>。只改 App 前端不需要动它。</p>
+<h3>同步原理（想排错的人看）</h3>
+<ul>
+<li>通讯：HTTP 长轮询。<code>GET /api/sync?ver=</code> 在版本变化或 20 秒后返回，<code>POST /api/op</code> 提交操作，<code>GET /api/time</code> 校准各设备时钟。</li>
+<li>目标进度 = 暂停时取记录进度，播放时取 <code>记录进度 + 经过时间 × 倍速</code>。</li>
+<li>偏差小于 10 秒时微调倍速追上，超过 10 秒才跳转（20 秒冷却），避免来回拉扯。</li>
+<li>「等待所有人缓冲」：任一成员缓冲时全房间暂停，单个成员最多拖住 25 秒。</li>
+</ul>
+
+<h2 id="net">外网访问方案</h2>
+<p>设备在外网（4G / 公司 / 朋友家）时，App 里所有 <code>192.168.x.x</code> 的地址都会失效。常见做法：</p>
+<table>
+<tr><th>方案</th><th>适合</th><th>做法</th></tr>
+<tr><td>域名 + 端口映射</td><td>有公网 IP</td><td>路由器把 8096 / 8787 等映射出去，用 DDNS 域名；强烈建议 HTTPS</td></tr>
+<tr><td>反向代理</td><td>已有域名与证书</td><td>Nginx / Caddy 统一代理各服务，每个服务一个子域名</td></tr>
+<tr><td>内网穿透</td><td>没有公网 IP</td><td>frp、Cloudflare Tunnel 等</td></tr>
+<tr><td>异地组网</td><td>自己人使用</td><td>Tailscale / ZeroTier，设备之间直接当局域网用</td></tr>
+</table>
+<h3>每个服务该填什么地址</h3>
+<table>
+<tr><th>设置项</th><th>局域网填</th><th>外网填</th></tr>
+<tr><td>Emby 登录地址</td><td><code>http://192.168.1.2:8096</code></td><td><code>https://emby.你的域名</code></td></tr>
+<tr><td>一起看地址</td><td><code>http://192.168.1.2:8787</code></td><td><code>https://party.你的域名</code></td></tr>
+<tr><td>Navidrome / 追更 / MoviePilot / 弹幕</td><td>各自局域网地址</td><td>各自外网地址</td></tr>
+<tr><td>一起看服务的 <code>EMBY_URL</code></td><td colspan="2">服务端自己用，填服务器能访问到的 Emby 地址（一般是局域网地址）</td></tr>
+</table>
+<div class="box"><p>家里一个地址、外面一个地址时，可以在设置里添加<b>两个服务器条目</b>，在顶栏一键切换。</p></div>
+<div class="box warn"><p>安卓默认禁止明文 HTTP 到公网域名的场景，外网请用 HTTPS 域名最省心。</p></div>
+
+<h2 id="proxy">国内镜像与代理</h2>
+<h3>Docker 镜像</h3>
+<p>本手册的 compose 都用 <code>docker.m.daocloud.io/</code> 前缀。如果某个镜像站对你返回 401 / 超时，换前缀或用本机已有镜像：</p>
+<pre><code># 先看本机有没有
+sudo docker images
+# 或者手动换一个镜像站拉取再打标签
+sudo docker pull 你的镜像站/library/node:20-alpine
+sudo docker tag 你的镜像站/library/node:20-alpine node:20-alpine</code></pre>
+<h3>npm / pnpm / pip</h3>
+<pre><code>npm config set registry https://registry.npmmirror.com
+pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple</code></pre>
+<h3>Rust（本地编译 Tauri 用）</h3>
+<pre><code>$env:RUSTUP_DIST_SERVER="https://rsproxy.cn"
+$env:RUSTUP_UPDATE_ROOT="https://rsproxy.cn/rustup"</code></pre>
+<p>仓库里已带 <code>.npmrc</code>（npmmirror）和 <code>src-tauri/.cargo/config.toml</code>（rsproxy）；GitHub Actions 里会自动删除它们改用官方源。</p>
+
+<h2 id="build">自己编译</h2>
+<h3>用 GitHub Actions（推荐）</h3>
+<table>
+<tr><th>工作流</th><th>触发</th><th>产物</th></tr>
+<tr><td><code>build-windows</code></td><td>推送 main / 手动 / 标签 <code>v*</code></td><td>Artifacts <code>Weave-setup</code>（标签时发到 Releases）</td></tr>
+<tr><td><code>build-android</code></td><td>手动 / 标签 <code>android-v*</code></td><td>Artifacts <code>织影-android</code>（apk）</td></tr>
+<tr><td><code>build-ios</code></td><td>手动</td><td>Artifacts <code>Weave-ios</code>（未签名 ipa）</td></tr>
+</table>
+<p>更新流程：解压新代码覆盖项目 → 提交推送 → 重新跑对应工作流 → 在设置页底部核对构建编号。</p>
+<h3>本地编译（Windows）</h3>
+<ol class="steps">
+<li>装 Node.js 20+ 和 Visual Studio Build Tools（勾选「使用 C++ 的桌面开发」）。</li>
+<li>PowerShell 里装 pnpm 和 Rust（走国内镜像）：
+<pre><code>npm i -g pnpm --registry=https://registry.npmmirror.com
+$env:RUSTUP_DIST_SERVER="https://rsproxy.cn"
+$env:RUSTUP_UPDATE_ROOT="https://rsproxy.cn/rustup"
+Invoke-WebRequest https://rsproxy.cn/rustup-init.exe -OutFile rustup-init.exe
+.\rustup-init.exe -y</code></pre>装完关掉 PowerShell 重新打开。</li>
+<li>开发调试：
+<pre><code>pnpm install
+pnpm exec tauri-plugin-libmpv-api setup-lib
+pnpm tauri dev</code></pre><code>setup-lib</code> 会把 MPV 的两个 dll 下载到 <code>src-tauri/lib/</code>（从 GitHub 下载，慢就给终端开代理），只需一次。</li>
+<li>打安装包：<pre><code>pnpm tauri build</code></pre>输出在 <code>src-tauri\target\release\bundle\nsis\</code>。第一次会从 GitHub 下载 NSIS，卡住就开代理重试。</li>
+</ol>
+<h3>仅网页调试界面</h3>
+<pre><code>pnpm install
+pnpm web</code></pre>
+<h3>目录结构</h3>
+<table>
+<tr><th>路径</th><th>内容</th></tr>
+<tr><td><code>src/emby/</code></td><td>Emby 接口、登录会话、DeviceProfile、hls.js 加载器</td></tr>
+<tr><td><code>src/pages/</code></td><td>首页 / 媒体库 / 详情 / 播放 / 设置 / 登录 / 直播 / 发现</td></tr>
+<tr><td><code>src/components/</code></td><td>标题栏、搜索、卡片、聚光卡、一起看面板…</td></tr>
+<tr><td><code>src/music/</code></td><td>音乐页、播放器、歌词、一起听</td></tr>
+<tr><td><code>src/lib/</code></td><td>TMDB、追更、MoviePilot、弹幕、片头库、直播、一起看客户端…</td></tr>
+<tr><td><code>src/styles/</code></td><td>四套皮肤、深浅色、音乐样式</td></tr>
+<tr><td><code>src-tauri/</code></td><td>Rust 壳（无边框窗口、http 插件、libmpv 插件）</td></tr>
+<tr><td><code>android/</code> <code>ios/</code> <code>scripts/</code></td><td>安卓 / iOS 原生部分与构建补丁脚本</td></tr>
+<tr><td><code>party-server/</code></td><td>一起看中转服务 + 管理网页</td></tr>
+</table>
+
+<h2 id="data">数据存在哪</h2>
+<ul>
+<li>所有设置、令牌、片头缓存、直播源与收藏、节目单缓存，都只存在<b>你自己设备的本地存储</b>里，不上传到任何第三方。</li>
+<li>Emby 登录只保存令牌。追更 / MoviePilot / Navidrome 的密码保存在本机设置里，请保管好设备。</li>
+<li>一起看服务只在内存里保存房间和令牌，重启即清空。</li>
+<li>织影不收集任何统计数据。</li>
+</ul>
+
+<h2 id="faq">排错 FAQ</h2>
+<details><summary>登录 Emby 失败</summary>
+<p>① 地址要带 <code>http://</code> 或 <code>https://</code> 和端口；② 手机和 Emby 是否在同一网络，外网要用外网地址；③ 在手机浏览器里先打开该地址，看能不能见到 Emby 登录页。</p></details>
+<details><summary>MPV 起不来 / 黑屏</summary>
+<p>Windows 需要 <code>src-tauri/lib</code> 里的 libmpv dll（安装包里已带）；起不来时会自动改用内置播放器。也可在 设置 → 播放 → 播放内核 手动切换。</p></details>
+<details><summary>播放卡在转圈 / 提示 403</summary>
+<p>多见于 strm / 网盘直链。先等待自动重试；仍失败，在播放菜单打开「经 Emby 转发」。注意这是手动开关，默认设备直连。</p></details>
+<details><summary>TMDB 测试连接失败</summary>
+<p>国内直连不通是正常的：填代理（如 <code>http://127.0.0.1:7890</code>）；安卓没代理可用 hosts；或在「自定义域名」里填你自己的反代地址。</p></details>
+<details><summary>追更 / MoviePilot 测试失败</summary>
+<p>先在电脑浏览器能打开它们的网页；追更地址不要带路径、MoviePilot 地址<b>不要</b>加 <code>/api/v1</code>；用户名密码错误会明确提示。追更版本太旧时部分接口会 404，升级到 1.45.0+。</p></details>
+<details><summary>弹幕没出来</summary>
+<p>确认弹幕服务地址（带 token 的要写全）；片名不规范会匹配不到；自建服务 AppId / AppSecret 留空。</p></details>
+<details><summary>一起看：连不上服务 / 提示「服务端没设置 EMBY_URL」</summary>
+<p>打开 <code>http://服务IP:8787/api/health</code> 看是否返回 <code>ok</code>；没设置 <code>EMBY_URL</code> 请改 compose 后 <code>sudo docker compose up -d --build</code>。</p></details>
+<details><summary>一起看：我的房间别人看不到 / 加不进去</summary>
+<p>多半是权限：对方的 Emby 账号没有这部片所在媒体库的访问权限，设计上就是看不到。也检查房间是否设为「私密」。</p></details>
+<details><summary>一起看：进度对不上 / 另一台不跟随</summary>
+<p>先点播放页右上角「同步播放」强制对齐；仍不行，到管理网页复制该房间的<b>操作记录</b>，并说明是哪台设备、怎么调的进度（拖进度条还是快进键），方便定位。</p></details>
+<details><summary>一起听：加入后自动退出</summary>
+<p>本机的 Navidrome 里找不到房间里的歌，说明和房主不是同一个音乐服务器（或该账号没有这些歌的权限）。</p></details>
+<details><summary>手机上点一下按钮一直高亮</summary>
+<p>新版已把悬停样式限定在有鼠标的设备上。若仍有，请截图并告知页面名称，反馈时带上设置页底部的构建编号。</p></details>
+<details><summary>安卓上下系统栏颜色不对</summary>
+<p>新版已改成透明沉浸式。请确认设置页底部构建编号不低于 <code>1109-O</code>。</p></details>
+
+<footer>
+<p>织影 Weave · MIT 许可。本项目是个人学习性质的开源实现，与 Emby 官方无隶属关系；由 Win-box 重构而来，Fork 二改请注明原项目。</p>
+<p>本手册对应构建 <code>1110-B</code>。部分第三方服务（镜像名、端口、接口）会随其官方更新而变化，以对方文档为准。</p>
+</footer>
+</main>
+</div>
+<script>
+(function(){
+ var root=document.documentElement;
+ try{var t=localStorage.getItem('weave-doc-theme');if(t)root.setAttribute('data-theme',t)}catch(e){}
+ document.getElementById('theme').onclick=function(){
+  var dark=root.getAttribute('data-theme')==='dark'||(!root.getAttribute('data-theme')&&matchMedia('(prefers-color-scheme: dark)').matches);
+  var n=dark?'light':'dark';root.setAttribute('data-theme',n);try{localStorage.setItem('weave-doc-theme',n)}catch(e){}
+ };
+ var side=document.getElementById('side');
+ document.getElementById('burger').onclick=function(){side.classList.toggle('open')};
+ side.addEventListener('click',function(e){if(e.target.tagName==='A')side.classList.remove('open')});
+ document.querySelectorAll('pre').forEach(function(p){
+  var b=document.createElement('button');b.className='cp';b.textContent='复制';
+  b.onclick=function(){
+   var txt=p.querySelector('code').innerText;
+   var done=function(){b.textContent='已复制';setTimeout(function(){b.textContent='复制'},1500)};
+   if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(txt).then(done,function(){fb(txt);done()})}else{fb(txt);done()}
+  };p.appendChild(b);
+ });
+ function fb(t){var a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy')}catch(e){}a.remove()}
+ var links=[].slice.call(side.querySelectorAll('a'));
+ var map=links.map(function(a){return document.getElementById(a.getAttribute('href').slice(1))});
+ function spy(){
+  var y=window.scrollY+90,cur=0;
+  map.forEach(function(el,i){if(el&&el.offsetTop<=y)cur=i});
+  links.forEach(function(a,i){a.classList.toggle('on',i===cur)});
+ }
+ window.addEventListener('scroll',spy,{passive:true});spy();
+})();
+</script>
+</body>
+</html>

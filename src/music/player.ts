@@ -91,7 +91,7 @@ function el(): HTMLAudioElement {
     if (pendingStart) { // 一起听：加载好后跳到房间现在的进度 / 保持暂停
       const ps = pendingStart; pendingStart = null;
       if (ps.pos > 0.5) { a.currentTime = ps.pos; emit({ pos: ps.pos }); }
-      if (ps.paused) a.pause();
+      if (ps.paused) { a.pause(); emit({ playing: false }); }
     }
   });
   a.addEventListener('ended', () => { next(true); });
@@ -163,18 +163,28 @@ export function next(auto = false): void {
 }
 export function prev(): void {
   const a = el();
-  if (a.currentTime > 3) { a.currentTime = 0; return; }
+  if (a.currentTime > 3) { seek(0); return; }
   if (history.length) { load(history.pop() as number); return; }
   if (st.index > 0 && !st.shuffle) { load(st.index - 1); return; }
-  a.currentTime = 0;
+  seek(0);
 }
-export function seek(t: number): void {
+/** 用户主动拖动 / 点击进度（一起听据此向房间上报；房间同步过来的跳转走 partySeek，不触发） */
+const userSeekSubs = new Set<(t: number) => void>();
+export function onUserSeek(f: (t: number) => void): () => void { userSeekSubs.add(f); return () => { userSeekSubs.delete(f); }; }
+function jump(t: number): void {
   const a = el();
   if (!Number.isFinite(t)) return;
   a.currentTime = Math.max(0, t);
   emit({ pos: a.currentTime });
   pushNotif(true);   // 通知 / 锁屏的进度也跟着校正
 }
+export function seek(t: number): void {
+  if (!Number.isFinite(t)) return;
+  jump(t);
+  const p = musicState().pos;
+  userSeekSubs.forEach((f) => f(p));
+}
+export function partySeek(t: number): void { jump(t); }
 export function setShuffle(v: boolean): void { emit({ shuffle: v }); savePrefs(); }
 export function setRepeat(r: Repeat): void { emit({ repeat: r }); savePrefs(); }
 export function cycleRepeat(): void { emit({ repeat: st.repeat === 'off' ? 'all' : st.repeat === 'all' ? 'one' : 'off' }); savePrefs(); }
@@ -281,6 +291,7 @@ export function partyApply(o: { songs?: Song[]; index: number; pos: number; paus
   if (!st.queue[o.index]) return;
   pendingStart = { pos: o.pos, paused: o.paused };
   load(o.index, !o.paused);
+  if (o.paused) emit({ playing: false });
 }
 export function partyPlay(want: boolean): void {
   const a = el();
