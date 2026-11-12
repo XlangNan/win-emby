@@ -111,7 +111,7 @@ function onRoomChange(): void {
     room = r; aligned = false; lastSeq = -1;
     if (r.state.by === me() && r.state.seq === 1) { // 自己刚创建的房间：本机已经在播，不用重新装载
       const m = musicState();
-      localQv = r.state.qv ?? 1; lastSig = sig(m.queue); lastCur = m.cur?.id || ''; lastPlaying = m.playing; lastSeq = r.state.seq; aligned = true;
+      localQv = r.state.qv ?? 1; lastSig = sig(m.queue); lastCur = m.cur?.id || ''; lastPlaying = realPlaying(); lastSeq = r.state.seq; aligned = true;
       return;
     }
     void loadFromRoom(r, true);
@@ -168,15 +168,17 @@ function onLocalChange(): void {
     });
     return;
   }
-  // 暂停 / 播放（加载中的短暂变化不算；和房间一致不发）
-  if (m.playing !== lastPlaying && !m.loading) {
-    lastPlaying = m.playing;
+  // 暂停 / 播放：看音频元素的真实状态（调用 play()/pause() 后立刻变），不看播放器状态里的 playing（它要等事件才更新，
+  // 会让「我刚按房间要求暂停」被误当成用户操作又发回房间，两台设备就互相来回切）。加载中的短暂变化不算；和房间一致不发。
+  const rp = realPlaying();
+  if (rp !== lastPlaying && !m.loading) {
+    lastPlaying = rp;
     push(() => {
       const rm = getParty().room, mm = musicState();
+      const now = realPlaying();
       if (!rm || mm.loading || mm.cur?.id !== rm.state.item.id) return null;
-      if (mm.playing === !wantPause(rm)) return null;
-      if (mm.playing && rm.state.hold) return null;  // 房间在等大家缓冲：不要被一次自动开始播放打断
-      return { kind: mm.playing ? 'play' : 'pause', pos: mm.pos };
+      if (now === !rm.state.paused) return null;   // 和房间记录的「用户意图」一致（等缓冲造成的暂停不算用户暂停）
+      return { kind: now ? 'play' : 'pause', pos: mm.pos };
     });
   }
 }
