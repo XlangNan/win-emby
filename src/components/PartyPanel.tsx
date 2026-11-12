@@ -44,7 +44,7 @@ export default function PartyPanel({ item, music, getPos, started, onCreated, on
             <div key={m.cid} className="we-party-m">
               <span>{m.name}{m.cid === me ? '（我）' : ''}</span>
               {m.cid === room.host && <i>房主</i>}
-              {m.buf && <i className="w">加载 / 缓冲中</i>}
+              {m.away ? <i className="w">离线</i> : m.buf && <i className="w">加载 / 缓冲中</i>}
             </div>
           ))}
           {room.members.length > 5 && <div className="we-party-m"><span>…等共 {room.members.length} 人</span></div>}

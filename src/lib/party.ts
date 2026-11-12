@@ -12,7 +12,7 @@ export interface PartySong { id: string; title: string; artist: string; album: s
 export interface PartyRoom {
   type?: 'video' | 'music';
   id: string; pub: boolean; ctl: 'all' | 'host'; wait: boolean; host: string;
-  members: { cid: string; name: string; buf: boolean }[];
+  members: { cid: string; name: string; buf: boolean; away?: boolean }[];
   state: PartyState;
 }
 export interface RoomSummary { type?: 'video' | 'music'; id: string; host: string; item: PartyItem; count: number; paused: boolean }

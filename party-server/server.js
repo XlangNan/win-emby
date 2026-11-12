@@ -9,7 +9,9 @@ const path = require('path');
 const PORT = Number(process.env.PORT || 8787);
 const EMBY_URL = (process.env.EMBY_URL || '').replace(/\/+$/, '');
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
-const IDLE_MS = 30000; // 超过这么久没有任何请求 = 掉线
+const IDLE_MS = 30000; // 超过这么久没有任何请求 = 掉线（兜底）
+const GRACE_MS = 12000; // 长轮询断开后，这么久没有重新连上 = 掉线（App 被关掉 / 手机断网，比 IDLE_MS 快得多）
+const AWAY_MS = 6000;   // 没有在线的长轮询、又这么久没有任何请求 = 显示「离线」，并且不再拖住大家等它缓冲
 const HOLD_MAX_MS = 25000; // 等某个人缓冲最多等这么久
 const STARTED = Date.now();
 
@@ -83,15 +85,18 @@ const itemOf = (x) => ({ id: String(x.id || ''), name: String(x.name || '').slic
 function freeze(r) { // 把位置推进到「现在」再改状态
   const st = r.state; st.pos = targetPos(st); st.at = now();
 }
+/** 这个成员现在是不是「失联」：没有挂着的长轮询，并且一小会儿没发过任何请求（心跳 / 操作 / 重连都算） */
+const isAway = (cid) => { const c = clients.get(cid); return !c || (!(c.polls > 0) && now() - c.seen > AWAY_MS); };
 function recomputeHold(r) {
   const t = now();
   for (const m of r.members.values()) if (m.buf && m.bufAt && t - m.bufAt > HOLD_MAX_MS) { m.buf = false; }
-  const want = r.wait && [...r.members.values()].some((m) => m.buf);
+  const want = r.wait && [...r.members.values()].some((m) => m.buf && !isAway(m.cid)); // 失联的人不拖住大家
   if (want !== r.state.hold) { freeze(r); r.state.hold = want; r.state.seq++; r.state.by = ''; r.state.why = want ? 'hold' : 'release'; }
 }
 function leaveRoom(c, why) {
   const r = c.room && rooms.get(c.room); c.room = '';
   if (!r) return;
+  if (why === 'idle' || why === 'disconnected') pushLog(r, c.name, '掉线，已移出房间');
   r.members.delete(c.cid);
   if (r.members.size === 0) { rooms.delete(r.id); log('room closed (empty)', r.id); return; }
   if (r.host === c.cid) { r.host = r.members.keys().next().value; }
@@ -100,8 +105,15 @@ function leaveRoom(c, why) {
 }
 function sweep() {
   const t = now();
-  for (const c of [...clients.values()]) if (t - c.seen > IDLE_MS) { leaveRoom(c, 'idle'); clients.delete(c.cid); bump(); }
-  for (const r of rooms.values()) { const h = r.state.hold; recomputeHold(r); if (h !== r.state.hold) bump(); }
+  for (const c of [...clients.values()]) {
+    const gone = !(c.polls > 0) && c.dropAt && t > c.dropAt;   // 长轮询断开后一直没回来
+    if (gone || t - c.seen > IDLE_MS) { leaveRoom(c, gone ? 'disconnected' : 'idle'); clients.delete(c.cid); bump(); }
+  }
+  for (const r of rooms.values()) {
+    const h = r.state.hold; recomputeHold(r);
+    const sg = [...r.members.keys()].filter(isAway).join(',');          // 谁「离线」变了也要通知大家刷新成员列表
+    if (h !== r.state.hold || sg !== r._away) { r._away = sg; bump(); }
+  }
 }
 setInterval(sweep, 3000).unref();
 
@@ -113,7 +125,7 @@ function snap(c) {
     rooms: [...rooms.values()].filter((x) => x.pub && (x.kind === 'music' || seeCached(c, x.state.item.id))).map(summary),
     room: r ? {
       type: r.kind, id: r.id, pub: r.pub, ctl: r.ctl, wait: r.wait, host: r.host,
-      members: [...r.members.values()].map((m) => ({ cid: m.cid, name: m.name, buf: m.buf })),
+      members: [...r.members.values()].map((m) => ({ cid: m.cid, name: m.name, buf: m.buf, away: isAway(m.cid) })),
       state: r.state,
     } : null,
     kicked: c.kicked || '',
@@ -216,7 +228,7 @@ async function client(req, url, o) {
   if (!v) return null;
   let c = clients.get(cid);
   if (!c) { c = { cid, name: v.name, userId, room: '', seen: now(), kicked: '' }; clients.set(cid, c); }
-  c.name = v.name; c.seen = now(); c.token = String(token); // 令牌只放内存，用于替这个用户查询权限
+  c.name = v.name; c.seen = now(); c.dropAt = 0; c.token = String(token); // 令牌只放内存，用于替这个用户查询权限
   return c;
 }
 
@@ -229,7 +241,7 @@ const adminState = () => ({
   now: now(), up: now() - STARTED, online: clients.size, ver,
   rooms: [...rooms.values()].map((r) => ({
     type: r.kind, qlen: r.queue.length, id: r.id, pub: r.pub, ctl: r.ctl, wait: r.wait, host: r.host, created: r.created, state: r.state, target: targetPos(r.state),
-    members: [...r.members.values()].map((m) => ({ cid: m.cid, name: m.name, buf: m.buf, joined: m.joined, pos: m.pos, host: m.cid === r.host })),
+    members: [...r.members.values()].map((m) => ({ cid: m.cid, name: m.name, buf: m.buf, away: isAway(m.cid), joined: m.joined, pos: m.pos, host: m.cid === r.host })),
     log: r.log.slice(-30),
   })),
 });
@@ -245,6 +257,9 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/sync') { // 长轮询：版本有变化（或 20 秒到）才返回
       const c = await client(req, url, {});
       if (!c) return send(res, 401, { error: '登录验证失败（Emby 令牌无效，或服务端的 EMBY_URL 填错）' });
+      // 记下「这个人有几条挂着的长轮询」：全部断开后 GRACE_MS 内没回来 → 判定掉线（正常情况下客户端毫秒级就会重新连上）
+      c.polls = (c.polls || 0) + 1;
+      res.on('close', () => { c.polls--; if (c.polls <= 0) { c.polls = 0; c.dropAt = now() + GRACE_MS; } });
       const since = Number(url.searchParams.get('ver') || 0);
       await prefetch(c);
       if (since !== ver || c.kicked) { const s = snap(c); c.kicked = ''; return send(res, 200, s); }
