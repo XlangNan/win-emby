@@ -73,6 +73,10 @@ export const srvNow = (): number => Date.now() + offset;
 /** 房间状态里的「现在应该播到第几秒」 */
 export const targetPos = (s: PartyState, t = srvNow()): number => (s.paused || s.hold ? s.pos : s.pos + ((t - s.at) / 1000) * s.rate);
 
+async function readJson<T>(r: Response): Promise<T> {
+  const t = await r.text();
+  try { return JSON.parse(t) as T; } catch { throw new Error(`服务返回了异常内容（HTTP ${r.status}）。请确认群晖上的一起看服务已更新，且反向代理没有拦截请求`); }
+}
 async function req(path: string, init?: RequestInit, ms = 15000): Promise<Response> {
   const s = getSession();
   if (!s) throw new Error('未登录');
@@ -149,7 +153,7 @@ async function loop(): Promise<void> {
           await sleep(15000); continue;
         }
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        applySnap((await r.json()) as Snap);
+        applySnap(await readJson<Snap>(r));
         fail = 0;
       } catch (e) {
         if (my !== loopId) break;
@@ -171,7 +175,7 @@ export async function sendOp(o: OpBody): Promise<string> {
     if (!lastClock) await syncClock();
     const r = await req('/api/op', { method: 'POST', body: JSON.stringify({ ...o, at: srvNow() }) });
     if (r.status === 401) return '登录验证失败（检查服务端的 EMBY_URL）';
-    const j = (await r.json()) as Snap;
+    const j = await readJson<Snap>(r);
     applySnap(j);
     return j.error || '';
   } catch (e) { return `连不上一起看服务（${e instanceof Error ? e.message : '网络错误'}）`; }
@@ -193,14 +197,21 @@ export const iAmHost = (): boolean => !!st.room && st.room.host === st.cid;
 export const canControl = (): boolean => !st.room || st.room.ctl === 'all' || iAmHost();
 
 // ───────── 音乐房间 ─────────
+/** 队列太长就只带当前歌前后各 150 首（整个请求不要太大，反向代理会拦） */
+function trimQueue(queue: PartySong[], index: number): { queue: PartySong[]; index: number } {
+  if (queue.length <= 300) return { queue, index };
+  const from = Math.max(0, Math.min(index - 150, queue.length - 300));
+  return { queue: queue.slice(from, from + 300), index: index - from };
+}
 export async function createMusicRoom(queue: PartySong[], index: number, o: { pub: boolean; ctl: 'all' | 'host'; wait: boolean; pos: number }): Promise<string> {
   cancelLeave();
+  ({ queue, index } = trimQueue(queue, index));
   return sendOp({ kind: 'create', type: 'music', queue, index, pub: o.pub, ctl: o.ctl, wait: o.wait, pos: o.pos, ready: true });
 }
 export async function fetchPartyQueue(room: string): Promise<{ qv: number; queue: PartySong[] } | null> {
   try {
     const r = await req(`/api/queue?room=${encodeURIComponent(room)}`);
     if (!r.ok) return null;
-    return (await r.json()) as { qv: number; queue: PartySong[] };
+    return await readJson<{ qv: number; queue: PartySong[] }>(r);
   } catch { return null; }
 }

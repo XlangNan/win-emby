@@ -25,6 +25,8 @@ let mism = 0;
 let bufTimer = 0;
 let bufSent = false;
 let adjRate = 1;
+/** 换歌后要向房间报告「我加载好了」（服务端换歌时把所有人标成加载中，等大家都好了才一起播） */
+let needReady = false;
 
 const quiet = (ms = 1800): void => { quietUntil = performance.now() + ms; };
 const calm = (): boolean => aligned && !!room && performance.now() > quietUntil;
@@ -49,12 +51,12 @@ async function loadFromRoom(r: PartyRoom, first: boolean): Promise<void> {
     lastSig = sig(songs);
     expect = null;
     quiet(2500);
+    needReady = true;
     partyApply({ songs, index: Math.min(st.index ?? 0, songs.length - 1), pos: targetPos(st), paused: wantPause(cur) });
     lastCur = songs[st.index ?? 0]?.id || '';
     lastSeq = st.seq;
     aligned = true;
     lastPlaying = !wantPause(cur);
-    void sendOp({ kind: 'buf', on: false });
   } finally { loadingRoom = false; }
 }
 
@@ -87,6 +89,7 @@ function onRoomChange(): void {
     const idx = m.queue.findIndex((x) => x.id === st.item.id);
     expect = null;
     quiet(2500);
+    needReady = true;
     if (idx >= 0) { partyApply({ index: idx, pos: targetPos(st), paused: wantPause(r) }); lastCur = st.item.id; } else void loadFromRoom(r, false);
     return;
   }
@@ -110,6 +113,8 @@ function onLocalChange(): void {
   window.clearTimeout(bufTimer);
   if (aligned && m.loading) bufTimer = window.setTimeout(() => { bufSent = true; void sendOp({ kind: 'buf', on: true }); }, 800);
   else if (aligned && !m.loading && bufSent) { bufSent = false; void sendOp({ kind: 'buf', on: false }); }
+  const rr0 = getParty().room;
+  if (aligned && needReady && !m.loading && rr0 && m.cur?.id === rr0.state.item.id) { needReady = false; bufSent = false; void sendOp({ kind: 'buf', on: false }); }
   if (!calm()) { lastCur = m.cur?.id || ''; lastSig = sig(m.queue); lastPlaying = m.playing; return; }
   let waiting = false; // 正在等自己发起的跳转完成：期间的位置变化不算「用户拖动」，但暂停 / 换歌仍然要报告
   if (expect) { if (now > expect.until || Math.abs(m.pos - expect.to) < 3) expect = null; else waiting = true; }
@@ -117,13 +122,13 @@ function onLocalChange(): void {
   // 队列 / 当前歌变化
   const s = sig(m.queue), cur = m.cur?.id || '';
   if (s !== lastSig) {
-    lastSig = s; lastCur = cur;
+    lastSig = s; lastCur = cur; needReady = true;
     const idx = Math.max(0, m.queue.findIndex((x) => x.id === cur));
     void sendOp({ kind: 'queue', queue: m.queue.map(toPartySong), index: idx }).then(() => { const rr = getParty().room; if (rr) { localQv = rr.state.qv ?? localQv; lastSeq = rr.state.seq; } });
     quiet(); return;
   }
   if (cur !== lastCur) {
-    lastCur = cur;
+    lastCur = cur; needReady = true;
     const idx = m.queue.findIndex((x) => x.id === cur);
     if (idx >= 0) void sendOp({ kind: 'track', index: idx, from: r.state.index }).then(() => { const rr = getParty().room; if (rr) lastSeq = rr.state.seq; });
     quiet(); return;

@@ -203,7 +203,7 @@ function pushLog(r, who, what) { r.log.push({ t: now(), who, what }); if (r.log.
 
 // ───────── HTTP ─────────
 function body(req) {
-  return new Promise((res) => { let b = ''; req.on('data', (d) => { b += d; if (b.length > 20000) req.destroy(); }); req.on('end', () => { try { res(JSON.parse(b || '{}')); } catch { res({}); } }); });
+  return new Promise((res) => { let b = ''; req.on('data', (d) => { b += d; if (b.length > 2000000) req.destroy(); }); req.on('end', () => { try { res(JSON.parse(b || '{}')); } catch { res({}); } }); });
 }
 const send = (res, code, obj) => { const s = JSON.stringify(obj); res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' }); res.end(s); };
 const cors = (res) => { res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Max-Age': '600' }); res.end(); };

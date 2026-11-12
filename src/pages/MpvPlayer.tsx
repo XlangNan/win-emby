@@ -601,6 +601,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   useEffect(() => {
     if (inIntro && intro && autoSkipArmed.current) {
       autoSkipArmed.current = false; // 每部片只自动跳一次，之后想回看不会被再次弹走
+      partyRef.current.userSeek(intro.en);
       void sessRef.current?.cmd('seek', [String(intro.en), 'absolute']);
     }
   }, [inIntro, intro]);
@@ -610,9 +611,11 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     void sessRef.current?.cmd('cycle', ['pause']).then(() => syncPauseRef.current());
   }, []);
   const seekBy = useCallback((d: number) => {
+    partyRef.current.userSeek(posRef.current + d);
     void sessRef.current?.cmd('seek', [String(d), 'relative']);
   }, []);
   const seekTo = (sec: number): void => {
+    partyRef.current.userSeek(sec);
     void sessRef.current?.cmd('seek', [String(sec), 'absolute']);
     void report('progress');
   };
@@ -976,7 +979,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         </div>
       )}
       {inIntro && intro && (
-        <button className={`we-skip${showUi ? ' up' : ''}`} onClick={(e) => { e.stopPropagation(); void sessRef.current?.cmd('seek', [String(intro.en), 'absolute']); }}>
+        <button className={`we-skip${showUi ? ' up' : ''}`} onClick={(e) => { e.stopPropagation(); partyRef.current.userSeek(intro.en); void sessRef.current?.cmd('seek', [String(intro.en), 'absolute']); }}>
           跳过片头 ›
         </button>
       )}

@@ -104,7 +104,7 @@ export function usePartySync(id: string, adapter: React.MutableRefObject<PartyAd
       if (a > 10) { if (performance.now() - lastDriftSeek.current > 20000) { lastDriftSeek.current = performance.now(); doSeek(targetPos(s)); } return; }
       const adj = a > 0.35 ? Math.max(-0.12, Math.min(0.12, diff / 10)) : 0;
       const want = s.rate * (1 + adj);
-      if (Math.abs(ad.rate() - want) > 0.005) { quiet(800); appliedRate.current = want; ad.setRate(want); }
+      if (Math.abs(ad.rate() - want) > 0.005) { appliedRate.current = want; ad.setRate(want); }
     }, 1000);
     return () => window.clearInterval(t);
   }, [inRoom, adapter]);
@@ -120,6 +120,14 @@ export function usePartySync(id: string, adapter: React.MutableRefObject<PartyAd
     partyNotice('这个房间只有房主能控制');
     window.setTimeout(() => applyState(true), 50);
   }, [applyState]);
+
+  /** 用户在本机主动拖动 / 快进 / 跳过片头：直接告诉房间（比从位置跳变里推断更可靠；服务端会过滤重复的） */
+  const userSeek = useCallback((sec: number): void => {
+    if (!inRoomRef.current || !aligned.current) return;
+    if (!canControl()) return revert();
+    expect.current = { to: sec, until: performance.now() + 4000 };
+    void sendOp({ kind: 'seek', pos: Math.max(0, sec) });
+  }, [revert]);
 
   /** 手动「同步播放」：马上对齐到房间现在的进度和播放状态 */
   const resync = useCallback((): void => {
@@ -180,5 +188,5 @@ export function usePartySync(id: string, adapter: React.MutableRefObject<PartyAd
     return true;
   }, []);
 
-  return useMemo(() => ({ inRoom, room: p.room, onStarted, onPause, onRate, onTime, onCache, switchTo, resync }), [inRoom, p.room, onStarted, onPause, onRate, onTime, onCache, switchTo, resync]);
+  return useMemo(() => ({ inRoom, room: p.room, onStarted, onPause, onRate, onTime, onCache, switchTo, resync, userSeek }), [inRoom, p.room, onStarted, onPause, onRate, onTime, onCache, switchTo, resync, userSeek]);
 }
