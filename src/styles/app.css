@@ -588,6 +588,22 @@ html.android .we-menu.we-menu-party, html.ios .we-menu.we-menu-party{
 .we-player .we-top .we-btn.we-syncbtn { color: #fff; background: rgba(229, 9, 20, .9) !important; border-radius: 99px; padding: 0 14px; height: 32px; width: max-content; min-width: max-content; flex: none; font-size: 13px; line-height: 1; margin-right: 6px; white-space: nowrap; overflow: visible; }
 @media (hover: hover) and (pointer: fine) { .we-player .we-top .we-btn.we-syncbtn:hover { background: #ff2230 !important; } }
 /* 一起听 */.pt-card img.pt-sq{ width: 76px; height: 76px; }
-.mu-np-sync{ color: #fff; background: rgba(229, 9, 20, .88); border: 0; border-radius: 99px; padding: 5px 12px; font-size: 13px; white-space: nowrap; cursor: pointer; margin-left: 4px; }
+
 .mu-np-party.on{ color: #ff6b6b; }
 
+
+/* 「正在播放」顶栏：弹性排版（原来是写死 6 列的网格，加了「伴」和「同步播放」后第 7、8 个元素掉到第二行）。
+   左：收起；中：标题占满剩余并可收缩；右：其余按钮依次排开，不换行。 */
+.mu-np .mu-np-top{ display: flex !important; flex-wrap: nowrap; align-items: center; gap: 0; grid-template-columns: none !important; min-width: 0; }
+.mu-np .mu-np-top > *{ flex: none; }
+.mu-np .mu-np-top .mu-np-top-t{ flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+.mu-np .mu-np-top .mu-ib:last-child{ grid-column: auto !important; }
+.mu-np .mu-np-top .mu-np-sync{ display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 32px; padding: 0 14px; margin: 0 0 0 6px; border: 0; border-radius: 99px; color: #fff; background: rgba(229, 9, 20, .9); font-size: 13px; line-height: 1; white-space: nowrap; cursor: pointer; width: max-content; }
+.mu-np .mu-np-top .mu-np-sync .mu-np-sync-i{ display: none; font-size: 16px; }
+@media (hover: hover) and (pointer: fine) { .mu-np .mu-np-top .mu-np-sync:hover{ background: #ff2230; } }
+/* 窗口窄：只留图标，免得挤掉标题 */
+@media (max-width: 520px){
+.mu-np .mu-np-top .mu-np-sync{ width: 36px; padding: 0; margin-left: 4px; }
+.mu-np .mu-np-top .mu-np-sync .mu-np-sync-t{ display: none; }
+.mu-np .mu-np-top .mu-np-sync .mu-np-sync-i{ display: inline; }
+}
