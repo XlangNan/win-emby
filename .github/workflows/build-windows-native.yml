@@ -12,7 +12,7 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       - name: 发布（单文件 exe，自带 .NET 运行库，不用另装）
-        run: dotnet publish native-win/Weave/Weave.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o out
+        run: dotnet publish native-win/Weave/Weave.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o out
       - uses: actions/upload-artifact@v4
         with:
           name: Weave-win-native

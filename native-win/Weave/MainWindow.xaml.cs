@@ -1,15 +1,21 @@
+using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Weave.Emby;
+using Weave.Pages;
 
 namespace Weave;
 
-public partial class MainWindow : Window
+public partial class MainWindow : Window, INav
 {
     private readonly Settings _s = Settings.Load();
     private readonly EmbyClient _api;
-    private int _navToken;
+    private List<Item> _views = new();
+    private readonly Stack<(UIElement Page, string Title)> _stack = new();
+
+    public EmbyClient Api => _api;
 
     public MainWindow()
     {
@@ -17,15 +23,13 @@ public partial class MainWindow : Window
         _api = new EmbyClient(_s);
         ServerBox.Text = _s.Server;
         UserBox.Text = _s.UserName;
-        Loaded += async (_, _) => await StartAsync();
+        Loaded += async (_, _) =>
+        {
+            if (!_api.LoggedIn) ShowLogin(); else await EnterMainAsync();
+        };
     }
 
-    private async Task StartAsync()
-    {
-        if (!_api.LoggedIn) { ShowLogin(); return; }
-        await EnterMainAsync();
-    }
-
+    // ───────── 登录 ─────────
     private void ShowLogin()
     {
         MainPane.Visibility = Visibility.Collapsed;
@@ -38,16 +42,17 @@ public partial class MainWindow : Window
         MainPane.Visibility = Visibility.Visible;
         try
         {
-            var views = await _api.ViewsAsync();
-            var nav = new List<NavItem> { new("继续观看", null) };
-            nav.AddRange(views.Select(v => new NavItem(v.Name, v.Id)));
+            _views = await _api.ViewsAsync();
+            var nav = new List<NavEntry> { new("首页", "home", null), new("搜索", "search", null) };
+            nav.AddRange(_views.Select(v => new NavEntry(v.Name, "lib", v.Id)));
+            nav.Add(new("设置", "settings", null));
             Nav.ItemsSource = nav;
             Nav.SelectedIndex = 0;
         }
         catch (Exception e)
         {
             if (!_api.LoggedIn) { LoginErr.Text = e.Message; ShowLogin(); }
-            else { PageTitle.Text = ""; Status.Text = "加载失败：" + e.Message; }
+            else Root(Ui.Text("加载失败：" + e.Message, 14, Ui.Muted), "");
         }
     }
 
@@ -72,37 +77,87 @@ public partial class MainWindow : Window
         if (e.Key == Key.Enter) Login_Click(sender, e);
     }
 
-    private void Logout_Click(object sender, RoutedEventArgs e)
+    private void Logout()
     {
         _api.Logout();
+        _stack.Clear();
+        Host.Content = null;
         ShowLogin();
     }
 
-    private async void Nav_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    // ───────── 导航 ─────────
+    private void Root(UIElement page, string title)
     {
-        if (Nav.SelectedItem is not NavItem n) return;
-        var token = ++_navToken;
-        PageTitle.Text = n.Name;
-        Grid2.ItemsSource = null;
-        Status.Text = "加载中…";
+        _stack.Clear();
+        Host.Content = page;
+        PageTitle.Text = title;
+        BackBtn.Visibility = Visibility.Collapsed;
+    }
+
+    private void Push(UIElement page, string title)
+    {
+        if (Host.Content is UIElement cur) _stack.Push((cur, PageTitle.Text));
+        Host.Content = page;
+        PageTitle.Text = title;
+        BackBtn.Visibility = Visibility.Visible;
+    }
+
+    public void Back()
+    {
+        if (_stack.Count == 0) return;
+        var (p, t) = _stack.Pop();
+        Host.Content = p;
+        PageTitle.Text = t;
+        BackBtn.Visibility = _stack.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void Back_Click(object sender, RoutedEventArgs e) => Back();
+
+    private void Window_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton == MouseButton.XButton1) { Back(); e.Handled = true; }
+    }
+
+    private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.OriginalSource is TextBox or PasswordBox) return;
+        if (e.Key == Key.Escape || (e.Key == Key.Left && Keyboard.Modifiers == ModifierKeys.Alt)) { Back(); e.Handled = true; }
+    }
+
+    private void Nav_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (Nav.SelectedItem is not NavEntry n) return;
+        switch (n.Kind)
+        {
+            case "home": Root(new HomePage(this, _views), "首页"); break;
+            case "search": Root(new SearchPage(this), "搜索"); break;
+            case "lib": Root(new LibraryPage(this, n.Id!), n.Name); break;
+            case "settings": Root(new SettingsPage(this, Logout), "设置"); break;
+        }
+    }
+
+    public void Open(Item it)
+    {
+        if (it.NeedsLibraryPage) Push(new LibraryPage(this, it.Id), it.Name);
+        else Push(new DetailPage(this, it), it.Name);
+    }
+
+    // ───────── 播放 ─────────
+    /// <summary>临时方案：生成一个播放列表文件，交给系统默认的视频播放器打开。
+    /// 内置播放器（libmpv）在下一阶段做，到时不再依赖外部播放器，也会回报播放进度。</summary>
+    public void Play(Item it)
+    {
         try
         {
-            var items = n.Id == null ? await _api.ResumeAsync() : (await _api.LibraryAsync(n.Id)).Items;
-            if (token != _navToken) return;
-            Grid2.ItemsSource = items;
-            Status.Text = items.Count == 0 ? "这里还没有内容" : "";
+            var f = Path.Combine(Path.GetTempPath(), "weave-play.m3u");
+            File.WriteAllText(f, "#EXTM3U\n#EXTINF:-1," + it.Name.Replace('\n', ' ') + "\n" + _api.StreamUrl(it.Id) + "\n");
+            Process.Start(new ProcessStartInfo(f) { UseShellExecute = true });
         }
-        catch (Exception ex)
+        catch (Exception e)
         {
-            if (token != _navToken) return;
-            Status.Text = "加载失败：" + ex.Message;
+            MessageBox.Show("没有找到能打开播放列表（.m3u）的播放器。\n\n内置播放器正在开发中。\n\n" + e.Message, "织影");
         }
     }
 
-    private void Grid2_DoubleClick(object sender, MouseButtonEventArgs e)
-    {
-        if (Grid2.SelectedItem is Item it) MessageBox.Show($"「{it.Name}」的详情页和播放，下一阶段做。", "织影");
-    }
-
-    private sealed record NavItem(string Name, string? Id);
+    private sealed record NavEntry(string Name, string Kind, string? Id);
 }

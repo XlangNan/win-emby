@@ -6,6 +6,24 @@ using System.Text.Json.Serialization;
 
 namespace Weave.Emby;
 
+public sealed class UserData
+{
+    public bool IsFavorite { get; set; }
+    public bool Played { get; set; }
+    public long? PlaybackPositionTicks { get; set; }
+    public double? PlayedPercentage { get; set; }
+    public int? UnplayedItemCount { get; set; }
+}
+
+public sealed class Person
+{
+    public string Id { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string? Role { get; set; }
+    public string? Type { get; set; }
+    public string? PrimaryImageTag { get; set; }
+}
+
 public sealed class Item
 {
     public string Id { get; set; } = "";
@@ -14,10 +32,25 @@ public sealed class Item
     public string? CollectionType { get; set; }
     public int? ProductionYear { get; set; }
     public long? RunTimeTicks { get; set; }
+    public string? Overview { get; set; }
+    public double? CommunityRating { get; set; }
+    public string? OfficialRating { get; set; }
+    public int? IndexNumber { get; set; }
+    public int? ParentIndexNumber { get; set; }
+    public string? SeriesName { get; set; }
+    public string? SeriesId { get; set; }
+    public List<string>? Genres { get; set; }
+    public List<Person>? People { get; set; }
     public Dictionary<string, string>? ImageTags { get; set; }
-    // 界面绑定用
-    [JsonIgnore] public string Poster { get; set; } = "";
-    [JsonIgnore] public string Sub => ProductionYear?.ToString() ?? "";
+    public List<string>? BackdropImageTags { get; set; }
+    public UserData? UserData { get; set; }
+
+    public string Sub => Type == "Episode"
+        ? $"{SeriesName}  S{ParentIndexNumber}E{IndexNumber}".Trim()
+        : ProductionYear?.ToString() ?? "";
+    public bool IsPlayable => Type is "Movie" or "Episode" or "Video" or "MusicVideo";
+    public bool NeedsLibraryPage => Type is "Season" or "BoxSet" or "Folder" or "CollectionFolder" or "UserView" or "Playlist";
+    public double Minutes => (RunTimeTicks ?? 0) / 600000000.0;
 }
 
 public sealed class ItemsResult
@@ -91,36 +124,57 @@ public sealed class EmbyClient
         return JsonSerializer.Deserialize<T>(t, Json) ?? throw new Exception("返回内容为空");
     }
 
-    public string ImageUrl(Item it, int width = 300)
+    public string ImageUrl(string id, string type, int width, string? tag)
     {
-        if (it.ImageTags != null && it.ImageTags.TryGetValue("Primary", out var tag))
-            return $"{S.Server}/emby/Items/{it.Id}/Images/Primary?maxWidth={width}&tag={tag}&api_key={S.Token}";
-        return "";
+        if (string.IsNullOrEmpty(tag)) return "";
+        return $"{S.Server}/emby/Items/{id}/Images/{type}?maxWidth={width}&tag={tag}&api_key={S.Token}";
     }
 
-    private List<Item> WithPosters(ItemsResult r, int width = 300)
+    public string ImageUrl(Item it, string type = "Primary", int width = 300)
     {
-        foreach (var i in r.Items) i.Poster = ImageUrl(i, width);
-        return r.Items;
+        string? tag = null;
+        if (type == "Backdrop") tag = it.BackdropImageTags?.FirstOrDefault();
+        else it.ImageTags?.TryGetValue(type, out tag);
+        if (type == "Backdrop" && tag != null) return $"{S.Server}/emby/Items/{it.Id}/Images/Backdrop/0?maxWidth={width}&tag={tag}&api_key={S.Token}";
+        return ImageUrl(it.Id, type, width, tag);
     }
 
-    /// <summary>媒体库（电影 / 剧集 / 音乐……）</summary>
-    public async Task<List<Item>> ViewsAsync()
-    {
-        var r = await GetAsync<ItemsResult>($"/emby/Users/{S.UserId}/Views");
-        return WithPosters(r);
-    }
+    public string StreamUrl(string id) => $"{S.Server}/emby/Videos/{id}/stream?Static=true&api_key={S.Token}";
 
-    /// <summary>继续观看</summary>
+    private const string F = "ProductionYear,CommunityRating,OfficialRating,RunTimeTicks,UserData,SeriesName,ParentIndexNumber,IndexNumber";
+
+    public async Task<List<Item>> ViewsAsync() =>
+        (await GetAsync<ItemsResult>($"/emby/Users/{S.UserId}/Views")).Items;
+
     public async Task<List<Item>> ResumeAsync() =>
-        WithPosters(await GetAsync<ItemsResult>($"/emby/Users/{S.UserId}/Items/Resume?Limit=24&MediaTypes=Video&Fields=ProductionYear"));
+        (await GetAsync<ItemsResult>($"/emby/Users/{S.UserId}/Items/Resume?Limit=24&MediaTypes=Video&Fields={F}")).Items;
 
-    /// <summary>某个媒体库里的内容</summary>
-    public async Task<ItemsResult> LibraryAsync(string parentId, int start = 0, int limit = 120)
+    public Task<List<Item>> LatestAsync(string parentId, int limit = 18) =>
+        GetAsync<List<Item>>($"/emby/Users/{S.UserId}/Items/Latest?ParentId={parentId}&Limit={limit}&Fields={F}");
+
+    public Task<ItemsResult> LibraryAsync(string parentId, int start = 0, int limit = 100, string sort = "SortName", bool desc = false) =>
+        GetAsync<ItemsResult>($"/emby/Users/{S.UserId}/Items?ParentId={parentId}&SortBy={sort}&SortOrder={(desc ? "Descending" : "Ascending")}&StartIndex={start}&Limit={limit}&Fields={F}");
+
+    public Task<Item> ItemAsync(string id) =>
+        GetAsync<Item>($"/emby/Users/{S.UserId}/Items/{id}?Fields=Overview,Genres,People,{F},BackdropImageTags");
+
+    public async Task<List<Item>> SeasonsAsync(string seriesId) =>
+        (await GetAsync<ItemsResult>($"/emby/Shows/{seriesId}/Seasons?UserId={S.UserId}&Fields={F}")).Items;
+
+    public async Task<List<Item>> EpisodesAsync(string seriesId, string seasonId) =>
+        (await GetAsync<ItemsResult>($"/emby/Shows/{seriesId}/Episodes?UserId={S.UserId}&SeasonId={seasonId}&Fields=Overview,{F}")).Items;
+
+    public async Task<List<Item>> SimilarAsync(string id) =>
+        (await GetAsync<ItemsResult>($"/emby/Items/{id}/Similar?UserId={S.UserId}&Limit=14&Fields={F}")).Items;
+
+    public async Task<List<Item>> SearchAsync(string term) =>
+        (await GetAsync<ItemsResult>($"/emby/Users/{S.UserId}/Items?SearchTerm={Uri.EscapeDataString(term)}&Recursive=true&IncludeItemTypes=Movie,Series,BoxSet&Limit=80&Fields={F}")).Items;
+
+    private async Task SendAsync(HttpMethod m, string path)
     {
-        var r = await GetAsync<ItemsResult>(
-            $"/emby/Users/{S.UserId}/Items?ParentId={parentId}&SortBy=SortName&SortOrder=Ascending&StartIndex={start}&Limit={limit}&Fields=ProductionYear");
-        WithPosters(r);
-        return r;
+        using var res = await _http.SendAsync(Req(m, path));
+        if (!res.IsSuccessStatusCode) throw new Exception($"服务器返回 {(int)res.StatusCode}");
     }
+    public Task SetFavoriteAsync(string id, bool on) => SendAsync(on ? HttpMethod.Post : HttpMethod.Delete, $"/emby/Users/{S.UserId}/FavoriteItems/{id}");
+    public Task SetPlayedAsync(string id, bool on) => SendAsync(on ? HttpMethod.Post : HttpMethod.Delete, $"/emby/Users/{S.UserId}/PlayedItems/{id}");
 }
