@@ -2,6 +2,7 @@
 import { initThumb, thumbPlaying } from './thumb';
 import { useSyncExternalStore } from 'react';
 import { coverUrl, nd, streamUrl, type Song } from './navidrome';
+import { isOffline, offlineUrl } from './offline';
 
 export type Repeat = 'off' | 'all' | 'one';
 export interface MusicState {
@@ -100,7 +101,7 @@ function el(): HTMLAudioElement {
     if (c && !triedTranscode) {
       // 浏览器不支持这个格式（比如部分 ALAC / APE）：让服务器转成 mp3 再播
       triedTranscode = true;
-      a.src = streamUrl(c.id, true);
+      a.src = a.src.startsWith('blob:') && navigator.onLine ? streamUrl(c.id) : streamUrl(c.id, true);   // 本地文件坏了：先退回在线播放
       void a.play().catch(() => undefined);
       return;
     }
@@ -112,6 +113,7 @@ function el(): HTMLAudioElement {
 }
 
 let pendingStart: { pos: number; paused: boolean } | null = null;
+let loadTok = 0;
 function load(i: number, autoplay = true): void {
   const a = el();
   const sg = st.queue[i];
@@ -119,9 +121,16 @@ function load(i: number, autoplay = true): void {
   triedTranscode = false;
   scrobbled = '';
   emit({ index: i, pos: 0, dur: sg.duration, loading: true, error: '' });
-  a.src = streamUrl(sg.id);
-  if (autoplay) void a.play().catch(() => emit({ playing: false, loading: false }));
-  else a.load();
+  const tok = ++loadTok;
+  const start = (src: string): void => {
+    if (tok !== loadTok) return;
+    a.src = src;
+    if (autoplay) void a.play().catch(() => emit({ playing: false, loading: false }));
+    else a.load();
+  };
+  // 已下载的歌：直接放本地文件（断网也能播）；读不出来再退回在线
+  if (isOffline(sg.id)) void offlineUrl(sg.id).then((u) => start(u || streamUrl(sg.id)));
+  else start(streamUrl(sg.id));
   void nd.scrobble(sg.id, false);
   updateSession();
 }

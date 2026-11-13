@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { openMatch } from './MatchDialog';
 import { useOverrideVer } from './overrides';
 import { coverUrl, nd, type Playlist, type Song } from './navidrome';
+import { dlProgress, downloadSongs, isOffline, pendingCount, removeOffline, useOfflineVer } from './offline';
 import { askText, toast } from './Dialog';
 import { leaveOverlaysThen, useBackClose } from './useBackClose';
 import { enqueue, musicState, playNext, playQueue, notifyStarred, setStarred, setVolume, useMusic } from './player';
@@ -39,6 +40,7 @@ const STROKE: Record<string, string> = {
   note: 'M9 18V6l10-2v12M9 18a2.5 2.5 0 1 1-2.5-2.5A2.5 2.5 0 0 1 9 18zM19 16a2.5 2.5 0 1 1-2.5-2.5A2.5 2.5 0 0 1 19 16z',
   clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',
   fwd: 'M9 6l6 6-6 6',
+  down: 'M12 4v11M7 11l5 5 5-5M5 20h14',
 };
 
 const SOLID = new Set(['play', 'pause', 'prev', 'next']);
@@ -81,6 +83,7 @@ export function SongMenu({ s, anchor, onClose, ctx }: { s: Song; anchor: DOMRect
   const [sub, setSub] = useState<'' | 'pl'>('');
   const [pls, setPls] = useState<Playlist[] | null>(null);
   const [msg, setMsg] = useState('');
+  useOfflineVer();
   useBackClose(true, onClose);
   useEffect(() => {
     const k = (e: KeyboardEvent): void => { if (e.key === 'Escape') onClose(); };
@@ -118,6 +121,7 @@ export function SongMenu({ s, anchor, onClose, ctx }: { s: Song; anchor: DOMRect
             {item('下一首播放', () => { playNext([s]); flash('已加入下一首'); }, 'next')}
             {item('添加到播放队列', () => { enqueue([s]); flash('已加入队列'); }, 'list')}
             {item('添加到歌单', () => setSub('pl'), 'plus')}
+            {isOffline(s.id) ? item('删除本地下载', () => { void removeOffline([s.id]); flash('已删除本地文件'); }, 'trash') : item('下载到本地', () => { downloadSongs([s]); flash('已开始下载'); }, 'down')}
             {item(s.starred ? '取消收藏' : '收藏', () => { nd.star(s.id, !s.starred).then(() => { notifyStarred(); setStarred(s.id, !s.starred); s.starred = !s.starred; flash(s.starred ? '已收藏' : '已取消'); }, () => flash('操作失败')); }, 'heart')}
             {item('匹配 / 编辑 歌词与封面', () => leaveOverlaysThen(() => openMatch(s)), 'note')}
             {s.albumId && item('查看专辑', () => leaveOverlaysThen(() => nav(`/music/album/${s.albumId}`)), 'disc')}
@@ -145,6 +149,8 @@ export function SongRow({ s, i, list, showCover, ctx, showAlbum = true }: { s: S
   const active = m.cur?.id === s.id;
   const [star, setStar] = useState(s.starred);
   const [menu, setMenu] = useState<DOMRect | null>(null);
+  useOfflineVer();
+  const dl = isOffline(s.id) ? '' : dlProgress(s.id);
   useEffect(() => setStar(s.starred), [s.starred]);
   const toggle = (e: React.MouseEvent): void => {
     e.stopPropagation();
@@ -165,7 +171,7 @@ export function SongRow({ s, i, list, showCover, ctx, showAlbum = true }: { s: S
       onKeyDown={(e) => { if (e.key === 'Enter' && e.target === e.currentTarget) playQueue(list, i); }}>
       {showCover ? <Cover id={s.coverArt} size={80} className="mu-song-cv" /> : <span className="mu-song-no">{active ? <Ic n={m.playing ? 'vol' : 'play'} size={15} /> : String(i + 1).padStart(2, '0')}</span>}
       <span className="mu-song-main">
-        <span className="mu-song-name">{s.title}<Quality s={s} /></span>
+        <span className="mu-song-name">{s.title}<Quality s={s} />{isOffline(s.id) ? <i className="mu-dl" title="已下载，断网也能听">已下载</i> : dl != null && dl !== '' ? <i className="mu-dl busy">{dl > 0 ? `${dl}%` : '排队中'}</i> : null}</span>
         <span className="mu-song-sub">{s.artist}</span>
       </span>
       {showAlbum && <span className="mu-song-album">{s.album}</span>}
@@ -310,4 +316,15 @@ export function ListFab({ songs, onBeforeLocate }: { songs?: Song[]; onBeforeLoc
       )}
     </>
   );
+}
+
+/** 专辑 / 歌单页的「下载全部」按钮 */
+export function DownloadAll({ songs }: { songs: Song[] }) {
+  useOfflineVer();
+  const done = songs.filter((s) => isOffline(s.id)).length;
+  const busy = pendingCount(songs);
+  if (!songs.length) return null;
+  if (busy) return <button type="button" disabled><Ic n="down" size={18} /> 下载中 {done}/{songs.length}</button>;
+  if (done === songs.length) return <button type="button" disabled><Ic n="down" size={18} /> 已全部下载</button>;
+  return <button type="button" onClick={() => { const n = downloadSongs(songs); toast(n ? `开始下载 ${n} 首` : '已在下载队列中'); }}><Ic n="down" size={18} /> 下载全部</button>;
 }

@@ -208,12 +208,18 @@ export function parseLrc(text: string): { synced: boolean; lines: { t: number; t
   return { synced, lines: out };
 }
 
-export function coverUrl(id: string, size = 300): string {
-  const ov = getCoverOverride(id);
-  if (ov) return ov;
+let offlineCover: (id: string) => string = () => '';
+/** 离线缓存（offline.ts）注册：已下载歌曲的封面直接用本地的 */
+export function setOfflineCoverLookup(f: (id: string) => string): void { offlineCover = f; }
+export function rawCoverUrl(id: string, size = 300): string {
   const c = loadNd();
   if (!id || !c.server) return '';
   return `${c.server}/rest/getCoverArt.view?${authQs(c)}&id=${encodeURIComponent(id)}&size=${size}`;
+}
+export function coverUrl(id: string, size = 300): string {
+  const ov = getCoverOverride(id);
+  if (ov) return ov;
+  return offlineCover(id) || rawCoverUrl(id, size);
 }
 export function streamUrl(id: string, transcode = false): string {
   const c = loadNd();

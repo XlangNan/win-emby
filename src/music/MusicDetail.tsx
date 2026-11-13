@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import BackButton from '../components/BackButton';
 import { useCachedAsync } from '../lib/useAsync';
-import { Cover, fmtTime, Ic, ListFab, SongRow } from './MusicUi';
+import { Cover, DownloadAll, fmtTime, Ic, ListFab, SongRow } from './MusicUi';
 import ArtistView from './ArtistView';
 import { AlbumCard } from './MusicPage';
 import { loadNd, nd, type Album, type Song } from './navidrome';
@@ -26,6 +26,7 @@ function Head({ cover, title, sub, meta, songs, extra }: { cover: string; title:
           <button type="button" className="primary" disabled={!songs.length} onClick={() => go(false)}><Ic n="play" size={18} /> 播放</button>
           <button type="button" disabled={!songs.length} onClick={() => go(true)}><Ic n="shuffle" size={18} /> 随机</button>
           <button type="button" disabled={!songs.length} onClick={() => enqueue(songs)}><Ic n="plus" size={18} /> 加入队列</button>
+          <DownloadAll songs={songs} />
           {extra}
         </div>
       </div>

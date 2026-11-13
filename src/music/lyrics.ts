@@ -4,6 +4,7 @@ import { nd, parseLrc, type Song } from './navidrome';
 import { getLrcOffset, getLrcOverride, setLrcOverride, useOverrideVer } from './overrides';
 import { fetchLyric, onlineConfigured, searchOnline } from './online';
 import { loadOpts } from './prefs';
+import { getOfflineLyrics } from './offline';
 
 export type Lyr = { synced: boolean; lines: { t: number; text: string }[] };
 const cache = new Map<string, Lyr>();
@@ -39,7 +40,7 @@ function load(s: Song): Promise<Lyr> {
   if (ov) { const r = parseLrc(ov); cache.set(s.id, r); return Promise.resolve(r); }
   let p = pending.get(s.id);
   if (!p) {
-    p = nd.lyrics(s).then(async (r) => {
+    p = nd.lyrics(s).catch((e: unknown) => { const o = getOfflineLyrics(s.id); if (o) return o; throw e; }).then(async (r) => {
       if (!r.lines.length) r = (await autoOnline(s)) || r;   // 服务器没有歌词：自动去在线来源找
       cache.set(s.id, r);
       return r;

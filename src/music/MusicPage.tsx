@@ -3,14 +3,15 @@ import PartyRow from '../components/PartyRow';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCachedAsync } from '../lib/useAsync';
-import { askText, toast } from './Dialog';
+import { askConfirm, askText, toast } from './Dialog';
 import { Cover, Ic, PlayCover, SongRow } from './MusicUi';
 import { useOpts } from './prefs';
 import { coverUrl, loadNd, nd, ndConfigured, type Album, type AlbumListType, type Playlist, type Song } from './navidrome';
 import { playQueue, useMusic } from './player';
+import { clearOffline, fmtBytes, offlineBytes, offlineSongs, storageInfo, useOfflineVer } from './offline';
 
 const TAB_KEY = 'wemby-music-tab2';
-const TABS = [['rec', '推荐'], ['albums', '专辑'], ['artists', '艺术家'], ['charts', '排行榜'], ['lists', '歌单'], ['fav', '我喜欢'], ['recent', '最近播放']] as const;
+const TABS = [['rec', '推荐'], ['albums', '专辑'], ['artists', '艺术家'], ['charts', '排行榜'], ['lists', '歌单'], ['fav', '我喜欢'], ['recent', '最近播放'], ['dl', '已下载']] as const;
 type Tab = (typeof TABS)[number][0];
 const SORTS: [AlbumListType, string][] = [['newest', '最近添加'], ['alphabeticalByName', '名称'], ['alphabeticalByArtist', '艺术家'], ['frequent', '常听'], ['random', '随机']];
 
@@ -327,6 +328,26 @@ function Fav({ k }: { k: string }) {
   );
 }
 
+function Downloaded() {
+  useOfflineVer();
+  const list = offlineSongs();
+  const [st, setSt] = useState<{ usage: number; quota: number } | null>(null);
+  useEffect(() => { void storageInfo().then(setSt); }, [list.length]);
+  return (
+    <section className="mu-sec">
+      <div className="mu-dl-bar">
+        <span>{list.length} 首 · 占用 {fmtBytes(offlineBytes())}{st && st.quota ? ` · 本机可用空间约 ${fmtBytes(Math.max(0, st.quota - st.usage))}` : ''}</span>
+        <span className="mu-dl-btns">
+          <button type="button" className="primary" disabled={!list.length} onClick={() => playQueue(list, 0)}><Ic n="play" size={16} /> 播放全部</button>
+          <button type="button" className="mu-danger" disabled={!list.length} onClick={() => { void askConfirm(`删除全部 ${list.length} 首本地下载？`).then((ok) => { if (ok) void clearOffline(); }); }}><Ic n="trash" size={16} /> 清空</button>
+        </span>
+      </div>
+      {!list.length ? <div className="empty">还没有下载的歌曲。在歌曲的「···」菜单里选「下载到本地」，或在专辑 / 歌单页点「下载全部」。</div>
+        : <div className="mu-songs">{list.map((s, i) => <SongRow key={s.id} s={s} i={i} list={list} showCover />)}</div>}
+    </section>
+  );
+}
+
 function SearchResults({ q }: { q: string }) {
   const nav = useNavigate();
   const [r, setR] = useState<{ songs: Song[]; albums: Album[]; artists: { id: string; name: string; coverArt: string; albumCount: number }[] } | null>(null);
@@ -359,7 +380,7 @@ export default function MusicPage() {
   const nav = useNavigate();
   const k = useNdKey();
   const m = useMusic();
-  const [tab, setTab] = useState<Tab>(() => { const v = localStorage.getItem(TAB_KEY); return TABS.find((t) => t[0] === v)?.[0] || 'rec'; });
+  const [tab, setTab] = useState<Tab>(() => { const v = localStorage.getItem(TAB_KEY); return TABS.find((t) => t[0] === v)?.[0] || (navigator.onLine === false ? 'dl' : 'rec'); });
   const [q, setQ] = useState('');
   const ok = useMemo(() => ndConfigured(), [k]);
   const pl = usePlaylists(ok ? k : '');
@@ -390,6 +411,7 @@ export default function MusicPage() {
         <div className="mu-side-g">我的</div>
         {side('fav', '我喜欢的音乐', 'heart')}
         {side('recent', '最近播放', 'clock')}
+        {side('dl', '已下载', 'down')}
         <div className="mu-side-g"><span>创建的歌单 · {pl.list?.length ?? 0}</span><button type="button" className="mu-side-add" aria-label="新建歌单" onClick={() => createPlaylistPrompt()}><Ic n="plus" size={16} /></button></div>
         <div className="mu-side-pl">
           {(pl.list || []).map((p) => <button key={p.id} type="button" className="mu-side-i mu-side-p" onClick={() => nav(`/music/playlist/${p.id}`)}><Cover id={p.coverArt} size={80} className="mu-side-cv" label={p.name} /><span>{p.name}</span></button>)}
@@ -401,7 +423,7 @@ export default function MusicPage() {
           <label className="mu-search"><Ic n="search" size={16} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder={m.cur ? `搜索 · 正在播放 ${m.cur.title}` : '搜索歌曲、专辑、艺术家'} spellCheck={false} />{q && <button type="button" className="mu-search-x" aria-label="清除" onClick={() => setQ('')}><Ic n="close" size={14} /></button>}</label>
         </div>
         <div className="mu-utabs">{TABS.map(([t, n]) => <button key={t} type="button" className={`mu-ut${!q && tab === t ? ' on' : ''}`} onClick={() => pick(t)}>{n}</button>)}</div>
-        {q.trim() ? <SearchResults q={q.trim()} /> : tab === 'rec' ? <Recommend k={k} go={pick} /> : tab === 'recent' ? <Recent k={k} /> : tab === 'albums' ? <Albums k={k} />
+        {q.trim() ? <SearchResults q={q.trim()} /> : tab === 'dl' ? <Downloaded /> : tab === 'rec' ? <Recommend k={k} go={pick} /> : tab === 'recent' ? <Recent k={k} /> : tab === 'albums' ? <Albums k={k} />
           : tab === 'artists' ? <Artists k={k} /> : tab === 'charts' ? <Charts k={k} /> : tab === 'lists' ? <Lists k={k} /> : <Fav k={k} />}
       </div>
     </div>
