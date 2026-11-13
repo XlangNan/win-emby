@@ -1,0 +1,19 @@
+name: build-windows-native
+on:
+  workflow_dispatch:
+  push:
+    paths: ['native-win/**', '.github/workflows/build-windows-native.yml']
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: 发布（单文件 exe，自带 .NET 运行库，不用另装）
+        run: dotnet publish native-win/Weave/Weave.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Weave-win-native
+          path: out/Weave.exe
