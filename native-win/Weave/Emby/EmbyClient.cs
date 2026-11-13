@@ -177,4 +177,59 @@ public sealed class EmbyClient
     }
     public Task SetFavoriteAsync(string id, bool on) => SendAsync(on ? HttpMethod.Post : HttpMethod.Delete, $"/emby/Users/{S.UserId}/FavoriteItems/{id}");
     public Task SetPlayedAsync(string id, bool on) => SendAsync(on ? HttpMethod.Post : HttpMethod.Delete, $"/emby/Users/{S.UserId}/PlayedItems/{id}");
+
+    // ───────── 播放 ─────────
+    public sealed record PlayInfo(string SourceId, string? Path, bool Remote, string PlaySessionId, string Container);
+
+    public async Task<PlayInfo> PlaybackInfoAsync(string id)
+    {
+        var r = Req(HttpMethod.Post, $"/emby/Items/{id}/PlaybackInfo?UserId={S.UserId}&IsPlayback=true&AutoOpenLiveStream=true");
+        r.Content = new StringContent("{}", Encoding.UTF8, "application/json");
+        using var res = await _http.SendAsync(r);
+        if (!res.IsSuccessStatusCode) throw new Exception($"读取播放信息失败（{(int)res.StatusCode}）");
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+        var src = root.GetProperty("MediaSources")[0];
+        string? path = src.TryGetProperty("Path", out var p) ? p.GetString() : null;
+        string proto = src.TryGetProperty("Protocol", out var pr) ? pr.GetString() ?? "" : "";
+        bool remote = !string.IsNullOrEmpty(path) && (path!.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || path.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) && proto != "File";
+        return new PlayInfo(
+            src.GetProperty("Id").GetString() ?? id,
+            path,
+            remote,
+            root.TryGetProperty("PlaySessionId", out var ps) ? ps.GetString() ?? "" : "",
+            src.TryGetProperty("Container", out var c) ? c.GetString() ?? "" : "");
+    }
+
+    public string StreamUrl(string id, string sourceId, string playSessionId) =>
+        $"{S.Server}/emby/Videos/{id}/stream?Static=true&MediaSourceId={sourceId}&PlaySessionId={playSessionId}&api_key={S.Token}";
+
+    /// <summary>进度回报：kind = "" 开始，"/Progress" 进度，"/Stopped" 结束</summary>
+    public async Task ReportAsync(string kind, string id, PlayInfo info, double posSec, bool paused)
+    {
+        try
+        {
+            var r = Req(HttpMethod.Post, $"/emby/Sessions/Playing{kind}");
+            var body = JsonSerializer.Serialize(new
+            {
+                ItemId = id, MediaSourceId = info.SourceId, PlaySessionId = info.PlaySessionId,
+                PositionTicks = (long)(posSec * 10_000_000), IsPaused = paused, CanSeek = true, PlayMethod = "DirectPlay",
+            });
+            r.Content = new StringContent(body, Encoding.UTF8, "application/json");
+            using var res = await _http.SendAsync(r);
+        }
+        catch { /* 回报失败不影响播放 */ }
+    }
+
+    /// <summary>下一集（没有返回 null）</summary>
+    public async Task<Item?> NextEpisodeAsync(Item cur)
+    {
+        if (string.IsNullOrEmpty(cur.SeriesId)) return null;
+        try
+        {
+            var r = await GetAsync<ItemsResult>($"/emby/Shows/{cur.SeriesId}/Episodes?UserId={S.UserId}&StartItemId={cur.Id}&Limit=2&Fields={F}");
+            return r.Items.Count > 1 ? r.Items[1] : null;
+        }
+        catch { return null; }
+    }
 }

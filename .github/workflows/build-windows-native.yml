@@ -13,7 +13,20 @@ jobs:
           dotnet-version: '8.0.x'
       - name: 发布（单文件 exe，自带 .NET 运行库，不用另装）
         run: dotnet publish native-win/Weave/Weave.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o out
+      - name: 下载 libmpv（播放器用，放在 Weave.exe 旁边）
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo shinchiro/mpv-winbuild-cmake --pattern 'mpv-dev-x86_64-2*.7z' --dir mpvdl
+          $a = Get-ChildItem mpvdl -Filter *.7z | Select-Object -First 1
+          if (-not $a) { throw '没有下载到 libmpv' }
+          7z x $a.FullName -ompvx -y | Out-Null
+          $dll = Get-ChildItem mpvx -Recurse -Filter 'libmpv-2.dll' | Select-Object -First 1
+          if (-not $dll) { throw '压缩包里没有 libmpv-2.dll' }
+          Copy-Item $dll.FullName out/
+          Get-ChildItem out | Format-Table Name, Length
       - uses: actions/upload-artifact@v4
         with:
           name: Weave-win-native
-          path: out/Weave.exe
+          path: out/

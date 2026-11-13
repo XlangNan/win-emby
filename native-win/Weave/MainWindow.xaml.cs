@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -143,19 +142,18 @@ public partial class MainWindow : Window, INav
     }
 
     // ───────── 播放 ─────────
-    /// <summary>临时方案：生成一个播放列表文件，交给系统默认的视频播放器打开。
-    /// 内置播放器（libmpv）在下一阶段做，到时不再依赖外部播放器，也会回报播放进度。</summary>
     public void Play(Item it)
     {
+        var start = (it.UserData?.PlaybackPositionTicks ?? 0) / 10_000_000.0;
+        // 播完 95% 以上算看完了，从头开始
+        if (it.RunTimeTicks is > 0 && (it.UserData?.PlaybackPositionTicks ?? 0) > it.RunTimeTicks * 0.95) start = 0;
         try
         {
-            var f = Path.Combine(Path.GetTempPath(), "weave-play.m3u");
-            File.WriteAllText(f, "#EXTM3U\n#EXTINF:-1," + it.Name.Replace('\n', ' ') + "\n" + _api.StreamUrl(it.Id) + "\n");
-            Process.Start(new ProcessStartInfo(f) { UseShellExecute = true });
+            new Player.PlayerWindow(_api, it, start).Show();
         }
         catch (Exception e)
         {
-            MessageBox.Show("没有找到能打开播放列表（.m3u）的播放器。\n\n内置播放器正在开发中。\n\n" + e.Message, "织影");
+            MessageBox.Show("播放器打不开：\n" + e.Message, "织影");
         }
     }
 

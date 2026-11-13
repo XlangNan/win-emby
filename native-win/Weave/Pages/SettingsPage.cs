@@ -17,7 +17,7 @@ public sealed class SettingsPage : UserControl
         out_.Click += (_, _) => logout();
         s.Children.Add(out_);
         s.Children.Add(Ui.Text("关于", 18, null, FontWeights.SemiBold).WithMargin(0, 28, 0, 0));
-        s.Children.Add(Row("版本", "织影 Weave 原生版 0.2.0（开发中）"));
+        s.Children.Add(Row("版本", "织影 Weave 原生版 0.3.0（开发中）"));
         Content = s;
     }
 
