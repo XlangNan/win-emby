@@ -559,8 +559,9 @@ export default function ConfigPage() {
               播放内核
               <span className="muted" style={{ display: 'block', fontSize: 12 }}>MPV 直接解码原文件，支持 HDR10 / 杜比视界、MKV、DTS / TrueHD；内置播放器依赖服务器转码</span>
             </span>
-            <select value={prefs.engine} onChange={(e) => set({ engine: e.target.value as 'mpv' | 'html5' })}>
+            <select value={prefs.engine} onChange={(e) => set({ engine: e.target.value as 'mpv' | 'html5' | 'exo' })}>
               <option value="mpv">MPV（推荐）</option>
+              {isAndroid && <option value="exo">ExoPlayer（安卓系统解码）</option>}
               <option value="html5">内置网页播放器</option>
             </select>
           </div>

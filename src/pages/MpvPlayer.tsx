@@ -48,8 +48,37 @@ const TRANSCODE_PROFILE = {
 /** strm / 网络源：Path 就是远端直链，和 Emby 官方客户端一样让播放器直接去取，不经过 Emby 服务器中转 */
 const remoteUrl = (s?: MediaSource): string => {
   const p = (s?.Path || '').trim();
-  return /^https?:\/\//i.test(p) ? p : '';
+  if (!/^https?:\/\//i.test(p)) return '';
+  // 把地址里的中文 / 空格等规范成百分号编码（Emby 官方客户端的网络层会自动做，FFmpeg 不会：同一个网盘里文件名带中文、空格的会被拒绝）
+  try { return new URL(p).href; } catch { return p; }
 };
+
+/** 直链被拒绝（403 等）时依次尝试的 User-Agent：浏览器 / Emby 安卓客户端 / VLC */
+const UA_LIST = [
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+  'Emby/4.8 (Linux; Android 13) ExoPlayerLib/2.18.7',
+  'VLC/3.0.20 LibVLC/3.0.20',
+];
+const UA_NAMES = ['浏览器', 'Emby 客户端', 'VLC'];
+const UA_KEY = 'wemby-ua';
+const hostOf = (u: string): string => { try { return new URL(u).host; } catch { return ''; } };
+const loadUaMap = (): Record<string, number> => { try { return JSON.parse(localStorage.getItem(UA_KEY) || '{}') as Record<string, number>; } catch { return {}; } };
+const saveUa = (host: string, i: number): void => { if (!host) return; try { const m = loadUaMap(); m[host] = i; localStorage.setItem(UA_KEY, JSON.stringify(m)); } catch { /* ignore */ } };
+/** 向片源发一个 1KB 的范围请求（带指定 UA），看它给不给数据 */
+async function probeStatus(url: string, ua?: string): Promise<{ code: number; text: string }> {
+  if (!/^https?:\/\//i.test(url)) return { code: 0, text: '不是网络地址' };
+  try {
+    const ac = new AbortController();
+    const to = window.setTimeout(() => ac.abort(), 8000);
+    const h: Record<string, string> = { Range: 'bytes=0-1023' };
+    if (ua) h['User-Agent'] = ua;
+    const r = await httpFetch(url, { headers: h, signal: ac.signal });
+    const buf = await r.arrayBuffer();
+    window.clearTimeout(to);
+    const head = r.ok ? '' : ` 「${new TextDecoder().decode(buf.slice(0, 100)).replace(/[^\x20-\x7e\u4e00-\u9fa5]+/g, ' ').trim()}」`;
+    return { code: r.status, text: `HTTP ${r.status}${head}` };
+  } catch (e) { return { code: 0, text: `请求失败（${e instanceof Error ? e.name : '错误'}）` }; }
+}
 
 const audioLabel = (s: MediaStream): string =>
   s.DisplayTitle || [s.Language, s.Codec?.toUpperCase(), s.Channels ? `${s.Channels}ch` : ''].filter(Boolean).join(' · ') || `音轨 ${s.Index}`;
@@ -152,6 +181,59 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     if (aid != null) o.aid = String(aid);
     o.sid = sid != null ? String(sid) : 'no';
     void s.loadfile(url, o).catch(() => undefined);
+  };
+  // 起播看门狗：播放器打开不了片源时不会报错，只是一直转圈。超时还没出画面 → 依次换：不同的 User-Agent（不少网盘直链会拒绝
+  // 播放器默认的 libmpv，浏览器 / Emby 客户端的 UA 却放行）→ Emby 服务器中转 → 服务器转码 → 显示原因。试成功的 UA 会按域名记住。
+  const openTimer = useRef(0);
+  const openLeft = useRef<string[]>([]);
+  const openLog = useRef<string[]>([]);
+  const uaIdx = useRef(-1);
+  const uaSwitched = useRef(false);
+  const openWaited = useRef(false);
+  const armOpen = (ms: number): void => { window.clearTimeout(openTimer.current); openTimer.current = window.setTimeout(() => void openFailRef.current(), ms); };
+  const openFailRef = useRef<() => Promise<void>>(async () => undefined);
+  openFailRef.current = async (): Promise<void> => {
+    const s = sessRef.current;
+    if (startedRef.current || endedRef.current || !s) return;
+    const url = curUrlRef.current;
+    const step = openLeft.current.shift();
+    if (step === 'emby') { openLog.current.push('改经 Emby 中转'); toEmbyRef.current('片源原始地址打不开'); armOpen(20000); return; }
+    if (step === 'trans') { openLog.current.push('改用服务器转码'); transRef.current = false; toTranscodeRef.current('原文件打不开'); armOpen(30000); return; }
+    if (step && step.startsWith('ua:')) {
+      const i = Number(step.slice(3));
+      if (i === uaIdx.current) { void openFailRef.current(); return; }
+      const curUa = uaIdx.current >= 0 ? UA_LIST[uaIdx.current] : undefined;
+      const pr = await probeStatus(url, curUa);
+      openLog.current.push(`${curUa ? UA_NAMES[uaIdx.current] : '默认'} UA：${pr.text}`);
+      if (startedRef.current || sessRef.current !== s) return;
+      // 片源其实在正常响应（只是起播慢）：再等一次，不要重启
+      if ((pr.code === 200 || pr.code === 206) && !openWaited.current) { openWaited.current = true; openLeft.current.unshift(step); armOpen(15000); return; }
+      uaIdx.current = i;
+      uaSwitched.current = true;
+      setRecTip(`片源没有响应，换「${UA_NAMES[i]}」身份重新连接…`);
+      window.setTimeout(() => setRecTip(''), 6000);
+      try {
+        await s.set('user-agent', UA_LIST[i]);
+        const o: Record<string, string> = { start: Math.max(0, posRef.current - 2).toFixed(1) };
+        if (aid != null) o.aid = String(aid);
+        o.sid = sid != null ? String(sid) : 'no';
+        await s.loadfile(url, o);
+      } catch { /* ignore */ }
+      armOpen(12000);
+      return;
+    }
+    // 全部试完：把原因摆出来
+    let probe = '';
+    if (/^https?:\/\//i.test(url)) {
+      const pr = await probeStatus(url, uaIdx.current >= 0 ? UA_LIST[uaIdx.current] : undefined);
+      let shown = url;
+      try { const u = new URL(url); shown = `${u.host}${decodeURIComponent(u.pathname)}${u.search ? `?（参数 ${u.search.length} 字符）` : ''}`; } catch { /* ignore */ }
+      const odd = /[\s#\[\]&+%{}|^]/.test(decodeURIComponent((() => { try { return new URL(url).pathname; } catch { return ''; } })())) ? '文件名含空格 / # [] & + % 等特殊符号' : '文件名没有特殊符号';
+      probe = `当前片源响应：${pr.text}\n地址：${shown}\n${odd}`;
+    }
+    if (startedRef.current) return;
+    setBusy(false);
+    setErr(`这个视频播放不了\n${openLog.current.length ? `${openLog.current.join('\n')}\n` : ''}${probe ? `${probe}\n` : ''}可以到 设置 → 播放 → 播放内核，改用「内置播放器」再试`);
   };
   const diagRef = useRef<() => Promise<string>>(async () => '');
   diagRef.current = async (): Promise<string> => {
@@ -427,6 +509,9 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           setBusy(false);
           if (!startedRef.current) {
             startedRef.current = true;
+            window.clearTimeout(openTimer.current);
+            setErr('');
+            if (uaSwitched.current && uaIdx.current >= 0) saveUa(hostOf(curUrlRef.current), uaIdx.current); // 这个域名换 UA 后能播：以后直接用
             void syncPauseRef.current(); // 初始 pause 事件可能没送达：起播后主动读一次
             partyRef.current.onStarted();
           }
@@ -453,6 +538,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       case 'mute': setMuted(!!data); break;
       case 'aid': setAid(typeof data === 'number' ? data : null); break;
       case 'sid': setSid(typeof data === 'number' ? data : null); break;
+      case 'exo-error': if (!startedRef.current && typeof data === 'string') { openLog.current.push(`ExoPlayer：${data}`); armOpen(300); } break;
       case 'hwdec-current': setHw(typeof data === 'string' ? data : ''); break;
       case 'eof-reached':
         if (data === true && !endedRef.current) {
@@ -486,6 +572,13 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     }
     let dead = false;
     endedRef.current = false;
+    openLeft.current = [];
+    openLog.current = [];
+    uaIdx.current = -1;
+    uaSwitched.current = false;
+    openWaited.current = false;
+    window.clearTimeout(openTimer.current);
+    setErr('');
     recRef.current = { n: 0, still: 0, last: -1, at: 0, sw: false, deny: 0 };
     transRef.current = false;
     startedRef.current = false;
@@ -556,7 +649,12 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         embyUrlRef.current = embyUrl;
         const playUrl = (loadViaEmby() ? '' : remoteUrl(psrc.Path ? psrc : src)) || embyUrl;
         curUrlRef.current = playUrl;
+        const direct = playUrl !== embyUrl;
+        const saved = direct ? loadUaMap()[hostOf(playUrl)] : undefined;
+        if (saved != null && UA_LIST[saved]) { uaIdx.current = saved; await sess.set('user-agent', UA_LIST[saved]); }
         await sess.loadfile(playUrl, opts);
+        openLeft.current = direct ? [...UA_LIST.map((_, i) => `ua:${i}`), 'emby', 'trans'] : ['trans'];
+        armOpen(12000);
         if (loadPlayPrefs().autoSkipIntro) autoSkipArmed.current = true;
         void report('start');
         void syncPauseRef.current();
@@ -567,6 +665,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     })();
     return () => {
       dead = true;
+      window.clearTimeout(openTimer.current);
       void report('stop');
       const s = sessRef.current;
       sessRef.current = null;

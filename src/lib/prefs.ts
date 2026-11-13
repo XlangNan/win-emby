@@ -8,7 +8,7 @@ export interface PlayPrefs {
   autoNext: boolean;
   volume: number;
   /** 播放内核：mpv = 内嵌 MPV（HDR / 杜比视界）；html5 = 内置网页播放器 */
-  engine: 'mpv' | 'html5';
+  engine: 'mpv' | 'html5' | 'exo';
   /** MPV：把 HDR 信号直通给显示器（需 Windows 开启「使用 HDR」）；关闭则映射成 SDR */
   hdr: boolean;
   /** 首页隐藏的媒体库 id */

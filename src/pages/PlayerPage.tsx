@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { isTauri } from '../emby/http';
+import { isAndroid } from '../lib/platform';
 import { loadPlayPrefs } from '../lib/prefs';
 import Html5Player from './Html5Player';
 import MpvPlayer from './MpvPlayer';
@@ -13,7 +14,7 @@ const SWITCHED = '已切换到内置播放器';
 export default function PlayerPage() {
   const { id = '' } = useParams();
   const [broken, setBroken] = useState(mpvBroken);
-  const wantMpv = loadPlayPrefs().engine === 'mpv' && isTauri() && !broken;
+  const wantMpv = (loadPlayPrefs().engine === 'mpv' || (loadPlayPrefs().engine === 'exo' && isAndroid)) && isTauri() && !broken;
 
   if (wantMpv) {
     return (

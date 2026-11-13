@@ -9,7 +9,9 @@ import androidx.core.view.WindowInsetsCompat
 
 class MainActivity : TauriActivity() {
     private var bridge: MpvBridge? = null
+    private var exo: ExoBridge? = null
     private var web: WebView? = null
+
     private var musicOn = false
     private var wake: android.os.PowerManager.WakeLock? = null
 
@@ -104,6 +106,9 @@ class MainActivity : TauriActivity() {
         val b = MpvBridge(this, webView)
         bridge = b
         webView.addJavascriptInterface(b, "AndroidMpv")
+        val ex = ExoBridge(this, webView)
+        exo = ex
+        webView.addJavascriptInterface(ex, "AndroidExo")
         webView.addJavascriptInterface(NetBridge(webView), "AndroidNet")
         web = webView
         webView.addJavascriptInterface(MusicKeep(), "AndroidMusic")
@@ -116,6 +121,7 @@ class MainActivity : TauriActivity() {
 
     override fun onPause() {
         bridge?.pauseForBackground()
+        exo?.pauseForBackground()
         super.onPause()
         // 音乐在播放：不让 WebView 跟着暂停，后台继续播
         if (musicOn) web?.onResume()
@@ -126,6 +132,7 @@ class MainActivity : TauriActivity() {
         try { MusicService.clear(this) } catch (_: Exception) { }
         try { if (wake?.isHeld == true) wake?.release() } catch (_: Exception) { }
         bridge?.release()
+        exo?.destroy()
         super.onDestroy()
     }
 }

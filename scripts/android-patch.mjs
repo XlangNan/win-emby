@@ -29,6 +29,11 @@ if (!g.includes('dev.jdtech.mpv:libmpv')) {
   const dep = gk.endsWith('.kts') ? '    implementation("dev.jdtech.mpv:libmpv:1.0.0")\n' : "    implementation 'dev.jdtech.mpv:libmpv:1.0.0'\n";
   g = g.replace(/dependencies\s*\{\n/, (m) => m + dep);
 }
+// ExoPlayer（Media3）播放内核
+if (!g.includes('androidx.media3:media3-exoplayer')) {
+  const d3 = ['media3-exoplayer', 'media3-ui'].map((n) => (gk.endsWith('.kts') ? `    implementation("androidx.media3:${n}:1.3.1")\n` : `    implementation 'androidx.media3:${n}:1.3.1'\n`)).join('');
+  g = g.replace(/dependencies\s*\{\n/, (m) => m + d3);
+}
 // libmpv 要求 Android 8.0（API 26）以上
 g = g.replace(/minSdk(Version)?\s*=\s*\d+/, 'minSdk = 26').replace(/minSdk(Version)?\s+\d+/, 'minSdk 26');
 // 兜底：在文件末尾再强制设一次（后面的赋值会覆盖前面的）
@@ -48,7 +53,7 @@ let dir = null;
 })(javaRoot);
 if (!dir) throw new Error('找不到生成的 MainActivity.kt');
 const pkgLine = (fs.readFileSync(path.join(dir, 'MainActivity.kt'), 'utf8').match(/^package\s+(\S+)/m) || [])[1];
-for (const f of ['MpvBridge.kt', 'MainActivity.kt', 'NetBridge.kt', 'MusicService.kt']) {
+for (const f of ['MpvBridge.kt', 'ExoBridge.kt', 'MainActivity.kt', 'NetBridge.kt', 'MusicService.kt']) {
   let s = fs.readFileSync(path.resolve('android', f), 'utf8').replace(/^package\s+\S+/m, `package ${pkgLine}`).replace('__MPVLIB__', mpvClass);
   fs.writeFileSync(path.join(dir, f), s);
 }

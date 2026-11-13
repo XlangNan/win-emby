@@ -3,6 +3,7 @@
 // 所有对 mpv 的操作串行执行：React StrictMode / 切集时 init → destroy → init 不会交错。
 import * as lib from 'tauri-plugin-libmpv-api';
 import { androidBridge, isIOS } from './platform';
+import { loadPlayPrefs } from './prefs';
 
 interface MpvApi {
   init(cfg: { initialOptions: Record<string, string>; observedProperties: unknown[] }): Promise<unknown>;
@@ -60,7 +61,8 @@ export interface MpvOpenOpts {
 /** 安卓：走 Kotlin 桥（android/MpvBridge.kt），接口与桌面端一致 */
 function openAndroid(o: MpvOpenOpts): Promise<MpvSession> {
   return enqueue(async () => {
-    const b = androidBridge();
+    const useExo = loadPlayPrefs().engine === 'exo' && !!(window as unknown as { AndroidExo?: unknown }).AndroidExo;
+    const b = useExo ? (window as unknown as { AndroidExo: NonNullable<ReturnType<typeof androidBridge>> }).AndroidExo : androidBridge();
     if (!b) throw new Error('没有找到安卓 MPV 桥（应用版本不对？）');
     const w = window as unknown as { __mpvEvt?: (name: string, data: unknown) => void };
     let ready!: () => void;
