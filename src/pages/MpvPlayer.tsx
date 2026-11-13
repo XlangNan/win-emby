@@ -111,6 +111,9 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const [qs] = useSearchParams();
   const wantSrc = qs.get('src') || '';
   const { item, episodes, nextEp } = usePlayItem(id);
+  // 片尾「接下来播放」提示：可手动关掉；换集后恢复
+  const [upOff, setUpOff] = useState(false);
+  useEffect(() => setUpOff(false), [id]);
   const sessRef = useRef<MpvSession | null>(null);
   const playRef = useRef<{ source: MediaSource; playSessionId?: string } | null>(null);
   const posRef = useRef(0);
@@ -1073,8 +1076,9 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         />
       )}
 
-      {inCredits && !inIntro && (nextEp || item?.Type !== 'Episode') && (
+      {inCredits && !inIntro && !upOff && (nextEp || item?.Type !== 'Episode') && (
         <div className={`we-upnext${showUi ? ' up' : ''}`} onClick={(e) => e.stopPropagation()}>
+          <button className="we-upnext-x" title="关闭提示" aria-label="关闭提示" onClick={() => setUpOff(true)}>×</button>
           {nextEp ? (
             <>
               <div className="we-upnext-h">接下来播放</div>
