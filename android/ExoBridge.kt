@@ -25,6 +25,7 @@ import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.SeekParameters
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.SubtitleView
 import org.json.JSONArray
 import org.json.JSONObject
@@ -41,6 +42,7 @@ class ExoBridge(private val act: Activity, private val web: WebView) : Player.Li
     private val main = Handler(Looper.getMainLooper())
     private var root: FrameLayout? = null
     private var sv: SurfaceView? = null
+    private var ar: AspectRatioFrameLayout? = null
     private var subs: SubtitleView? = null
     private var p: ExoPlayer? = null
     private var dsf: DefaultHttpDataSource.Factory? = null
@@ -91,7 +93,12 @@ class ExoBridge(private val act: Activity, private val web: WebView) : Player.Li
                 val parent = web.parent as ViewGroup
                 val fl = FrameLayout(act)
                 val v = SurfaceView(act)
-                fl.addView(v, FrameLayout.LayoutParams(-1, -1))
+                // 带比例的容器：画面按原始宽高比居中显示（黑边），否则 SurfaceView 会把画面拉伸铺满
+                val arl = AspectRatioFrameLayout(act)
+                arl.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                arl.addView(v, FrameLayout.LayoutParams(-1, -1))
+                fl.addView(arl, FrameLayout.LayoutParams(-1, -1, android.view.Gravity.CENTER))
+                ar = arl
                 val sub = SubtitleView(act)
                 fl.addView(sub, FrameLayout.LayoutParams(-1, -1))
                 parent.addView(fl, 0, ViewGroup.LayoutParams(-1, -1))
@@ -131,7 +138,7 @@ class ExoBridge(private val act: Activity, private val web: WebView) : Player.Li
         p?.let { try { it.removeListener(this); it.release() } catch (_: Throwable) {} }
         p = null
         root?.let { (it.parent as? ViewGroup)?.removeView(it) }
-        root = null; sv = null; subs = null
+        root = null; sv = null; subs = null; ar = null
         started = false
         try { act.window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) } catch (_: Throwable) {}
     }
@@ -215,6 +222,11 @@ class ExoBridge(private val act: Activity, private val web: WebView) : Player.Li
             "volume" -> { vol = ((v.toDoubleOrNull() ?: 100.0) / 100.0).toFloat().coerceIn(0f, 1f); pl.volume = if (muted) 0f else vol; emit("volume", (vol * 100.0).toString()) }
             "mute" -> { muted = truthy(v); pl.volume = if (muted) 0f else vol; emit("mute", muted.toString()) }
             "speed" -> { val s = (v.toFloatOrNull() ?: 1f).coerceIn(0.25f, 4f); pl.playbackParameters = PlaybackParameters(s); emit("speed", s.toString()) }
+            "exo-resize" -> ar?.resizeMode = when (v) {
+                "zoom" -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                "fill" -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+                else -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+            }
             "user-agent" -> { ua = v; dsf?.setUserAgent(v) }
             "aid" -> selectIdx(pl, C.TRACK_TYPE_AUDIO, v.toIntOrNull() ?: -1)
             "sid" -> selectIdx(pl, C.TRACK_TYPE_TEXT, if (v == "no") -1 else v.toIntOrNull() ?: -1)
@@ -341,6 +353,7 @@ class ExoBridge(private val act: Activity, private val web: WebView) : Player.Li
     override fun onVideoSizeChanged(v: VideoSize) {
         emit("width", v.width.toString())
         emit("height", v.height.toString())
+        if (v.height > 0) ar?.setAspectRatio(v.width * v.pixelWidthHeightRatio / v.height)
         if (!started) started = true
     }
 

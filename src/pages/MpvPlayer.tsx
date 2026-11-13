@@ -8,7 +8,7 @@ import { absUrl, directStreamUrl, emby, posterUrl, subtitleUrl, thumbUrl } from 
 import { fmtDuration, ticksToSec } from '../emby/format';
 import type { EmbyItem, MediaSource, MediaStream } from '../emby/types';
 import { openMpv, type MpvSession } from '../lib/mpv';
-import { androidBridge, isIOS, isMobileApp } from '../lib/platform';
+import { androidBridge, isAndroid, isIOS, isMobileApp } from '../lib/platform';
 import { getManual, setManual } from '../lib/introManual';
 import { syncSeriesMarkers } from '../lib/markerSync';
 import DanmakuLayer from '../components/DanmakuLayer';
@@ -353,6 +353,15 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const [aid, setAid] = useState<number | null>(null);
   const [sid, setSid] = useState<number | null>(null);
   const [hw, setHw] = useState('');
+  const isExo = isAndroid && loadPlayPrefs().engine === 'exo' && !!(window as unknown as { AndroidExo?: unknown }).AndroidExo;
+  const RATIOS: [string, string][] = [['fit', '适应'], ['zoom', '铺满裁切'], ['fill', '拉伸']];
+  const [ratio, setRatio] = useState(() => { try { return localStorage.getItem('wemby-exo-ratio') || 'fit'; } catch { return 'fit'; } });
+  const cycleRatio = (): void => {
+    const n = RATIOS[(RATIOS.findIndex((r) => r[0] === ratio) + 1) % RATIOS.length][0];
+    setRatio(n);
+    try { localStorage.setItem('wemby-exo-ratio', n); } catch { /* ignore */ }
+    void sessRef.current?.set('exo-resize', n);
+  };
   const [full, setFull] = useState(false);
   const [uiShown, setUiShown] = useState(true);
   const [menu, setMenu] = useState<'' | 'audio' | 'sub' | 'speed' | 'party' | 'eps' | 'substyle' | 'sleep' | 'danmu' | 'intro'>('');
@@ -615,6 +624,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         };
         // 安卓：mpv 内部音量固定 100%，音量完全跟随手机的媒体音量（音量键 / 手势）
         await sess.set('volume', isMobileApp ? 100 : Math.round(loadPlayPrefs().volume * 100));
+        if (isExo) await sess.set('exo-resize', ratio);
         await applySubStyle(sess, loadSubStyle());
         const mst = psrc.MediaStreams || src.MediaStreams || [];
         // 杜比视界 Profile 5（没有 HDR10 / SDR 兼容层）：硬解拿不到 RPU 元数据，画面会偏紫偏绿 → 改软解，交给 libplacebo 重塑
@@ -1005,12 +1015,17 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         <div className="we-titlebox">
           <div className="we-title" title={title}>{title}</div>
           <div className="we-subline">
-            {[vstream?.Width && vstream?.Height ? `${vstream.Width}×${vstream.Height}` : '', badge, vstream?.Codec?.toUpperCase(), fpsShow > 0 ? `${Number(fpsShow.toFixed(3))} fps` : '', vbr > 0 ? `${(vbr / 1e6).toFixed(1)} Mbps` : '', `MPV${hw && hw !== 'no' ? ` · ${hw}` : ''}`].filter(Boolean).join('  ·  ')}
+            {[vstream?.Width && vstream?.Height ? `${vstream.Width}×${vstream.Height}` : '', badge, vstream?.Codec?.toUpperCase(), fpsShow > 0 ? `${Number(fpsShow.toFixed(3))} fps` : '', vbr > 0 ? `${(vbr / 1e6).toFixed(1)} Mbps` : '', (isExo ? 'ExoPlayer' : `MPV${hw && hw !== 'no' ? ` · ${hw}` : ''}`)].filter(Boolean).join('  ·  ')}
           </div>
         </div>
         {party.inRoom && (
           <button className="we-btn we-txt we-syncbtn" title="同步到房间现在的进度" onClick={(e) => { e.stopPropagation(); party.resync(); poke(); }}>
             同步播放
+          </button>
+        )}
+        {isExo && (
+          <button className="we-btn we-txt" title="画面比例：适应 / 铺满裁切 / 拉伸" onClick={(e) => { e.stopPropagation(); cycleRatio(); poke(); }}>
+            {RATIOS.find((r) => r[0] === ratio)?.[1]}
           </button>
         )}
         <button className="we-btn we-txt" title="简介 / 演职员 / 选集（I）" onClick={(e) => { e.stopPropagation(); setDrawer((v) => !v); }}>
