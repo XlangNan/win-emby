@@ -11,6 +11,7 @@
     "linux"
   ],
   "permissions": [
-    "libmpv:default"
+    "libmpv:default",
+    "window-state:default"
   ]
 }
