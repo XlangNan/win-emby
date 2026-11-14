@@ -22,12 +22,16 @@ export function fmtHM(sec: number): { h: number; m: number } { const m = Math.ro
 export function fmtShort(sec: number): string { const { h, m } = fmtHM(sec); return h ? `${h}h${String(m).padStart(2, '0')}` : `${m}m`; }
 export function fmtCn(sec: number): string { const { h, m } = fmtHM(sec); return h ? `${h} 小时 ${m} 分` : `${m} 分`; }
 
-export interface Entry { id: string; title: string; sub: string; img: string; when: string; note: string; pct: number; to: string }
+export interface Entry {
+  id: string; title: string; sub: string; img: string; when: string; note: string; pct: number; to: string;
+  /** 足迹用：发生时间、时长（秒）、类型、多张封面（一次连听几首歌时） */
+  at?: number; sec?: number; kind?: 'v' | 'm' | 'a'; imgs?: string[];
+}
 
 // ───────── 影视 ─────────
 export interface VideoStats {
   movies: number; series: number; episodes: number; newMovies: number; newEpisodes: number;
-  yesterday: Entry[]; yesterdaySec: number; week: Record<string, number>;
+  yesterday: Entry[]; yesterdaySec: number; plays: Entry[]; week: Record<string, number>;
   resume: Entry[]; recent: Entry[];
 }
 const EMPTY: ItemsResult = { Items: [], TotalRecordCount: 0 };
@@ -66,9 +70,9 @@ export async function loadVideo(): Promise<VideoStats> {
     const sec = isDone ? run : Math.min(run, (it.UserData?.PlaybackPositionTicks || 0) / 1e7);
     const k = dayKey(new Date(at));
     week[k] = (week[k] || 0) + sec;
-    if (at >= y0 && at < y0 + 86400000) {
+    if (at >= y0) {
       const pct = run > 0 ? Math.round((sec / run) * 100) : isDone ? 100 : 0;
-      yest.push({ at, sec, e: { id: it.Id, title: titleOf(it), sub: subOf(it), img: thumbUrl(it, 320), when: hhmm(at), note: isDone ? `看完 · ${Math.max(1, Math.round(sec / 60))} 分` : `看到 ${pct}%`, pct: isDone ? 100 : pct, to: target(it) } });
+      yest.push({ at, sec, e: { id: it.Id, title: titleOf(it), sub: subOf(it), img: thumbUrl(it, 320), when: hhmm(at), note: isDone ? `看完 ${Math.max(1, Math.round(sec / 60))} 分` : `看到 ${pct}%`, pct: isDone ? 100 : pct, to: target(it), at, sec, kind: 'v' as const } });
     }
   }
   yest.sort((a, b) => b.at - a.at);
@@ -80,7 +84,9 @@ export async function loadVideo(): Promise<VideoStats> {
   return {
     movies: mv.TotalRecordCount, series: se.TotalRecordCount, episodes: ep.TotalRecordCount,
     newMovies: (newMv.Items as Dated[]).filter(isNew).length, newEpisodes: (newEp.Items as Dated[]).filter(isNew).length,
-    yesterday: yest.map((x) => x.e), yesterdaySec: yest.reduce((a, x) => a + x.sec, 0), week,
+    yesterday: yest.filter((x) => x.at < y0 + 86400000).map((x) => x.e),
+    yesterdaySec: yest.filter((x) => x.at < y0 + 86400000).reduce((a, x) => a + x.sec, 0),
+    plays: yest.map((x) => x.e), week,
     resume: resume.map((it) => { const e = entry(it, '继续观看'); const left = Math.max(0, ((it.RunTimeTicks || 0) / 1e7) * (1 - e.pct / 100)); return { ...e, note: `${e.pct}% · 剩 ${Math.max(1, Math.round(left / 60))} 分`, sub: `影视 · ${subOf(it)}` }; }),
     recent: latest.Items.map((it) => ({ id: it.Id, title: it.Name, sub: it.Type === 'Series' ? `剧集${it.ProductionYear ? ` · ${it.ProductionYear}` : ''}` : `电影${it.ProductionYear ? ` · ${it.ProductionYear}` : ''}`, img: posterUrl(it, 260), when: '', note: it.Type === 'Series' ? '剧集' : '电影', pct: 0, to: `/detail/${it.Id}` })),
   };
@@ -92,21 +98,34 @@ export async function loadMusic(): Promise<MusicStats> {
   const [c, al] = await Promise.all([nd.counts(), nd.albumList('newest', 8).catch(() => [] as Album[])]);
   return { ...c, recent: al.map((a) => ({ id: a.id, title: a.name, sub: a.artist, img: coverUrl(a.coverArt, 260), when: '', note: '专辑', pct: 0, to: `/music/album/${a.id}` })) };
 }
-/** 本机记录：今天听的歌 + 每天的收听秒数 */
-export function musicLocal(): { today: Entry[]; todaySec: number; days: Record<string, number> } {
-  const log = readMusicLog();
+/** 本机记录：今天 / 昨天听的歌（相隔 30 分钟内连着听的合成一条）+ 每天的收听秒数 */
+export function musicLocal(): { today: Entry[]; todaySec: number; days: Record<string, number>; plays: Entry[] } {
+  const log = readMusicLog().sort((a, b) => a.t - b.t);
   const t0 = startOf(new Date());
+  const y0 = t0 - 86400000;
   const days: Record<string, number> = {};
   for (const x of log) { const k = dayKey(new Date(x.t)); days[k] = (days[k] || 0) + x.sec; }
-  const today = log.filter((x) => x.t >= t0).sort((a, b) => b.t - a.t);
-  return {
-    today: today.slice(0, 8).map((x) => ({ id: x.id + x.t, title: x.title, sub: [x.artist, x.album].filter(Boolean).join(' · '), img: coverUrl(x.cover, 120), when: hhmm(x.t), note: `${Math.floor(x.sec / 60)}:${String(x.sec % 60).padStart(2, '0')}`, pct: 0, to: x.albumId ? `/music/album/${x.albumId}` : '/music' })),
-    todaySec: today.reduce((a, x) => a + x.sec, 0), days,
-  };
+  const groups: typeof log[] = [];
+  for (const x of log.filter((l) => l.t >= y0)) {
+    const g = groups[groups.length - 1];
+    if (g && x.t - g[g.length - 1].t < 30 * 60000) g.push(x); else groups.push([x]);
+  }
+  const plays: Entry[] = groups.map((g) => {
+    const sec = g.reduce((a, x) => a + x.sec, 0);
+    const first = g[0];
+    const names = g.map((x) => x.title);
+    const title = g.length === 1 ? first.title : names.length <= 3 ? names.join('、') : `${names.slice(0, 3).join('、')} 等 ${g.length} 首`;
+    return {
+      id: `m${first.t}`, title, sub: g.length === 1 ? [first.artist, first.album].filter(Boolean).join('，') : `${g.length} 首`, img: coverUrl(first.cover, 120),
+      imgs: g.slice(0, 3).map((x) => coverUrl(x.cover, 120)), when: hhmm(first.t), note: g.length === 1 ? `${Math.floor(first.sec / 60)}:${String(first.sec % 60).padStart(2, '0')}` : `共 ${Math.max(1, Math.round(sec / 60))} 分`,
+      pct: 0, to: first.albumId ? `/music/album/${first.albumId}` : '/music', at: first.t, sec, kind: 'm' as const,
+    };
+  }).sort((a, b) => (b.at || 0) - (a.at || 0));
+  return { today: plays.filter((e) => (e.at || 0) >= t0), todaySec: log.filter((x) => x.t >= t0).reduce((a, x) => a + x.sec, 0), days, plays };
 }
 
 // ───────── 有声书 ─────────
-export interface BookStats { books: number; hours: number; listening: number; days: Record<string, number>; today: Entry[]; todaySec: number; resume: Entry[]; recent: Entry[] }
+export interface BookStats { books: number; hours: number; listening: number; days: Record<string, number>; today: Entry[]; todaySec: number; plays: Entry[]; resume: Entry[]; recent: Entry[] }
 const bookEntry = (b: AbsBook, note: string, sub: string, pct = 0): Entry => ({ id: b.id, title: b.title, sub, img: absCover(b.id, 260), when: '', note, pct, to: `/audiobooks/${b.id}` });
 export async function loadBooks(): Promise<BookStats> {
   if (!absConfigured()) throw new Error('未连接');
@@ -121,17 +140,19 @@ export async function loadBooks(): Promise<BookStats> {
   const cont = flat.filter((s) => s.id === 'continue-listening').flatMap((s) => s.books);
   const recent = flat.filter((s) => s.id === 'recently-added').flatMap((s) => s.books);
   const t0 = startOf(new Date());
-  const per = new Map<string, { title: string; author: string; sec: number; at: number }>();
+  const per = new Map<string, { id: string; title: string; author: string; sec: number; at: number }>();
   for (const x of lis.sessions) {
-    if (x.at < t0) continue;
-    const o = per.get(x.id) || { title: x.title, author: x.author, sec: 0, at: 0 };
-    o.sec += x.sec; o.at = Math.max(o.at, x.at); per.set(x.id, o);
+    if (x.at < t0 - 86400000) continue;
+    const key = `${x.id}|${x.at >= t0 ? 't' : 'y'}`;
+    const o = per.get(key) || { id: x.id, title: x.title, author: x.author, sec: 0, at: 0 };
+    o.sec += x.sec; o.at = Math.max(o.at, x.at); per.set(key, o);
   }
-  const today: Entry[] = [...per.entries()].sort((a, b) => b[1].at - a[1].at).map(([id, o]) => ({ id, title: o.title, sub: o.author, img: absCover(id, 120), when: hhmm(o.at), note: `听了 ${Math.max(1, Math.round(o.sec / 60))} 分`, pct: 0, to: `/audiobooks/${id}` }));
+  const plays: Entry[] = [...per.values()].sort((a, b) => b.at - a.at).map((o) => ({ id: `a${o.id}${o.at}`, title: o.title, sub: o.author, img: absCover(o.id, 120), when: hhmm(o.at), note: `听了 ${Math.max(1, Math.round(o.sec / 60))} 分`, pct: 0, to: `/audiobooks/${o.id}`, at: o.at, sec: o.sec, kind: 'a' as const }));
+  const today = plays.filter((e) => (e.at || 0) >= t0);
   return {
     books: stats.reduce((a, x) => a + x.items, 0), hours: Math.round(stats.reduce((a, x) => a + x.duration, 0) / 3600),
     listening: [...prog.values()].filter((p) => !p.isFinished && p.progress > 0).length,
-    days: lis.days, today, todaySec: lis.days[dayKey(new Date())] ?? [...per.values()].reduce((a, x) => a + x.sec, 0),
+    days: lis.days, today, plays, todaySec: lis.days[dayKey(new Date())] ?? today.reduce((a, x) => a + (x.sec || 0), 0),
     resume: cont.slice(0, 4).map((b) => { const p = prog.get(b.id); const pct = Math.round((p?.progress || 0) * 100); return bookEntry(b, `${pct}% · 继续收听`, `有声书 · ${b.author}`, pct); }),
     recent: recent.slice(0, 8).map((b) => bookEntry(b, '有声书', b.author)),
   };

@@ -1,0 +1,18 @@
+/* 「日报」风格的共用底子：衬线大字 + 细线分栏，不用卡片、不用边框。首页仪表盘和有声书页都用它。 */
+:root{
+  --ed-v: var(--accent, #f0414b); --ed-m: #4aa3ff; --ed-a: #f2a23a; --ed-t: #a58bff;
+  --ed-ink: var(--text, #f3f0ea); --ed-dim: var(--text-faint, #8d8a84); --ed-soft: #cfccc6;
+  --ed-rule: var(--hairline, rgba(255, 255, 255, .11)); --ed-bg: var(--surface-0, #0c0c0e);
+  --ed-serif: "Noto Serif SC", "Source Han Serif SC", "Noto Serif CJK SC", "Songti SC", "STSong", "SimSun", serif;
+}
+.ed-page{ color: var(--ed-ink); }
+:root[data-shell] .content.ed-page{ padding: 0 56px 120px; }
+/* 无框按钮：整页统一 */
+:root:root .ed-page button{ border: 0 !important; box-shadow: none !important; font: inherit; cursor: pointer; }
+.ed-cv{ position: relative; display: flex; align-items: center; justify-content: center; aspect-ratio: 1; overflow: hidden; border-radius: 6px; flex: none; color: rgba(255, 255, 255, .92); font-family: var(--ed-serif); font-weight: 700; text-align: center; font-size: 12px; line-height: 1.2; background: #232329; }
+.ed-cv.w{ aspect-ratio: 16 / 9; }
+.ed-cv.p{ aspect-ratio: 2 / 3; }
+.ed-cv span{ padding: 0 5px; }
+.ed-cv img{ position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.v{ --c: var(--ed-v); } .m{ --c: var(--ed-m); } .a{ --c: var(--ed-a); } .t{ --c: var(--ed-t); }
+@media (max-width: 900px){ :root[data-shell] .content.ed-page{ padding: 0 20px 120px; } }
