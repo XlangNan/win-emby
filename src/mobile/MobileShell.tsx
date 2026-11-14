@@ -1,5 +1,6 @@
 // 手机外壳（安卓）：底部标签栏 + 首页顶部品牌/分类条。结构参照主流流媒体手机 App 的交互习惯。
 import MiniPlayer from '../music/MiniPlayer';
+import AbsBar from '../abs/AbsBar';
 import NowPlaying from '../music/NowPlaying';
 import { useMusic } from '../music/player';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
@@ -47,6 +48,12 @@ export const ICON = {
       <circle cx="16.5" cy="16" r="2.5" />
     </>
   ),
+  book: (
+    <>
+      <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v15H5.5A1.5 1.5 0 0 0 4 20.5v-15Z" />
+      <path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v15h5.5a1.5 1.5 0 0 1 1.5 1.5v-15Z" />
+    </>
+  ),
   star: <path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9L12 3Z" />,
   clock: (
     <>
@@ -80,7 +87,7 @@ const TABS: { to: string; label: string; ico: keyof typeof ICON; end?: boolean; 
   { to: '/', label: '影视', ico: 'film', end: true, also: ['/media', '/lib', '/discover', '/search'] },
   { to: '/live', label: '直播', ico: 'live' },
   { to: '/music', label: '音乐', ico: 'music' },
-  { to: '/me', label: '我的', ico: 'me', also: ['/favorites', '/history', '/config'] },
+  { to: '/audiobooks', label: '听书', ico: 'book' },
 ];
 
 export default function MobileShell({ views, routes }: { views: EmbyItem[]; routes: React.ReactNode }) {
@@ -123,6 +130,7 @@ export default function MobileShell({ views, routes }: { views: EmbyItem[]; rout
               <button className="m-iconbtn" aria-label="媒体库" onClick={() => nav('/media')}><Ico k="media" /></button>
               <span style={{ flex: 1 }} />
               <button className="m-iconbtn" aria-label="片库" onClick={() => nav('/discover')}><Ico k="disc" /></button>
+              <button className="m-iconbtn" aria-label="我的" onClick={() => nav('/me')}><Ico k="me" /></button>
               <button className="m-iconbtn" aria-label="搜索" onClick={() => nav('/search')}><Ico k="search" /></button>
             </div>
           </header>
@@ -130,6 +138,7 @@ export default function MobileShell({ views, routes }: { views: EmbyItem[]; rout
         {routes}
       </div>
       <MiniPlayer inline />
+      <AbsBar />
       <NowPlaying />
       {!hideTabs && (
         <nav className="m-tabs" aria-label="主导航">

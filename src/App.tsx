@@ -19,6 +19,8 @@ import DiscoverPage from './pages/DiscoverPage';
 import MusicPage from './music/MusicPage';
 import MusicDetail from './music/MusicDetail';
 import MiniPlayer from './music/MiniPlayer';
+import AbsPage, { AbsDetailPage } from './abs/AbsPage';
+import AbsBar from './abs/AbsBar';
 import NowPlaying from './music/NowPlaying';
 import FavoritesPage from './pages/FavoritesPage';
 import HistoryPage from './pages/HistoryPage';
@@ -148,6 +150,7 @@ function AppShell() {
   const myNav: NavItem[] = [
     { to: '/discover', label: '片库', ico: '🎞' },
     { to: '/live', label: '直播', ico: '📡' },
+    { to: '/audiobooks', label: '有声书', ico: '🎧' },
     { to: '/favorites', label: '收藏', ico: '⭐' },
     { to: '/history', label: '历史', ico: '🕘' },
     { to: '/config', label: '设置', ico: '⚙' },
@@ -202,6 +205,8 @@ function AppShell() {
         <Route path="/live" element={<LivePage />} />
         <Route path="/music" element={<MusicPage />} />
         <Route path="/music/:kind/:id" element={<MusicDetail />} />
+        <Route path="/audiobooks" element={<AbsPage />} />
+        <Route path="/audiobooks/:id" element={<AbsDetailPage />} />
         <Route path="/discover" element={<DiscoverPage />} />
         <Route path="/discover/more/:row" element={<DiscoverMore />} />
         <Route path="/discover/:media/:id" element={<DiscoverDetail />} />
@@ -346,8 +351,14 @@ function AppShell() {
         <nav className="nf-nav">
           <span className="nf-logo" title="回到首页" role="button" tabIndex={0} style={{ cursor: 'pointer' }} onClick={() => nav('/')} onKeyDown={(e) => e.key === 'Enter' && nav('/')}>WEAVE</span>
           <div className="we-navlinks" onWheel={(e) => { e.currentTarget.scrollLeft += e.deltaY; }}>
-            {[{ to: '/', label: '首页', end: true }, { to: '/media', label: '媒体' }, { to: '/live', label: '直播' }, { to: '/music', label: '音乐' }].map((n) => (
-              <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => 'nf-link' + (isActive || (n.to === '/media' && loc.pathname.startsWith('/lib/')) ? ' active' : '')}>
+            {/* 媒体库：图标入口（和手机版同一个图标），放在首页左边 */}
+            <NavLink to="/media" title="媒体库" aria-label="媒体库" className={({ isActive }) => 'nf-link nf-ico' + (isActive || loc.pathname.startsWith('/lib/') ? ' active' : '')}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="16" rx="2" /><path d="m10 9 5 3-5 3V9Z" />
+              </svg>
+            </NavLink>
+            {[{ to: '/', label: '首页', end: true }, { to: '/live', label: '直播' }, { to: '/music', label: '音乐' }, { to: '/audiobooks', label: '有声书' }].map((n) => (
+              <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => 'nf-link' + (isActive ? ' active' : '')}>
                 {n.label}
               </NavLink>
             ))}
@@ -361,6 +372,7 @@ function AppShell() {
         {routes}
       </main>
       <MiniPlayer />
+      <AbsBar />
       <NowPlaying />
     </div>
   );

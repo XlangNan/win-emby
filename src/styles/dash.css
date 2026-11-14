@@ -1,0 +1,70 @@
+/* 首页（仪表盘） */
+:root[data-shell] .content.dsh-page{ padding-top: 20px; padding-bottom: 96px; }
+.dsh-hello{ display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.dsh-hello h1{ margin: 0; font-size: 26px; font-weight: 800; }
+.dsh-hello .dsh-date{ font-size: 13.5px; color: var(--text-dim, #8a93a6); margin-top: 4px; }
+.dsh-status{ display: flex; gap: 8px; flex-wrap: wrap; }
+.dsh-status i{ font-style: normal; font-size: 12px; padding: 4px 11px; border-radius: 999px; background: var(--surface-2, #1b202a); color: var(--text-dim, #8a93a6); display: inline-flex; align-items: center; gap: 6px; }
+.dsh-status i::before{ content: ''; width: 7px; height: 7px; border-radius: 50%; background: #3ecf8e; }
+.dsh-status i.off::before{ background: #6b7385; }
+
+.dsh-tiles{ display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
+.dsh-tile{ position: relative; padding: 16px 16px 14px; border-radius: 14px; background: var(--surface-2, #1b202a); border: 1px solid var(--border, #262c3b); cursor: pointer; overflow: hidden; transition: transform .16s ease, border-color .16s ease; }
+.dsh-tile:hover{ transform: translateY(-2px); border-color: var(--accent, #5b8cff); }
+.dsh-tile-ico{ width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; color: #fff; }
+.dsh-tile-n{ font-size: 28px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.dsh-tile-n small{ font-size: 13px; font-weight: 600; margin-left: 4px; color: var(--text-dim, #8a93a6); }
+.dsh-tile-l{ font-size: 13.5px; margin-top: 3px; }
+.dsh-tile-s{ font-size: 12px; margin-top: 6px; color: var(--text-dim, #8a93a6); }
+.dsh-tile-s b{ color: #3ecf8e; font-weight: 600; }
+.t-film .dsh-tile-ico{ background: linear-gradient(135deg, #f0414b, #b3202a); }
+.t-tv .dsh-tile-ico{ background: linear-gradient(135deg, #7a5cff, #4b36c4); }
+.t-song .dsh-tile-ico{ background: linear-gradient(135deg, #3b9bff, #2160c9); }
+.t-book .dsh-tile-ico{ background: linear-gradient(135deg, #f2a23a, #c26d12); }
+.t-watch .dsh-tile-ico{ background: linear-gradient(135deg, #2fc4a0, #1b8a70); }
+.t-listen .dsh-tile-ico{ background: linear-gradient(135deg, #e0589b, #a2326f); }
+
+.dsh-grid{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px; }
+.dsh-grid.w{ grid-template-columns: 1.25fr .75fr; }
+@media (max-width: 900px){ .dsh-grid, .dsh-grid.w{ grid-template-columns: 1fr; } }
+.dsh-card{ padding: 16px 18px; border-radius: 14px; background: var(--surface-2, #1b202a); border: 1px solid var(--border, #262c3b); min-width: 0; }
+.dsh-card h3{ margin: 0 0 12px; font-size: 16px; display: flex; align-items: center; justify-content: space-between; }
+.dsh-card h3 span{ font-size: 12px; font-weight: 400; color: var(--text-dim, #8a93a6); }
+.dsh-empty{ color: var(--text-dim, #8a93a6); font-size: 13px; padding: 14px 0; text-align: center; }
+
+.dsh-row{ display: flex; align-items: center; gap: 12px; padding: 8px 6px; border-radius: 10px; cursor: pointer; }
+.dsh-row:hover{ background: rgba(255, 255, 255, .06); }
+.dsh-th{ flex: none; width: 96px; aspect-ratio: 16 / 9; border-radius: 7px; overflow: hidden; background: var(--surface-3, #232a36); position: relative; }
+.dsh-th.sq{ width: 46px; aspect-ratio: 1 / 1; }
+.dsh-th img{ width: 100%; height: 100%; object-fit: cover; display: block; }
+.dsh-th i{ position: absolute; left: 0; bottom: 0; height: 3px; background: var(--accent, #5b8cff); }
+.dsh-info{ min-width: 0; flex: 1; }
+.dsh-t{ font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dsh-s{ font-size: 12px; color: var(--text-dim, #8a93a6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.dsh-when{ flex: none; font-size: 12px; color: var(--text-dim, #8a93a6); text-align: right; font-variant-numeric: tabular-nums; }
+.dsh-when b{ display: block; font-size: 12.5px; color: var(--text, #e8ecf4); font-weight: 600; }
+.dsh-sub-h{ font-size: 12px; color: var(--text-dim, #8a93a6); margin: 12px 0 2px 6px; }
+
+/* 本周活动：堆叠柱状图 */
+.dsh-chart{ display: flex; align-items: flex-end; gap: 14px; height: 170px; padding: 6px 4px 0; }
+.dsh-col{ flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; min-width: 0; }
+.dsh-bars{ width: 100%; max-width: 44px; display: flex; flex-direction: column-reverse; border-radius: 7px; overflow: hidden; background: rgba(255, 255, 255, .04); }
+.dsh-bars b{ display: block; width: 100%; }
+.dsh-bars .v{ background: #f0414b; } .dsh-bars .m{ background: #3b9bff; } .dsh-bars .a{ background: #f2a23a; }
+.dsh-col em{ font-style: normal; font-size: 12px; color: var(--text-dim, #8a93a6); }
+.dsh-col.today em{ color: var(--text, #e8ecf4); font-weight: 700; }
+.dsh-col .dsh-min{ font-size: 11px; color: var(--text-dim, #8a93a6); font-variant-numeric: tabular-nums; }
+.dsh-legend{ display: flex; gap: 16px; margin-top: 12px; font-size: 12.5px; color: var(--text-dim, #8a93a6); flex-wrap: wrap; }
+.dsh-legend span::before{ content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 6px; background: currentColor; }
+.dsh-legend .v{ color: #f0414b; } .dsh-legend .m{ color: #3b9bff; } .dsh-legend .a{ color: #f2a23a; }
+.dsh-legend .v::after, .dsh-legend .m::after, .dsh-legend .a::after{ content: attr(data-t); color: var(--text-dim, #8a93a6); margin-left: 0; }
+
+/* 最近入库 */
+.dsh-shelf{ display: flex; gap: 14px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
+.dsh-poster{ flex: none; width: 128px; cursor: pointer; }
+.dsh-poster-i{ position: relative; aspect-ratio: 2 / 3; border-radius: 9px; overflow: hidden; background: var(--surface-3, #232a36); }
+.dsh-poster-i.sq{ aspect-ratio: 1 / 1; }
+.dsh-poster-i img{ width: 100%; height: 100%; object-fit: cover; display: block; }
+.dsh-badge{ position: absolute; top: 6px; left: 6px; font-size: 10.5px; padding: 1px 7px; border-radius: 999px; background: rgba(0, 0, 0, .65); color: #fff; }
+.dsh-poster-t{ margin-top: 6px; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dsh-poster-s{ font-size: 12px; color: var(--text-dim, #8a93a6); }

@@ -75,3 +75,7 @@
 
 /* 顶栏皮肤把内容区上内边距归零了（为首页大图让位），有声书页要自己留出来；底部给播放条让位 */
 :root[data-shell] .content.abs-page{ padding-top: 20px; padding-bottom: 96px; }
+
+/* 手机 / 平板外壳：播放条抬到底部标签栏上方，页面底部多留空 */
+:root.mobile .abs-bar-wrap, .m-app .abs-bar-wrap{ bottom: calc(var(--m-mini-b, 86px) + env(safe-area-inset-bottom)); left: 8px; right: 8px; border-radius: 16px; border: 1px solid var(--border, #262c3b); }
+:root.mobile .content.abs-page, .m-app .abs-page{ padding-bottom: 190px; }

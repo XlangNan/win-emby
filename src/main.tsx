@@ -13,6 +13,7 @@ import './styles/netflix.css';
 import './styles/app.css';
 import './styles/mobile.css';
 import './styles/music.css';
+import './styles/abs.css';
 import './styles/tablet.css';
 import './styles/light.css';
 

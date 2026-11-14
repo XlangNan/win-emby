@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import MiniPlayer from '../music/MiniPlayer';
+import AbsBar from '../abs/AbsBar';
 import NowPlaying from '../music/NowPlaying';
 import { listSources } from '../lib/live';
 import { Ico, ICON } from './MobileShell';
@@ -16,6 +17,7 @@ const MAIN: Item[] = [
   { to: '/discover', label: '片库', ico: 'disc' },
   { to: '/live', label: '直播', ico: 'live' },
   { to: '/music', label: '音乐', ico: 'music' },
+  { to: '/audiobooks', label: '有声书', ico: 'book' },
 ];
 const MINE: Item[] = [
   { to: '/favorites', label: '收藏', ico: 'star' },
@@ -81,6 +83,7 @@ export default function TabletShell({ routes }: { routes: React.ReactNode }) {
         <div className="tb-body">{routes}</div>
       </div>
       <MiniPlayer />
+      <AbsBar />
       <NowPlaying />
     </div>
   );
