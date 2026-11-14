@@ -101,6 +101,14 @@ export const nd = {
     const r = await call<{ album: Obj & { song?: Obj[] } }>('getAlbum', { id });
     return { album: album(r.album), songs: arr(r.album.song).map(song) };
   },
+  /** 曲库规模：歌曲数来自扫描状态，专辑 / 艺术家来自艺术家列表 */
+  async counts(): Promise<{ songs: number; albums: number; artists: number }> {
+    const [sc, ar] = await Promise.all([
+      call<{ scanStatus?: { count?: number } }>('getScanStatus').catch(() => ({} as { scanStatus?: { count?: number } })),
+      nd.artists().catch(() => [] as Artist[]),
+    ]);
+    return { songs: n(sc.scanStatus?.count), albums: ar.reduce((a, x) => a + x.albumCount, 0), artists: ar.length };
+  },
   async artists(): Promise<Artist[]> {
     const r = await call<{ artists?: { index?: { artist?: Obj[] }[] } }>('getArtists');
     return (r.artists?.index || []).flatMap((i) => arr(i.artist)).map(artist);

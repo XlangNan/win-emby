@@ -1,4 +1,5 @@
 // 全局音乐播放器：一个 <audio>，队列 / 随机 / 循环 / 系统媒体控制（锁屏、耳机按键）
+import { logMusicPlay } from '../dash/log';
 import { initThumb, thumbPlaying } from './thumb';
 import { useSyncExternalStore } from 'react';
 import { coverUrl, nd, streamUrl, type Song } from './navidrome';
@@ -81,6 +82,7 @@ function el(): HTMLAudioElement {
     if (st.cur && scrobbled !== st.cur.id && a.currentTime > Math.min(30, (st.cur.duration || 60) / 2)) {
       scrobbled = st.cur.id;
       void nd.scrobble(st.cur.id, true);
+      logMusicPlay(st.cur);
     }
   });
   a.addEventListener('play', () => emit({ playing: true, error: '' }));

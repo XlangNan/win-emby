@@ -184,3 +184,15 @@ export function fmtLong(sec: number): string {
   const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60);
   return h > 0 ? `${h} 小时 ${m} 分` : `${m} 分钟`;
 }
+
+// ───────── 首页仪表盘用：书库统计 / 收听统计 ─────────
+export async function absLibStats(lib: string): Promise<{ items: number; duration: number }> {
+  const r = await api<{ totalItems?: number; totalDuration?: number }>(`/api/libraries/${lib}/stats`);
+  return { items: r.totalItems || 0, duration: r.totalDuration || 0 };
+}
+export interface AbsSession { id: string; title: string; author: string; sec: number; at: number }
+export async function absListening(): Promise<{ days: Record<string, number>; sessions: AbsSession[] }> {
+  const r = await api<{ days?: Record<string, number>; recentSessions?: { libraryItemId: string; displayTitle?: string; displayAuthor?: string; timeListening?: number; updatedAt?: number }[] }>('/api/me/listening-stats');
+  const sessions = (r.recentSessions || []).map((x) => ({ id: x.libraryItemId, title: x.displayTitle || '', author: x.displayAuthor || '', sec: x.timeListening || 0, at: x.updatedAt || 0 }));
+  return { days: r.days || {}, sessions };
+}

@@ -21,6 +21,7 @@ import MusicDetail from './music/MusicDetail';
 import MiniPlayer from './music/MiniPlayer';
 import AbsPage, { AbsDetailPage } from './abs/AbsPage';
 import AbsBar from './abs/AbsBar';
+import DashboardPage from './pages/DashboardPage';
 import NowPlaying from './music/NowPlaying';
 import FavoritesPage from './pages/FavoritesPage';
 import HistoryPage from './pages/HistoryPage';
@@ -133,6 +134,8 @@ function AppShell() {
   const shell = useSkinLayout().shell ?? 'topbar';
   const [views, setViews] = useState<EmbyItem[]>([]);
   const landscape = useLandscape();
+  // 电脑版（含竖屏 iPad）：「首页」是仪表盘，原来的首页改叫「影视」（/movies）；手机 / 平板横屏外壳保持原样
+  const useDash = !isMobileApp && !(isIPad && landscape);
 
   useEffect(() => {
     emby
@@ -144,8 +147,8 @@ function AppShell() {
   }, []);
 
   const mainNav: NavItem[] = useMemo(
-    () => [{ to: '/', label: '首页', ico: '🧭', end: true }, ...views.map((v) => ({ to: `/lib/${v.Id}`, label: v.Name, ico: libIco(v.CollectionType) }))],
-    [views],
+    () => [{ to: '/', label: '首页', ico: '🧭', end: true }, ...(useDash ? [{ to: '/movies', label: '影视', ico: '🎬' }] : []), ...views.map((v) => ({ to: `/lib/${v.Id}`, label: v.Name, ico: libIco(v.CollectionType) }))],
+    [views, useDash],
   );
   const myNav: NavItem[] = [
     { to: '/discover', label: '片库', ico: '🎞' },
@@ -162,6 +165,7 @@ function AppShell() {
   const pageTitle = useMemo(() => {
     const p = loc.pathname;
     if (p === '/') return '首页';
+    if (p === '/movies') return '影视';
     if (p.startsWith('/lib/')) return views.find((v) => p.endsWith(v.Id))?.Name || '媒体库';
     if (p.startsWith('/detail')) return '影片详情';
     if (p.startsWith('/search')) return '搜索';
@@ -193,7 +197,8 @@ function AppShell() {
   const routes = (
     <Routes>
       <Route element={<PageShell />}>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={useDash ? <DashboardPage /> : <HomePage />} />
+        <Route path="/movies" element={<HomePage />} />
         <Route path="/media" element={<MediaPage />} />
         <Route path="/lib/:id" element={<LibraryPage />} />
         <Route path="/detail/:id" element={<DetailPage />} />
@@ -357,7 +362,7 @@ function AppShell() {
                 <rect x="3" y="4" width="18" height="16" rx="2" /><path d="m10 9 5 3-5 3V9Z" />
               </svg>
             </NavLink>
-            {[{ to: '/', label: '首页', end: true }, { to: '/live', label: '直播' }, { to: '/music', label: '音乐' }, { to: '/audiobooks', label: '有声书' }].map((n) => (
+            {[{ to: '/', label: '首页', end: true }, { to: '/movies', label: '影视' }, { to: '/live', label: '直播' }, { to: '/music', label: '音乐' }, { to: '/audiobooks', label: '有声书' }].map((n) => (
               <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => 'nf-link' + (isActive ? ' active' : '')}>
                 {n.label}
               </NavLink>

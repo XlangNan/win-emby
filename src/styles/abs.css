@@ -79,3 +79,36 @@
 /* 手机 / 平板外壳：播放条抬到底部标签栏上方，页面底部多留空 */
 :root.mobile .abs-bar-wrap, .m-app .abs-bar-wrap{ bottom: calc(var(--m-mini-b, 86px) + env(safe-area-inset-bottom)); left: 8px; right: 8px; border-radius: 16px; border: 1px solid var(--border, #262c3b); }
 :root.mobile .content.abs-page, .m-app .abs-page{ padding-bottom: 190px; }
+
+/* ═════════ 去边框：和音乐页同一套按钮风格（无框、实心胶囊；主要 = 红色） ═════════ */
+:root:root .abs-page button, :root:root .abs-bar-wrap button{
+  border: 0 !important; box-shadow: none !important; text-shadow: none; outline: none;
+  background: #2a2a30; color: #e4e4e7; font: inherit; font-size: 14px; font-weight: 600;
+  height: 36px; min-width: 0; padding: 0 18px; border-radius: 18px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  transition: background .15s, color .15s, opacity .15s; -webkit-tap-highlight-color: transparent;
+}
+:root:root .abs-page button:hover:not(:disabled), :root:root .abs-bar-wrap button:hover:not(:disabled){ background: #34343c; }
+:root:root .abs-page button:focus-visible, :root:root .abs-bar-wrap button:focus-visible{ outline: 2px solid rgba(240, 65, 75, .8) !important; outline-offset: 2px; }
+:root:root .abs-page button:disabled{ opacity: .45; cursor: default; }
+:root:root .abs-page button.primary{ background: #f0414b; color: #fff; }
+:root:root .abs-page button.primary:hover:not(:disabled){ background: #f4525b; }
+/* 纯文字链接 */
+:root:root .abs-page button.abs-link{ background: none !important; height: auto; padding: 4px 6px; font-size: 13px; font-weight: 400; color: #9a9aa2; border-radius: 6px; }
+:root:root .abs-page button.abs-link:hover{ color: #fff; background: none !important; }
+/* 书库 / 排序 切换：未选中无底色，选中深灰实心 */
+:root:root .abs-pills button{ height: auto; padding: 5px 14px; border-radius: 14px; font-size: 13px; font-weight: 500; background: transparent; color: #a8a8b0; }
+:root:root .abs-pills button:hover:not(:disabled){ background: rgba(255, 255, 255, .08); }
+:root:root .abs-pills button.on{ background: #34343c; color: #fff; }
+/* 章节列表：整行点按，当前章节红字，没有框 */
+:root:root .abs-page button.abs-chap{ display: flex; width: 100%; height: auto; justify-content: space-between; border-radius: 8px; background: transparent; font-weight: 400; font-size: 13.5px; padding: 9px 12px; color: #d4d4d8; }
+:root:root .abs-page button.abs-chap:hover{ background: rgba(255, 255, 255, .06); }
+:root:root .abs-page button.abs-chap.on{ background: rgba(240, 65, 75, .12); color: #f0414b; }
+/* 底部播放条：控制按钮去底色，只留图标 / 文字；播放键白色圆形 */
+:root:root .abs-bar-wrap{ border: 0; box-shadow: 0 -6px 24px rgba(0, 0, 0, .35); }
+:root:root .abs-bar-wrap button{ background: transparent; height: 32px; padding: 0 9px; font-size: 13px; font-weight: 600; color: #c9c9d1; border-radius: 16px; }
+:root:root .abs-bar-wrap button:hover:not(:disabled){ background: rgba(255, 255, 255, .1); color: #fff; }
+:root:root .abs-bar-wrap button.on{ color: #f0414b; background: transparent; }
+:root:root .abs-bar-wrap button.abs-bar-play{ width: 40px; height: 40px; padding: 0; background: #fff; color: #000; border-radius: 50%; font-size: 14px; }
+:root:root .abs-bar-wrap button.abs-bar-play:hover:not(:disabled){ background: #e8e8ec; color: #000; }
+.m-app .abs-bar-wrap{ border: 0 !important; }
