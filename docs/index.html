@@ -94,6 +94,7 @@ footer{color:var(--mut);font-size:13px;margin-top:60px;border-top:1px solid var(
  <a href="#d-dm">弹幕服务</a>
  <a href="#d-intro">TheIntroDB 片头库</a>
  <a href="#d-nd">Navidrome</a>
+ <a href="#d-abs">Audiobookshelf</a>
  <a href="#d-lrc">在线歌词 / 封面</a>
  <a href="#d-epg">直播源与节目单</a>
  <a href="#d-party">一起看服务</a>
@@ -164,6 +165,7 @@ footer{color:var(--mut);font-size:13px;margin-top:60px;border-top:1px solid var(
 <tr><td><a href="#d-dm">弹幕聚合服务</a></td><td>播放时加载弹幕</td><td><span class="tag opt">可选</span></td><td>设置 → 弹幕</td><td>9321</td></tr>
 <tr><td><a href="#d-intro">TheIntroDB</a></td><td>在线查片头 / 片尾时间</td><td><span class="tag opt">可选</span></td><td>设置 → 播放 → 自动跳过片头</td><td>公网服务</td></tr>
 <tr><td><a href="#d-nd">Navidrome</a></td><td>音乐库</td><td><span class="tag opt">可选</span></td><td>设置 → 音乐</td><td>4533</td></tr>
+<tr><td><a href="#d-abs">Audiobookshelf</a></td><td>有声书</td><td><span class="tag opt">可选</span></td><td>顶栏 → 有声书</td><td>13378</td></tr>
 <tr><td><a href="#d-lrc">NeteaseCloudMusicApi / Meting</a></td><td>在线匹配歌词、封面</td><td><span class="tag opt">可选</span></td><td>设置 → 音乐选项</td><td>3000 / 自定</td></tr>
 <tr><td><a href="#d-epg">M3U / XMLTV</a></td><td>电视直播源与节目单</td><td><span class="tag opt">可选</span></td><td>直播页</td><td>—</td></tr>
 <tr><td><a href="#d-party">一起看服务</a></td><td>多人同步看片 / 听歌</td><td><span class="tag opt">可选</span></td><td>设置 → 一起看</td><td>8787</td></tr>
@@ -436,6 +438,28 @@ git push origin v0.2.0</code></pre>
 </ol>
 <div class="box"><p><b>歌词建议：</b>在歌曲文件旁放同名 <code>.lrc</code> 文件，或在标签里嵌入歌词，Navidrome 就会提供歌词；没有的由织影从 <a href="#d-lrc">在线来源</a> 匹配。</p></div>
 
+<h2 id="d-abs">依赖搭建 · Audiobookshelf（有声书） <span class="tag opt">可选</span></h2>
+<p>用途：有声书。织影通过 Audiobookshelf 的 API 对接，页面入口在顶栏「有声书」，播放进度会同步回服务器（和它自带的网页 / 手机 App 通用）。</p>
+<ol class="steps">
+<li>用 Docker 部署：
+<pre><code>services:
+  audiobookshelf:
+    image: ghcr.nju.edu.cn/advplyr/audiobookshelf:latest
+    container_name: audiobookshelf
+    restart: unless-stopped
+    ports:
+      - "13378:80"
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - /volume1/audiobooks:/audiobooks
+      - /volume1/docker/audiobookshelf/config:/config
+      - /volume1/docker/audiobookshelf/metadata:/metadata</code></pre></li>
+<li>浏览器打开 <code>http://群晖IP:13378</code>，创建管理员账号，新建一个「书籍」类型的库，指向 <code>/audiobooks</code>。</li>
+<li>App：顶栏「有声书」→ 填服务器地址（不写端口默认 13378）、用户名、密码，点「连接」。也可以改用 API Token。</li>
+</ol>
+<div class="box"><p><b>说明：</b>目前只支持「书籍」类型的库，播客库暂不支持。播放时音乐会自动暂停，反过来也一样。</p></div>
+
 <h2 id="d-lrc">依赖搭建 · 在线歌词 / 封面 <span class="tag opt">可选</span></h2>
 <p>用途：歌曲菜单里的「匹配 / 编辑 歌词与封面」、以及「服务器没有歌词时自动匹配」。<b>两个来源二选一</b>，都填时优先 NeteaseCloudMusicApi。</p>
 <h3>方案 A：NeteaseCloudMusicApi</h3>
@@ -644,7 +668,7 @@ pnpm web</code></pre>
 
 <footer>
 <p>织影 Weave · MIT 许可。本项目是个人学习性质的开源实现，与 Emby 官方无隶属关系；由 Win-box 重构而来，Fork 二改请注明原项目。</p>
-<p>本手册对应构建 <code>1110-S</code>。部分第三方服务（镜像名、端口、接口）会随其官方更新而变化，以对方文档为准。</p>
+<p>本手册对应构建 <code>1110-U</code>。部分第三方服务（镜像名、端口、接口）会随其官方更新而变化，以对方文档为准。</p>
 </footer>
 </main>
 </div>
