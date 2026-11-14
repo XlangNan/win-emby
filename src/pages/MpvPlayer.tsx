@@ -1077,8 +1077,8 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       )}
 
       {inCredits && !inIntro && !upOff && (nextEp || item?.Type !== 'Episode') && (
-        <div className={`we-upnext${showUi ? ' up' : ''}`} onClick={(e) => e.stopPropagation()}>
-          <button className="we-upnext-x" title="关闭提示" aria-label="关闭提示" onClick={() => setUpOff(true)}>×</button>
+        <div className={`we-upnext${showUi ? ' up' : ''}${nextEp ? '' : ' solo'}`} onClick={(e) => e.stopPropagation()}>
+          <button className="we-upnext-x" title="关闭提示" aria-label="关闭提示" onClick={() => setUpOff(true)}><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" /></svg></button>
           {nextEp ? (
             <>
               <div className="we-upnext-h">接下来播放</div>

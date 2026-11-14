@@ -624,8 +624,16 @@ html:not([data-motion='off']) .mu-spin{ animation-duration: 12s !important; anim
 
 .we-error{ white-space: pre-wrap; text-align: center; max-width: 82%; line-height: 1.7; }
 
-/* 片尾提示：右上角关闭按钮 */
-.we-upnext{ position: absolute; }
-.we-upnext-x{ position: absolute; top: 6px; right: 8px; width: 26px; height: 26px; border-radius: 50%; border: none; background: rgba(255, 255, 255, .12); color: #ddd; font-size: 18px; line-height: 24px; padding: 0; cursor: pointer; z-index: 2; }
-.we-upnext-x:hover{ background: rgba(255, 255, 255, .28); color: #fff; }
-.we-upnext-h{ padding-right: 30px; }
+/* 片尾提示：关闭按钮。皮肤里有 `:root[data-theme] button` 的样式，所以这里用更高特异度 + 重置，免得被压成椭圆 / 带光圈 */
+:root .we-upnext .we-upnext-x{
+  position: absolute; top: 8px; right: 8px; z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; min-width: 26px; min-height: 26px; padding: 0; margin: 0;
+  border: none; border-radius: 50%; box-shadow: none; transform: none;
+  background: rgba(255, 255, 255, .14); color: #ddd; cursor: pointer;
+}
+:root .we-upnext .we-upnext-x:hover{ background: rgba(255, 255, 255, .3); color: #fff; box-shadow: none; border: none; }
+:root .we-upnext .we-upnext-x:active{ transform: none; }
+.we-upnext-h{ padding-right: 32px; }
+.we-upnext.solo{ display: flex; align-items: center; gap: 8px; padding: 8px 10px; width: auto; }
+:root .we-upnext.solo .we-upnext-x{ position: static; flex: none; }
