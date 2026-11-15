@@ -2,9 +2,9 @@
 import { useEffect, useState } from 'react';
 import { httpFetch } from '../emby/http';
 
-export interface AbsConfig { server: string; token: string; user: string }
+export interface AbsConfig { server: string; token: string; user: string; refresh?: string }
 const KEY = 'wemby-abs';
-const EMPTY: AbsConfig = { server: '', token: '', user: '' };
+const EMPTY: AbsConfig = { server: '', token: '', user: '', refresh: '' };
 
 export function normalizeAbsServer(input: string): string {
   let s = input.trim();
@@ -22,16 +22,17 @@ export function loadAbs(): AbsConfig {
   try { return { ...EMPTY, ...(JSON.parse(localStorage.getItem(KEY) || '{}') as Partial<AbsConfig>) }; } catch { return { ...EMPTY }; }
 }
 export function saveAbs(c: AbsConfig): void {
-  try { localStorage.setItem(KEY, JSON.stringify({ server: normalizeAbsServer(c.server), token: c.token.trim(), user: c.user.trim() })); } catch { /* ignore */ }
+  try { localStorage.setItem(KEY, JSON.stringify({ server: normalizeAbsServer(c.server), token: c.token.trim(), user: c.user.trim(), refresh: (c.refresh || '').trim() })); } catch { /* ignore */ }
   window.dispatchEvent(new Event('wemby-abs-changed'));
 }
 export function clearAbs(): void { saveAbs({ ...EMPTY }); }
 export const absConfigured = (): boolean => { const c = loadAbs(); return !!(c.server && c.token); };
 /** 配置变化时让组件重新渲染 */
 export function useAbsKey(): string {
-  const [k, setK] = useState(() => JSON.stringify(loadAbs()));
+  const key = (): string => { const c = loadAbs(); return JSON.stringify({ s: c.server, u: c.user, t: !!c.token }); };
+  const [k, setK] = useState(key);
   useEffect(() => {
-    const f = (): void => setK(JSON.stringify(loadAbs()));
+    const f = (): void => setK(key());
     window.addEventListener('wemby-abs-changed', f);
     return () => window.removeEventListener('wemby-abs-changed', f);
   }, []);
@@ -39,7 +40,30 @@ export function useAbsKey(): string {
 }
 
 type Obj = Record<string, unknown>;
-async function api<T = Obj>(path: string, init?: { method?: string; body?: unknown }, cfg = loadAbs()): Promise<T> {
+let refreshP: Promise<boolean> | null = null;
+/** 登录凭证过期时，用 refresh token 换新的（服务器 2.26 起访问令牌约 1 小时过期）。成功返回 true */
+export function absRefreshAuth(): Promise<boolean> {
+  if (!refreshP) refreshP = doRefresh().finally(() => { refreshP = null; });
+  return refreshP;
+}
+async function doRefresh(): Promise<boolean> {
+  const c = loadAbs();
+  if (!c.server || !c.refresh) return false;
+  try {
+    const res = await httpFetch(`${c.server}/auth/refresh`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-refresh-token': c.refresh }, body: '{}' });
+    if (!res.ok) return false;
+    const j = (await res.json()) as { user?: { accessToken?: string; token?: string; refreshToken?: string } };
+    const t = j.user?.accessToken || j.user?.token;
+    if (!t) return false;
+    saveAbs({ ...c, token: t, refresh: j.user?.refreshToken || c.refresh });
+    return true;
+  } catch { return false; }
+}
+/** 把已经拼好的地址里的 token 换成当前最新的（刷新过之后用） */
+export const absFreshUrl = (u: string): string => u.replace(/([?&]token=)[^&]*/, `$1${encodeURIComponent(loadAbs().token)}`);
+
+async function api<T = Obj>(path: string, init?: { method?: string; body?: unknown }, given?: AbsConfig, retried = false): Promise<T> {
+  const cfg = given ?? loadAbs();
   if (!cfg.server || !cfg.token) throw new Error('还没有连接 Audiobookshelf');
   let res: Response;
   try {
@@ -51,7 +75,16 @@ async function api<T = Obj>(path: string, init?: { method?: string; body?: unkno
   } catch (e) {
     throw new Error(`连不上服务器：${(e as Error).message || e}`);
   }
-  if (res.status === 401 || res.status === 403) throw new Error('登录已失效，请重新连接');
+  if (res.status === 401) {
+    if (!given && !retried) {
+      if (await absRefreshAuth()) return api<T>(path, init, undefined, true);
+      // 凭证过期又换不回来：只清掉 token，服务器地址和用户名留着，连接页会自动填好，只需再输一次密码
+      const cur = loadAbs();
+      saveAbs({ ...cur, token: '', refresh: '' });
+    }
+    throw new Error('登录已失效，请重新连接');
+  }
+  if (res.status === 403) throw new Error('没有权限访问');
   if (!res.ok) throw new Error(`服务器返回 ${res.status}`);
   const t = await res.text();
   return (t ? JSON.parse(t) : {}) as T;
@@ -62,16 +95,17 @@ export async function absLogin(server: string, user: string, pass: string): Prom
   const s = normalizeAbsServer(server);
   let res: Response;
   try {
-    res = await httpFetch(`${s}/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: user, password: pass }) });
+    res = await httpFetch(`${s}/login`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-return-tokens': 'true' }, body: JSON.stringify({ username: user, password: pass }) });
   } catch (e) {
     throw new Error(`连不上服务器：${(e as Error).message || e}`);
   }
   if (res.status === 401) throw new Error('用户名或密码不对');
   if (!res.ok) throw new Error(`服务器返回 ${res.status}`);
-  const j = (await res.json()) as { user?: { accessToken?: string; token?: string; username?: string } };
-  const token = j.user?.accessToken || j.user?.token;
+  const j = (await res.json()) as { user?: { accessToken?: string; refreshToken?: string; token?: string; username?: string } };
+  // 优先用不过期的老式 token；没有的话用访问令牌 + refresh token（过期时自动续）
+  const token = j.user?.token || j.user?.accessToken;
   if (!token) throw new Error('服务器没有返回 token');
-  return { server: s, token, user: j.user?.username || user };
+  return { server: s, token, user: j.user?.username || user, refresh: j.user?.refreshToken || '' };
 }
 
 /** 直接用 API token 连接：先试一下能不能访问 */

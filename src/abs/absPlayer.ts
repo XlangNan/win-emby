@@ -1,7 +1,7 @@
 // 有声书播放器：一本书可能由多个音频文件组成，这里把它们接成一条连续的时间线。
 // 全局单例，切换页面不会中断；进度每 15 秒 + 暂停 / 退出时同步回 Audiobookshelf。
 import { useSyncExternalStore } from 'react';
-import { absCover, absDetail, absFileUrl, absProgressMap, absSaveProgress, type AbsChapter } from './abs';
+import { absCover, absDetail, absFileUrl, absFreshUrl, absRefreshAuth, absProgressMap, absSaveProgress, type AbsChapter } from './abs';
 import { listenMusic, musicState, stopMusic } from '../music/player';
 
 interface Track { url: string; start: number; dur: number }
@@ -44,9 +44,18 @@ function el(): HTMLAudioElement {
   a.addEventListener('waiting', () => emit({ loading: true }));
   a.addEventListener('playing', () => emit({ loading: false, err: '' }));
   a.addEventListener('canplay', () => emit({ loading: false }));
-  a.addEventListener('error', () => emit({ loading: false, playing: false, err: '音频加载失败（地址、网络或格式不支持）' }));
+  let retried = 0;
+  a.addEventListener('error', () => {
+    // 先试着续一下登录凭证（访问令牌过期会让音频地址失效），换上新 token 从当前位置接着放
+    if (Date.now() - retried > 30000 && st.id) {
+      retried = Date.now();
+      void absRefreshAuth().then((ok) => { if (ok) { const p = st.pos; cur = -1; gotoGlobal(p, true); } else emit({ loading: false, playing: false, err: '音频加载失败（地址、网络或格式不支持，或登录已过期）' }); });
+      return;
+    }
+    emit({ loading: false, playing: false, err: '音频加载失败（地址、网络或格式不支持）' });
+  });
   a.addEventListener('ended', () => {
-    if (cur + 1 < tracks.length) { cur++; a.src = tracks[cur].url; void a.play().catch(() => undefined); return; }
+    if (cur + 1 < tracks.length) { cur++; a.src = absFreshUrl(tracks[cur].url); void a.play().catch(() => undefined); return; }
     emit({ playing: false, pos: st.duration });
     void absSaveProgress(st.id, st.duration, st.duration, true);
   });
@@ -74,7 +83,7 @@ function gotoGlobal(t: number, play: boolean): void {
   a.playbackRate = st.rate;
   if (i !== cur || !a.src || !a.src.startsWith(tracks[i].url.split('?')[0])) {
     cur = i;
-    a.src = tracks[i].url;
+    a.src = absFreshUrl(tracks[i].url);
     a.addEventListener('loadedmetadata', () => { a.currentTime = off; a.playbackRate = st.rate; }, { once: true });
   } else {
     a.currentTime = off;
