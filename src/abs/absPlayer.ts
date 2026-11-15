@@ -169,5 +169,5 @@ function setupMediaSession(): void {
   } catch { /* 部分环境不支持 */ }
 }
 
-// 放音乐时，有声书自动暂停
-listenMusic(() => { if (st.playing && musicState().playing) absPause(); });
+// 开始放音乐时，有声书收起：保存进度、停止并让底部播放条消失（和「放有声书时音乐被清掉」对称）
+listenMusic(() => { if (st.id && musicState().playing) absStop(); });
