@@ -13,11 +13,11 @@ export interface ThemeLayout {
   cardWidth?: number;
 }
 
-export type Theme = 'netflix';
+export type Theme = 'netflix' | 'noir';
 
-export const DEFAULT_THEME: Theme = 'netflix';
+export const DEFAULT_THEME: Theme = 'noir';
 
-export const THEME_LABELS: Record<Theme, string> = { netflix: '🎬 网飝' };
+export const THEME_LABELS: Record<Theme, string> = { netflix: '🎬 网飝', noir: '✨ 黑金' };
 
 interface SkinEntry {
   id: Theme;
@@ -27,6 +27,8 @@ interface SkinEntry {
 
 const SKINS: SkinEntry[] = [
   { id: 'netflix', base: 'dark', layout: { shell: 'topbar', detailStyle: 'cinema', discoverStyle: 'shelf', navHeight: 58, cardWidth: 176 } },
+  // 黑金：布局与网飝完全一致，只换令牌（见 styles/noir.css）
+  { id: 'noir', base: 'dark', layout: { shell: 'topbar', detailStyle: 'cinema', discoverStyle: 'shelf', navHeight: 58, cardWidth: 176 } },
 ];
 
 export const ALL_THEMES: Theme[] = SKINS.map((s) => s.id);

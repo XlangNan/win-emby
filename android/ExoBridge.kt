@@ -100,6 +100,13 @@ class ExoBridge(private val act: Activity, private val web: WebView) : Player.Li
                 fl.addView(arl, FrameLayout.LayoutParams(-1, -1, android.view.Gravity.CENTER))
                 ar = arl
                 val sub = SubtitleView(act)
+                // 字幕不要底色框：白字 + 黑色描边；并忽略字幕文件自带的样式（ASS / WebVTT 里常带不透明背景框）
+                sub.setStyle(androidx.media3.ui.CaptionStyleCompat(
+                    android.graphics.Color.WHITE, android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT,
+                    androidx.media3.ui.CaptionStyleCompat.EDGE_TYPE_OUTLINE, android.graphics.Color.BLACK, null))
+                sub.setApplyEmbeddedStyles(false)
+                sub.setApplyEmbeddedFontSizes(false)
+                sub.setFractionalTextSize(androidx.media3.ui.SubtitleView.DEFAULT_TEXT_SIZE_FRACTION)
                 fl.addView(sub, FrameLayout.LayoutParams(-1, -1))
                 parent.addView(fl, 0, ViewGroup.LayoutParams(-1, -1))
                 root = fl; sv = v; subs = sub

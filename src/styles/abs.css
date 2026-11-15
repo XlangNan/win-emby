@@ -32,7 +32,7 @@
 .ab-pg{ margin-top: 12px; height: 3px; background: rgba(255, 255, 255, .14); border-radius: 2px; }
 .ab-pg i{ display: block; height: 100%; background: var(--ed-a); border-radius: 2px; }
 .ab-pt{ margin-top: 7px; font-size: 12px; color: var(--ed-soft); }
-:root:root .abs-page button.ab-go{ width: 42px; height: 42px; padding: 0; border-radius: 50%; background: var(--ed-v); color: #fff; font-size: 14px; flex: none; }
+:root:root .abs-page button.ab-go{ width: 42px; height: 42px; padding: 0; border-radius: 50%; background: var(--ed-act); color: var(--ed-on); font-size: 14px; flex: none; }
 .abs-hrow{ display: flex; gap: 22px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: thin; }
 .abs-hrow .abs-card{ flex: none; width: 160px; }
 .abs-grid{ display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 34px 26px; }
@@ -114,19 +114,19 @@
   transition: background .15s, color .15s, opacity .15s; -webkit-tap-highlight-color: transparent;
 }
 :root:root .abs-page button:hover:not(:disabled), :root:root .abs-bar-wrap button:hover:not(:disabled){ background: #34343c; }
-:root:root .abs-page button:focus-visible, :root:root .abs-bar-wrap button:focus-visible{ outline: 2px solid rgba(240, 65, 75, .8) !important; outline-offset: 2px; }
+:root:root .abs-page button:focus-visible, :root:root .abs-bar-wrap button:focus-visible{ outline: 2px solid var(--ed-act) !important; outline-offset: 2px; }
 :root:root .abs-page button:disabled{ opacity: .45; cursor: default; }
-:root:root .abs-page button.primary{ height: 46px; padding: 0 28px; border-radius: 23px; font-size: 15px; background: var(--ed-v); color: #fff; }
+:root:root .abs-page button.primary{ height: 46px; padding: 0 28px; border-radius: 23px; font-size: 15px; background: var(--ed-act); color: var(--ed-on); }
 :root:root .abs-page button.primary:hover:not(:disabled){ background: var(--accent-strong, #f4525b); }
 :root:root .abs-page button.abs-link, :root:root .abs-page .ab-sort button{ background: none !important; height: auto; padding: 4px 8px; font-size: 13px; font-weight: 400; color: var(--ed-dim); border-radius: 8px; }
 :root:root .abs-page .ab-sort button.on{ color: var(--ed-ink); font-weight: 700; }
 :root:root .abs-page button.abs-link:hover, :root:root .abs-page .ab-sort button:hover{ color: var(--ed-ink); background: none !important; }
-:root:root .abs-page button.ab-go{ width: 42px; height: 42px; padding: 0; border-radius: 50%; background: var(--ed-v); color: #fff; font-size: 14px; }
+:root:root .abs-page button.ab-go{ width: 42px; height: 42px; padding: 0; border-radius: 50%; background: var(--ed-act); color: var(--ed-on); font-size: 14px; }
 /* 底部播放条：控制按钮去底色，只留图标 / 文字；播放键白色圆形 */
 :root:root .abs-bar-wrap{ border: 0; box-shadow: 0 -6px 24px rgba(0, 0, 0, .35); }
 :root:root .abs-bar-wrap button{ background: transparent; height: 32px; padding: 0 9px; font-size: 13px; font-weight: 600; color: #c9c9d1; border-radius: 16px; }
 :root:root .abs-bar-wrap button:hover:not(:disabled){ background: rgba(255, 255, 255, .1); color: #fff; }
-:root:root .abs-bar-wrap button.on{ color: #f0414b; background: transparent; }
+:root:root .abs-bar-wrap button.on{ color: var(--ed-act); background: transparent; }
 :root:root .abs-bar-wrap button.abs-bar-play{ width: 40px; height: 40px; padding: 0; background: #fff; color: #000; border-radius: 50%; font-size: 14px; }
 :root:root .abs-bar-wrap button.abs-bar-play:hover:not(:disabled){ background: #e8e8ec; color: #000; }
 .m-app .abs-bar-wrap{ border: 0 !important; }

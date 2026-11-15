@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { DEFAULT_THEME, normalizeTheme, skinBase, skinLayout, type Theme, type ThemeLayout } from './themeTokens';
 
 export type { Theme };
-const KEY = 'wemby-theme';
+const KEY = 'weave-theme'; // 换名：让老用户也默认进入新皮肤
 export const THEME_EVENT = 'wemby:theme-changed';
 
 export function currentTheme(): Theme {

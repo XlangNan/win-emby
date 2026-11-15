@@ -18,6 +18,7 @@ import './styles/abs.css';
 import './styles/dash.css';
 import './styles/tablet.css';
 import './styles/light.css';
+import './styles/noir.css'; // 黑金皮肤：放最后，修饰规则才能盖过结构层
 
 // 挂载前先应用皮肤，避免首屏闪烁
 initTheme();
