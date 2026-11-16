@@ -1,0 +1,125 @@
+/* ================= 随便看看（群晖本地视频）：首页 + 播放页。新增元素一律无边框：深灰底，主按钮 / 选中用强调色 ================= */
+.lc-page{ max-width: 1400px; margin: 0 auto; overflow-x: hidden; }
+.lc-page button, .lc-player button, .lc-sheet button{ border: 0 !important; box-shadow: none !important; }
+:root:root .lc-page button, :root:root .lc-sheet button{ border-radius: 99px; background: var(--surface-3, #26262b) !important; color: inherit; }
+:root:root .lc-page .lc-pri, :root:root .lc-page button.on, :root:root .lc-sheet .lc-pri{ background: var(--accent, #f0414b) !important; color: #fff !important; }
+.lc-head{ display: flex; align-items: center; gap: 10px; margin: 6px 0 14px; }
+.lc-head h1, .lc-conn h1{ font-size: 24px; font-weight: 700; margin: 0; flex: none; white-space: nowrap; }
+.lc-head .lc-q, .lc-conn input{ border: 0 !important; outline: none; border-radius: 99px; background: var(--surface-3, #26262b) !important; color: inherit; height: 38px; padding: 0 16px; box-shadow: none !important; }
+.lc-head .lc-q{ flex: 1; min-width: 0; margin-left: 8px; }
+.lc-head button, .lc-acts button{ height: 36px; padding: 0 16px; font-size: 13px; white-space: nowrap; flex: none; }
+.lc-chips{ display: flex; gap: 8px; overflow-x: auto; margin-bottom: 8px; scrollbar-width: none; }
+.lc-chips::-webkit-scrollbar{ display: none; }
+.lc-chips button{ flex: none; height: 34px; padding: 0 14px; font-size: 13px; white-space: nowrap; }
+.lc-sec{ font-size: 18px; font-weight: 700; margin: 18px 0 10px; }
+.lc-hrow{ display: flex; gap: 14px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+.lc-hrow::-webkit-scrollbar{ display: none; }
+.lc-hrow .lc-card, .lc-hrow .lc-pl{ width: 240px; flex: none; }
+.lc-grid{ display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px 16px; }
+.lc-card, .lc-pl{ cursor: pointer; min-width: 0; }
+.lc-th{ position: relative; aspect-ratio: 16 / 9; border-radius: 14px; overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 12px; }
+.lc-th-t{ color: rgba(255, 255, 255, .86); font-size: 15px; font-weight: 600; text-align: center; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-shadow: 0 1px 6px rgba(0, 0, 0, .4); }
+.lc-dur{ position: absolute; right: 6px; bottom: 8px; background: rgba(0, 0, 0, .75); color: #fff; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 5px; }
+.lc-prog{ position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, .25); }
+.lc-prog b{ display: block; height: 100%; background: var(--accent, #f0414b); }
+.lc-cnt{ position: absolute; right: 0; top: 0; bottom: 0; width: 22%; background: rgba(0, 0, 0, .6); color: #fff; display: grid; place-items: center; font-size: 12px; text-align: center; }
+.lc-t{ margin-top: 9px; font-size: 14.5px; font-weight: 600; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.lc-m{ margin-top: 3px; font-size: 12px; opacity: .6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lc-acts{ display: flex; gap: 8px; margin: 4px 0 14px; flex-wrap: wrap; }
+.lc-empty{ padding: 40px 0; text-align: center; opacity: .6; font-size: 14px; }
+.lc-err{ margin: 10px 0; padding: 12px 14px; border-radius: 12px; background: rgba(240, 65, 75, .14); font-size: 13px; line-height: 1.6; }
+.lc-conn{ max-width: 520px; margin: 24px auto; }
+.lc-sub, .lc-tip{ font-size: 13px; opacity: .65; line-height: 1.7; margin: 8px 0 16px; }
+.lc-conn label{ display: block; font-size: 13px; opacity: .85; margin-bottom: 12px; }
+.lc-conn label input{ display: block; width: 100%; margin-top: 6px; box-sizing: border-box; }
+.lc-path{ font-size: 13px; opacity: .8; margin: 10px 0; word-break: break-all; }
+.lc-rows{ display: flex; flex-direction: column; gap: 4px; max-height: 46vh; overflow-y: auto; margin-bottom: 12px; }
+:root:root .lc-conn .lc-row{ border-radius: 12px; text-align: left; padding: 12px 14px; height: auto; }
+
+/* 手机：紧凑一些 */
+@media (max-width: 760px) {
+  .lc-head{ flex-wrap: wrap; }
+  .lc-head h1{ font-size: 22px; }
+  .lc-head .lc-q{ order: 3; flex-basis: 100%; margin-left: 0; }
+  .lc-head h1 + .lc-q + button{ margin-left: auto; }
+  .lc-grid{ grid-template-columns: 1fr; gap: 18px; }
+  .lc-hrow .lc-card, .lc-hrow .lc-pl{ width: 200px; }
+}
+
+/* ================= 播放页（深色固定） ================= */
+.lc-player{ position: fixed; inset: 0; z-index: 50; color: #f2f2f3; overflow: hidden; background: transparent; user-select: none; -webkit-user-select: none; }
+.lc-stage{ position: absolute; overflow: hidden; }
+.lc-warm{ position: absolute; inset: 0; background: rgba(255, 120, 20, .16); pointer-events: none; z-index: 1; }
+.lc-top{ position: absolute; left: 8px; right: 8px; top: 6px; z-index: 4; display: flex; align-items: center; gap: 10px; transition: opacity .3s; }
+.lc-top-t{ font-size: 15px; font-weight: 600; text-shadow: 0 1px 6px #000; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+:root:root .lc-player .lc-ic{ box-sizing: border-box; flex: none; width: 40px; height: 40px; min-width: 40px; min-height: 40px; padding: 0; border-radius: 50%; background: rgba(0, 0, 0, .45) !important; color: #fff; line-height: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; }
+:root:root .lc-player .lc-ic.lc-sm{ width: 34px; height: 34px; min-width: 34px; min-height: 34px; background: transparent !important; font-size: 15px; }
+:root:root .lc-player .lc-playbtn{ position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 56px; height: 56px; min-width: 56px; min-height: 56px; z-index: 4; transition: opacity .3s; }
+.lc-bar{ position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; padding: 26px 10px 8px; display: flex; align-items: center; gap: 8px; background: linear-gradient(#0000, #000b); font-size: 12px; transition: opacity .3s; }
+.lc-time{ font-variant-numeric: tabular-nums; flex: none; min-width: 38px; text-align: center; }
+.lc-seek{ position: relative; flex: 1; height: 24px; display: flex; align-items: center; touch-action: none; cursor: pointer; min-width: 40px; }
+.lc-seek::before{ content: ''; position: absolute; left: 0; right: 0; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .3); }
+.lc-seek i{ position: absolute; left: 0; height: 4px; border-radius: 2px; background: var(--accent, #f0414b); }
+.lc-seek b{ position: absolute; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: #fff; }
+.lc-vol{ width: 80px; flex: none; accent-color: var(--accent, #f0414b); }
+.lc-player.hide-ui .lc-top, .lc-player.hide-ui .lc-bar, .lc-player.hide-ui .lc-playbtn{ opacity: 0; pointer-events: none; }
+.lc-player.hide-ui .lc-stage{ cursor: none; }
+.lc-center-msg{ position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 3; max-width: 86%; text-align: center; font-size: 14px; padding: 10px 16px; border-radius: 14px; background: rgba(0, 0, 0, .6); display: flex; flex-direction: column; align-items: center; gap: 10px; line-height: 1.6; }
+.lc-center-msg button{ height: 34px; padding: 0 18px; border-radius: 99px; background: var(--accent, #f0414b) !important; color: #fff; font-size: 13px; }
+.lc-playbtn + .lc-bar, .lc-center-msg ~ .lc-playbtn{ }
+.lc-err{ }
+
+/* 竖屏：下面是信息区 + 播放列表（不透明） */
+.lc-low{ position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; display: flex; flex-direction: column; background: #0f0f10; }
+.lc-info{ padding: 12px 16px 4px; }
+.lc-info h2{ margin: 0; font-size: 18px; font-weight: 700; line-height: 1.35; }
+.lc-meta{ margin-top: 4px; font-size: 12px; color: #9a9aa2; }
+.lc-tools{ display: flex; gap: 8px; padding: 10px 16px 12px; overflow-x: auto; flex: none; scrollbar-width: none; }
+.lc-tools::-webkit-scrollbar{ display: none; }
+:root:root .lc-tools button{ flex: none; height: 34px; padding: 0 14px; border-radius: 99px; background: #26262b !important; color: #f2f2f3; font-size: 13px; white-space: nowrap; }
+:root:root .lc-tools button.on{ background: var(--accent, #f0414b) !important; color: #fff; }
+.lc-qh{ display: flex; justify-content: space-between; align-items: center; padding: 6px 16px 8px; flex: none; }
+.lc-qh b{ font-size: 15px; }
+.lc-qh span{ font-size: 12px; color: #9a9aa2; }
+.lc-qscroll{ flex: 1; min-height: 0; overflow-y: auto; padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+.lc-qi{ display: flex; gap: 12px; padding: 6px 12px; margin: 0 6px; border-radius: 12px; cursor: pointer; }
+.lc-qi.on{ background: rgba(240, 65, 75, .14); }
+@media (hover: hover) and (pointer: fine) { .lc-qi:hover{ background: rgba(255, 255, 255, .07); } .lc-qi.on:hover{ background: rgba(240, 65, 75, .2); } }
+.lc-qth{ width: 132px; flex: none; aspect-ratio: 16 / 9; border-radius: 10px; display: flex; align-items: center; justify-content: center; padding: 6px; overflow: hidden; }
+.lc-qth span{ font-size: 11px; font-weight: 600; text-align: center; color: rgba(255, 255, 255, .85); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.lc-qx{ min-width: 0; padding-top: 2px; }
+.lc-qt{ font-size: 14px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.lc-qm{ margin-top: 3px; font-size: 12px; color: #9a9aa2; }
+.lc-qi.on .lc-qm{ color: var(--accent, #f0414b); }
+
+/* 电脑宽窗口：左边视频 + 下面信息，右边播放列表 */
+.lc-head{ }
+.lc-player.lc-wide .lc-head{ position: absolute; left: 24px; right: 24px; top: 0; height: 60px; z-index: 5; display: flex; align-items: center; gap: 12px; margin: 0; }
+.lc-head-t{ font-size: 19px; font-weight: 700; }
+.lc-win{ display: flex; gap: 4px; }
+:root:root .lc-win button{ width: 36px; height: 30px; min-width: 0; padding: 0; background: transparent !important; color: #ddd; border-radius: 8px; }
+:root:root .lc-win button:hover{ background: rgba(255, 255, 255, .14) !important; }
+.lc-main{ position: absolute; z-index: 3; }
+.lc-main .lc-info, .lc-main .lc-tools{ padding-left: 0; padding-right: 0; }
+.lc-main .lc-info h2{ font-size: 21px; margin-top: 10px; }
+.lc-main .lc-tools{ flex-wrap: wrap; overflow: visible; }
+.lc-side{ position: absolute; bottom: 16px; z-index: 3; display: flex; flex-direction: column; background: #1b1b1e; border-radius: 14px; overflow: hidden; }
+.lc-side .lc-qh{ padding-top: 14px; }
+.lc-side .lc-qth{ width: 150px; }
+
+/* 全屏 / 横屏：只有视频和控制条 */
+.lc-player.lc-full .lc-stage{ background: transparent; }
+
+/* 定时停止 */
+.lc-sheet-bg{ position: absolute; inset: 0; z-index: 20; background: rgba(0, 0, 0, .5); display: flex; align-items: flex-end; justify-content: center; }
+.lc-sheet{ width: min(420px, 100%); max-height: 80%; overflow-y: auto; background: #1b1b1e; border-radius: 18px 18px 0 0; padding: 8px 8px calc(14px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 4px; }
+@media (min-width: 700px) { .lc-sheet-bg{ align-items: center; } .lc-sheet{ border-radius: 18px; } }
+.lc-sheet-h{ padding: 12px 12px 6px; font-size: 16px; font-weight: 700; }
+:root:root .lc-sheet button{ height: 46px; text-align: left; padding: 0 14px; border-radius: 12px; background: transparent !important; color: #f2f2f3; font-size: 14px; }
+:root:root .lc-sheet button:active{ background: #2a2a30 !important; }
+:root:root .lc-sheet .lc-danger{ color: #ff6b73; }
+.lc-sheet-tip{ padding: 8px 12px 4px; font-size: 12px; color: #9a9aa2; line-height: 1.6; }
+
+/* 熄屏：全黑，只留一行很淡的提示 */
+.lc-dark{ position: absolute; inset: 0; z-index: 40; background: #000; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 12vh; }
+.lc-dark span{ font-size: 12px; color: #2c2c30; }

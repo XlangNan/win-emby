@@ -29,6 +29,12 @@ export const ICON = {
       <path d="m15.5 8.5-2 5-5 2 2-5 5-2Z" />
     </>
   ),
+  local: (
+    <>
+      <path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.2h7a2 2 0 0 1 2 2V17.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-10Z" />
+      <path d="m10.5 10.8 3.6 2.2-3.6 2.2v-4.4Z" />
+    </>
+  ),
   search: (
     <>
       <circle cx="11" cy="11" r="6.5" />
@@ -130,6 +136,7 @@ export default function MobileShell({ views, routes }: { views: EmbyItem[]; rout
               <button className="m-iconbtn" aria-label="媒体库" onClick={() => nav('/media')}><Ico k="media" /></button>
               <span style={{ flex: 1 }} />
               <button className="m-iconbtn" aria-label="片库" onClick={() => nav('/discover')}><Ico k="disc" /></button>
+              <button className="m-iconbtn" aria-label="随便看看" onClick={() => nav('/local')}><Ico k="local" /></button>
               <button className="m-iconbtn" aria-label="我的" onClick={() => nav('/me')}><Ico k="me" /></button>
               <button className="m-iconbtn" aria-label="搜索" onClick={() => nav('/search')}><Ico k="search" /></button>
             </div>

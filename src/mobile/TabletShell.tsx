@@ -17,6 +17,7 @@ const MAIN: Item[] = [
   { to: '/discover', label: '片库', ico: 'disc' },
   { to: '/live', label: '直播', ico: 'live' },
   { to: '/music', label: '音乐', ico: 'music' },
+  { to: '/local', label: '随便看看', ico: 'local' },
   { to: '/audiobooks', label: '有声书', ico: 'book' },
 ];
 const MINE: Item[] = [

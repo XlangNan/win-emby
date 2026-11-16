@@ -15,6 +15,7 @@ import './styles/mobile.css';
 import './styles/music.css';
 import './styles/ed.css';
 import './styles/abs.css';
+import './styles/local.css';
 import './styles/dash.css';
 import './styles/tablet.css';
 import './styles/light.css';

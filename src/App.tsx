@@ -29,6 +29,8 @@ import HomePage from './pages/HomePage';
 import LibraryPage from './pages/LibraryPage';
 import LivePage from './pages/LivePage';
 import LivePlayer from './pages/LivePlayer';
+import LocalPage from './local/LocalPage';
+import LocalPlayer from './local/LocalPlayer';
 import LoginPage from './pages/LoginPage';
 import PlayerPage from './pages/PlayerPage';
 import SearchPage from './pages/SearchPage';
@@ -153,6 +155,7 @@ function AppShell() {
   const myNav: NavItem[] = [
     { to: '/discover', label: '片库', ico: '🎞' },
     { to: '/live', label: '直播', ico: '📡' },
+    { to: '/local', label: '随便看看', ico: '🗂' },
     { to: '/audiobooks', label: '有声书', ico: '🎧' },
     { to: '/favorites', label: '收藏', ico: '⭐' },
     { to: '/history', label: '历史', ico: '🕘' },
@@ -161,7 +164,7 @@ function AppShell() {
   const allNav = [...mainNav, ...myNav];
   const tabNav = allNav.filter((n) => n.to !== '/config');   // 设置改放右上角齿轮，导航里不再重复
 
-  const isPlayer = loc.pathname.startsWith('/player/') || loc.pathname === '/live/play';
+  const isPlayer = loc.pathname.startsWith('/player/') || loc.pathname === '/live/play' || loc.pathname === '/local/play';
   const pageTitle = useMemo(() => {
     const p = loc.pathname;
     if (p === '/') return '首页';
@@ -210,6 +213,7 @@ function AppShell() {
         <Route path="/live" element={<LivePage />} />
         <Route path="/music" element={<MusicPage />} />
         <Route path="/music/:kind/:id" element={<MusicDetail />} />
+        <Route path="/local" element={<LocalPage />} />
         <Route path="/audiobooks" element={<AbsPage />} />
         <Route path="/audiobooks/:id" element={<AbsDetailPage />} />
         <Route path="/discover" element={<DiscoverPage />} />
@@ -228,6 +232,7 @@ function AppShell() {
         <Routes>
           <Route path="/player/:id" element={<PlayerPage />} />
           <Route path="/live/play" element={<LivePlayer />} />
+          <Route path="/local/play" element={<LocalPlayer />} />
         </Routes>
         <MiniPlayer />
       </>
@@ -362,7 +367,7 @@ function AppShell() {
                 <rect x="3" y="4" width="18" height="16" rx="2" /><path d="m10 9 5 3-5 3V9Z" />
               </svg>
             </NavLink>
-            {[{ to: '/', label: '首页', end: true }, { to: '/movies', label: '影视' }, { to: '/live', label: '直播' }, { to: '/music', label: '音乐' }, { to: '/audiobooks', label: '有声书' }].map((n) => (
+            {[{ to: '/', label: '首页', end: true }, { to: '/movies', label: '影视' }, { to: '/live', label: '直播' }, { to: '/music', label: '音乐' }, { to: '/local', label: '随便看看' }, { to: '/audiobooks', label: '有声书' }].map((n) => (
               <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => 'nf-link' + (isActive ? ' active' : '')}>
                 {n.label}
               </NavLink>
