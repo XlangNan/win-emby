@@ -90,6 +90,7 @@ class ExoBridge(private val act: Activity, private val web: WebView) : Player.Li
         return try {
             val err = onMain("ExoPlayer 初始化失败") {
                 release()
+                boxTop = 0; boxH = 0
                 val parent = web.parent as ViewGroup
                 val fl = FrameLayout(act)
                 val v = SurfaceView(act)
@@ -99,7 +100,6 @@ class ExoBridge(private val act: Activity, private val web: WebView) : Player.Li
                 arl.addView(v, FrameLayout.LayoutParams(-1, -1))
                 fl.addView(arl, FrameLayout.LayoutParams(-1, -1, android.view.Gravity.CENTER))
                 ar = arl
-                mTop = 0f; mBot = 0f
                 val sub = SubtitleView(act)
                 // 字幕不要底色框：白字 + 黑色描边；并忽略字幕文件自带的样式（ASS / WebVTT 里常带不透明背景框）
                 sub.setStyle(androidx.media3.ui.CaptionStyleCompat(
@@ -111,6 +111,7 @@ class ExoBridge(private val act: Activity, private val web: WebView) : Player.Li
                 fl.addView(sub, FrameLayout.LayoutParams(-1, -1))
                 parent.addView(fl, 0, ViewGroup.LayoutParams(-1, -1))
                 root = fl; sv = v; subs = sub
+                applyBox()
                 val f = DefaultHttpDataSource.Factory()
                     .setUserAgent(ua)
                     .setAllowCrossProtocolRedirects(true)
@@ -217,20 +218,23 @@ class ExoBridge(private val act: Activity, private val web: WebView) : Player.Li
 
     private var muted = false
     private var vol = 1f
-    private var mTop = 0f
-    private var mBot = 0f
+    // 直播竖屏：把画面容器限制在顶部一块（像素）；heightPx<=0 = 还原成铺满
+    private var boxTop = 0
+    private var boxH = 0
 
-    private fun applyMargins() {
+    @JavascriptInterface
+    fun setVideoBox(topPx: Int, heightPx: Int) {
+        boxTop = topPx
+        boxH = heightPx
+        main.post { applyBox() }
+    }
+
+    private fun applyBox() {
         val fl = root ?: return
-        val a = ar ?: return
-        fl.post {
-            try {
-                val lp = a.layoutParams as FrameLayout.LayoutParams
-                lp.topMargin = (mTop * fl.height).toInt()
-                lp.bottomMargin = (mBot * fl.height).toInt()
-                a.layoutParams = lp
-            } catch (_: Throwable) { }
-        }
+        val lp = fl.layoutParams as? ViewGroup.MarginLayoutParams ?: return
+        lp.topMargin = if (boxH > 0) boxTop.coerceAtLeast(0) else 0
+        lp.height = if (boxH > 0) boxH else ViewGroup.LayoutParams.MATCH_PARENT
+        fl.layoutParams = lp
     }
 
     private fun setProp(pl: ExoPlayer, name: String, v: String) {
@@ -249,12 +253,6 @@ class ExoBridge(private val act: Activity, private val web: WebView) : Player.Li
                 "zoom" -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                 "fill" -> AspectRatioFrameLayout.RESIZE_MODE_FILL
                 else -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-            }
-            // 直播竖屏：把画面限制在顶部一块（网页传来的是占窗口高度的比例，和 mpv 的 video-margin-ratio-* 同名同义）
-            "video-margin-ratio-top", "video-margin-ratio-bottom" -> {
-                val r = (v.toFloatOrNull() ?: 0f).coerceIn(0f, 0.95f)
-                if (name.endsWith("top")) mTop = r else mBot = r
-                applyMargins()
             }
             "user-agent" -> { ua = v; dsf?.setUserAgent(v) }
             "aid" -> selectIdx(pl, C.TRACK_TYPE_AUDIO, v.toIntOrNull() ?: -1)

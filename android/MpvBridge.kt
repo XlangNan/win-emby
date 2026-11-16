@@ -47,6 +47,7 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
     fun init(json: String): String {
         return try {
             release()
+            boxTop = 0; boxH = 0
             val cfg = JSONObject(json)
             val opts = cfg.getJSONObject("options")
             voName = opts.optString("vo", "gpu")
@@ -87,6 +88,26 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
         val parent = web.parent as? ViewGroup ?: return
         parent.addView(v, 0, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         sv = v
+        applyBox()
+    }
+
+    // 直播竖屏：把画面视图限制在顶部一块（像素）；heightPx<=0 = 还原成铺满
+    private var boxTop = 0
+    private var boxH = 0
+
+    @JavascriptInterface
+    fun setVideoBox(topPx: Int, heightPx: Int) {
+        boxTop = topPx
+        boxH = heightPx
+        act.runOnUiThread { applyBox() }
+    }
+
+    private fun applyBox() {
+        val v = sv ?: return
+        val lp = v.layoutParams as? ViewGroup.MarginLayoutParams ?: return
+        lp.topMargin = if (boxH > 0) boxTop.coerceAtLeast(0) else 0
+        lp.height = if (boxH > 0) boxH else ViewGroup.LayoutParams.MATCH_PARENT
+        v.layoutParams = lp
     }
 
     private fun tryAttach() {

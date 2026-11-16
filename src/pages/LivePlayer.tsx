@@ -4,7 +4,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { openMpv, type MpvSession } from '../lib/mpv';
 import { loadChannels, loadFavs, type LiveChannel } from '../lib/live';
 import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
-import { androidBridge, isMobileApp } from '../lib/platform';
+import { androidBridge, isAndroid, isMobileApp } from '../lib/platform';
+import { syncStatusBar } from '../lib/theme';
 import { hhmm, nowNext, progsOf } from '../lib/epg';
 import { winClose, winIsFullscreen, winMinimize, winSetFullscreen, winToggleMax } from '../lib/win';
 
@@ -78,17 +79,33 @@ export default function LivePlayer() {
     return () => { ts.forEach((t) => window.clearTimeout(t)); window.removeEventListener('resize', set); };
   }, [full]);
   const vidH = portrait ? Math.min(Math.round(win.w * 9 / 16), Math.round(win.h * 0.55)) : 0;
-  // 竖屏：用 mpv / ExoPlayer 的画面边距把视频限制在顶部 16:9 区域，下面留给网页
+  // 竖屏：把画面限制在顶部 16:9 区域，下面留给网页。
+  // 安卓：直接设原生画面容器的位置和高度（像素）；电脑 / iOS：用 mpv 的 video-margin-ratio-*
   useEffect(() => {
+    const dpr = window.devicePixelRatio || 1;
+    const topPx = portrait ? Math.round(sat * dpr) : 0;
+    const hPx = portrait ? Math.round(vidH * dpr) : 0;
     const H = win.h || 1;
-    const top = portrait ? sat / H : 0;
-    const bot = portrait ? Math.max(0, 1 - (sat + vidH) / H) : 0;
     void readyRef.current?.then((s) => {
       if (!s) return;
+      if (isAndroid) {
+        const w = window as unknown as { AndroidMpv?: { setVideoBox?: (t: number, h: number) => void }; AndroidExo?: { setVideoBox?: (t: number, h: number) => void } };
+        try { w.AndroidMpv?.setVideoBox?.(topPx, hPx); } catch { /* ignore */ }
+        try { w.AndroidExo?.setVideoBox?.(topPx, hPx); } catch { /* ignore */ }
+        return;
+      }
+      const top = portrait ? sat / H : 0;
+      const bot = portrait ? Math.max(0, 1 - (sat + vidH) / H) : 0;
       void s.set('video-margin-ratio-top', top).catch(() => undefined);
       void s.set('video-margin-ratio-bottom', bot).catch(() => undefined);
     });
   }, [portrait, sat, vidH, win.h]);
+  // 手机：状态栏图标固定浅色（竖屏时状态栏压在黑色视频上方）；离开后按主题还原
+  useEffect(() => {
+    if (!isAndroid) return;
+    syncStatusBar(false);
+    return () => syncStatusBar();
+  }, []);
   // 横屏 / 桌面：量顶栏和底栏的实际高度，面板和台标信息按它们让开
   const playerRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
