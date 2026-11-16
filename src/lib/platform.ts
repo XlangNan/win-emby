@@ -22,6 +22,8 @@ export interface AndroidBridge {
   setSysVolume(v: number): void;
   exit(): void;
   getInsetTop?(): number;
+  /** 状态栏图标：true=深色图标（给白底用）；仅安卓实现 */
+  setStatusBarLight?(light: boolean): void;
 }
 
 interface WkHandler { postMessage(m: unknown): Promise<unknown> | void }

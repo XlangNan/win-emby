@@ -8,6 +8,8 @@ import { absUrl, directStreamUrl, emby, posterUrl, subtitleUrl, thumbUrl } from 
 import { fmtDuration, ticksToSec } from '../emby/format';
 import type { EmbyItem, MediaSource, MediaStream } from '../emby/types';
 import { openMpv, type MpvSession } from '../lib/mpv';
+import { openVlc } from '../lib/vlc';
+import { syncStatusBar } from '../lib/theme';
 import { androidBridge, isAndroid, isIOS, isMobileApp } from '../lib/platform';
 import { getManual, setManual } from '../lib/introManual';
 import { syncSeriesMarkers } from '../lib/markerSync';
@@ -54,6 +56,9 @@ const remoteUrl = (s?: MediaSource): string => {
 };
 
 /** 直链被拒绝（403 等）时依次尝试的 User-Agent：浏览器 / Emby 安卓客户端 / VLC */
+/** 播放页里手动切内核：把当前进度交给重新挂载的播放器（不依赖 Emby 里还没写回的进度） */
+let handoff: { id: string; sec: number } | null = null;
+
 const UA_LIST = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
   'Emby/4.8 (Linux; Android 13) ExoPlayerLib/2.18.7',
@@ -236,7 +241,16 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     }
     if (startedRef.current) return;
     setBusy(false);
-    setErr(`这个视频播放不了\n${openLog.current.length ? `${openLog.current.join('\n')}\n` : ''}${probe ? `${probe}\n` : ''}可以到 设置 → 播放 → 播放内核，改用「内置播放器」再试`);
+    setErr(`这个视频播放不了\n${openLog.current.length ? `${openLog.current.join('\n')}\n` : ''}${probe ? `${probe}\n` : ''}可以点下面的「用 VLC 打开」（需要电脑装了 VLC）`);
+  };
+  /** 交给本机 VLC 播放（先暂停 MPV，从当前位置开始） */
+  const toVlc = async (): Promise<void> => {
+    const url = curUrlRef.current;
+    if (!url) return;
+    void sessRef.current?.set('pause', true).catch(() => undefined);
+    const msg = await openVlc(url, posRef.current, item?.Name || '');
+    setRecTip(msg || '已交给 VLC 播放');
+    window.setTimeout(() => setRecTip(''), 6000);
   };
   const diagRef = useRef<() => Promise<string>>(async () => '');
   diagRef.current = async (): Promise<string> => {
@@ -610,7 +624,9 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         playRef.current = { source: { ...psrc, MediaStreams: psrc.MediaStreams || src.MediaStreams }, playSessionId: info.PlaySessionId };
         const resume = ticksToSec(item.UserData?.PlaybackPositionTicks);
         const total = ticksToSec(item.RunTimeTicks);
-        const startSec = qs.get('from') === '0' ? 0 : total && resume > total * 0.95 ? 0 : resume;
+        const hand = handoff && handoff.id === id ? handoff : null;
+        handoff = null;
+        const startSec = hand ? hand.sec : qs.get('from') === '0' ? 0 : total && resume > total * 0.95 ? 0 : resume;
         const sess = await openMpv({ hdr: loadPlayPrefs().hdr, onProp: (n, d) => onPropRef.current(n, d) });
         if (dead) {
           await sess.close();
@@ -944,6 +960,33 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     }
   };
 
+  // 手机竖屏：状态栏高度写成 --sat，顶栏标题按它下移，不再被状态栏盖住；横屏沉浸全屏时为 0
+  useEffect(() => {
+    if (!isMobileApp) return;
+    const set = (): void => {
+      let v = 0;
+      if (!full) { try { v = androidBridge()?.getInsetTop?.() || 0; } catch { /* ignore */ } }
+      document.documentElement.style.setProperty('--sat', `${v}px`);
+    };
+    set();
+    const ts = [150, 500, 1200].map((ms) => window.setTimeout(set, ms));
+    window.addEventListener('resize', set);
+    return () => { ts.forEach((t) => window.clearTimeout(t)); window.removeEventListener('resize', set); };
+  }, [full]);
+  // 播放页底下是黑色画面：状态栏图标固定浅色；离开后再按主题还原
+  useEffect(() => {
+    if (!isAndroid) return;
+    syncStatusBar(false);
+    return () => syncStatusBar();
+  }, []);
+  /** 手动切内核（MPV ⇄ ExoPlayer）：先把进度写回，再带着当前位置重新起播 */
+  const switchEngine = async (): Promise<void> => {
+    const next = loadPlayPrefs().engine === 'exo' ? 'mpv' : 'exo';
+    handoff = { id, sec: posRef.current };
+    savePlayPrefs({ engine: next });
+    await Promise.race([report('stop'), new Promise((r) => setTimeout(r, 1500))]);
+    window.dispatchEvent(new Event('wemby:engine-changed'));
+  };
   // 安卓：进入播放页即横屏沉浸全屏，离开时恢复
   useEffect(() => {
     if (!isMobileApp) return;
@@ -1009,7 +1052,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       {recTip && <div className="we-rectip">{recTip}</div>}
       <DanmakuLayer list={dmList} getTime={() => (pausedRef.current ? posRef.current : posRef.current + ((performance.now() - posAt.current) / 1000) * rateRef.current)} size={dmCfg.size} speed={dmCfg.speed} opacity={dmCfg.opacity} area={dmCfg.area} offset={dmCfg.offset} visible={dmCfg.on && scrub === null} />
       {(busy || caching) && !err && <div className="we-loading"><span className="spinner" aria-hidden="true" />{busy ? '正在加载…' : '缓冲中…'}</div>}
-      {err && <div className="we-error">{err}</div>}
+      {err && <div className="we-error">{err}{!isMobileApp && <div><button className="we-btn we-txt" onClick={() => void toVlc()}>用 VLC 打开</button></div>}</div>}
 
       <div className="we-top" onPointerEnter={(e) => { if (e.pointerType === 'mouse') hoverUi.current = true; }} onPointerLeave={(e) => { if (e.pointerType === 'mouse') { hoverUi.current = false; poke(); } }}>
         <button className="we-btn we-back" title="返回（Esc）" aria-label="返回" onClick={(e) => { e.stopPropagation(); void exit(); }}>
@@ -1029,6 +1072,16 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         {isExo && (
           <button className="we-btn we-txt" title="画面比例：适应 / 铺满裁切 / 拉伸" onClick={(e) => { e.stopPropagation(); cycleRatio(); poke(); }}>
             {RATIOS.find((r) => r[0] === ratio)?.[1]}
+          </button>
+        )}
+        {isAndroid && !!(window as unknown as { AndroidExo?: unknown }).AndroidExo && (
+          <button className="we-btn we-txt" title="播放内核：点一下在 MPV 和 ExoPlayer 之间切换，从当前位置继续" onClick={(e) => { e.stopPropagation(); void switchEngine(); }}>
+            {loadPlayPrefs().engine === 'exo' ? 'ExoPlayer' : 'MPV'}
+          </button>
+        )}
+        {!isMobileApp && (
+          <button className="we-btn we-txt" title="用本机 VLC 播放当前片源" onClick={(e) => { e.stopPropagation(); void toVlc(); poke(); }}>
+            VLC
           </button>
         )}
         <button className="we-btn we-txt" title="简介 / 演职员 / 选集（I）" onClick={(e) => { e.stopPropagation(); setDrawer((v) => !v); }}>

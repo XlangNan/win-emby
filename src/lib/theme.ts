@@ -1,6 +1,7 @@
 // 皮肤应用：写 <html data-theme / data-base / data-shell / data-detail / data-discover / data-filter>，
 // 并把布局度量写成 CSS 变量；global.css 的「宿主结构层」按这些属性生效。
 import { useEffect, useState } from 'react';
+import { androidBridge } from './platform';
 import { DEFAULT_THEME, normalizeTheme, skinBase, skinLayout, type Theme, type ThemeLayout } from './themeTokens';
 
 export type { Theme };
@@ -22,6 +23,11 @@ function applyLayoutVars(layout: ThemeLayout): void {
   set('--card-w', layout.cardWidth);
 }
 
+/** 安卓：状态栏 / 导航栏图标跟着主题明暗走（白底用深色图标，否则看不清） */
+export function syncStatusBar(light?: boolean): void {
+  try { androidBridge()?.setStatusBarLight?.(light ?? skinBase(currentTheme()) === 'light'); } catch { /* ignore */ }
+}
+
 export function applyTheme(t: Theme): void {
   const theme = normalizeTheme(t);
   const layout = skinLayout(theme);
@@ -38,6 +44,7 @@ export function applyTheme(t: Theme): void {
   } catch {
     /* ignore */
   }
+  syncStatusBar(skinBase(theme) === 'light');
   window.dispatchEvent(new Event(THEME_EVENT));
 }
 

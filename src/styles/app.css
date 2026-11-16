@@ -375,7 +375,7 @@ html.android .we-cbtn{ width: 64px; height: 64px; }
 html.android .we-cbtn svg{ width: 40px; height: 40px; }
 html.android .we-cplay{ width: 80px; height: 80px; }
 html.android .we-cplay svg{ width: 56px; height: 56px; }
-html.android .we-player .we-top{ padding: max(14px, env(safe-area-inset-top)) 16px 40px; }
+html.android .we-player .we-top{ padding: max(14px, calc(var(--sat, 0px) + 8px), env(safe-area-inset-top)) 16px 40px; }
 html.android .we-player .we-bottom{ padding: 48px 20px max(12px, env(safe-area-inset-bottom)); }
 html.android .we-ctrls{ justify-content: center; gap: 6px; }
 html.android .we-ctrls > span[style]{ display: none; }

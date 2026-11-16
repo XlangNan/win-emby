@@ -210,6 +210,18 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
         }
     }
 
+    /** 状态栏 / 导航栏图标颜色：浅色主题（白底）用深色图标，深色主题用浅色图标 */
+    @JavascriptInterface
+    fun setStatusBarLight(light: Boolean) {
+        act.runOnUiThread {
+            try {
+                val c = WindowInsetsControllerCompat(act.window, act.window.decorView)
+                c.isAppearanceLightStatusBars = light
+                c.isAppearanceLightNavigationBars = light
+            } catch (_: Throwable) { }
+        }
+    }
+
     @JavascriptInterface
     fun setBrightness(v: Float) {
         act.runOnUiThread {

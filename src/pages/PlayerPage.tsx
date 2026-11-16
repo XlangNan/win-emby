@@ -1,5 +1,5 @@
 // 播放页入口：按设置选内核。MPV 初始化失败（缺 dll、显卡不支持等）时，本次运行内自动改用 HTML5 播放器。
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { isTauri } from '../emby/http';
 import { isAndroid } from '../lib/platform';
@@ -14,12 +14,19 @@ const SWITCHED = '已切换到内置播放器';
 export default function PlayerPage() {
   const { id = '' } = useParams();
   const [broken, setBroken] = useState(mpvBroken);
+  // 播放页里手动切内核：MpvPlayer 发这个事件，这里换 key 重新挂载
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const f = (): void => setTick((n) => n + 1);
+    window.addEventListener('wemby:engine-changed', f);
+    return () => window.removeEventListener('wemby:engine-changed', f);
+  }, []);
   const wantMpv = (loadPlayPrefs().engine === 'mpv' || (loadPlayPrefs().engine === 'exo' && isAndroid)) && isTauri() && !broken;
 
   if (wantMpv) {
     return (
       <MpvPlayer
-        key={id}
+        key={`${id}:${tick}`}
         id={id}
         onFail={(msg) => {
           if (msg !== SWITCHED) mpvBroken = msg;
@@ -29,5 +36,5 @@ export default function PlayerPage() {
     );
   }
   const notice = broken && broken !== SWITCHED ? `MPV 没能启动，已改用内置播放器：${broken}` : '';
-  return <Html5Player key={id} notice={notice} />;
+  return <Html5Player key={`${id}:${tick}`} notice={notice} />;
 }
