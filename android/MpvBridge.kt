@@ -218,6 +218,22 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
                 val c = WindowInsetsControllerCompat(act.window, act.window.decorView)
                 c.isAppearanceLightStatusBars = light
                 c.isAppearanceLightNavigationBars = light
+                // 旧式标志位：部分国产 ROM 只认这个
+                @Suppress("DEPRECATION")
+                run {
+                    val d = act.window.decorView
+                    var f = d.systemUiVisibility
+                    f = if (light) f or android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR else f and android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
+                    d.systemUiVisibility = f
+                }
+                // 小米 / 澎湃 OS 自家接口（MIUI extraFlags：0x2 = 状态栏深色图标）
+                try {
+                    val cls = act.window.javaClass
+                    val lp = Class.forName("android.view.MiuiWindowManager\$LayoutParams")
+                    val bit = lp.getField("EXTRA_FLAG_STATUS_BAR_DARK_MODE").getInt(null)
+                    cls.getMethod("setExtraFlags", Int::class.javaPrimitiveType, Int::class.javaPrimitiveType)
+                        .invoke(act.window, if (light) bit else 0, bit)
+                } catch (_: Throwable) { }
             } catch (_: Throwable) { }
         }
     }

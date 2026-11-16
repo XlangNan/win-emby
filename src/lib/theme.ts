@@ -23,9 +23,9 @@ function applyLayoutVars(layout: ThemeLayout): void {
   set('--card-w', layout.cardWidth);
 }
 
-/** 安卓：状态栏 / 导航栏图标跟着主题明暗走（白底用深色图标，否则看不清） */
+/** 安卓：状态栏 / 导航栏图标跟着主题明暗走（浅色模式用深色图标，否则看不清） */
 export function syncStatusBar(light?: boolean): void {
-  try { androidBridge()?.setStatusBarLight?.(light ?? skinBase(currentTheme()) === 'light'); } catch { /* ignore */ }
+  try { androidBridge()?.setStatusBarLight?.(light ?? document.documentElement.getAttribute('data-mode') === 'light'); } catch { /* ignore */ }
 }
 
 export function applyTheme(t: Theme): void {
@@ -44,7 +44,6 @@ export function applyTheme(t: Theme): void {
   } catch {
     /* ignore */
   }
-  syncStatusBar(skinBase(theme) === 'light');
   window.dispatchEvent(new Event(THEME_EVENT));
 }
 
