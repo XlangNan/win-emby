@@ -11,6 +11,7 @@ import { openMpv, type MpvSession } from '../lib/mpv';
 import { openVlc } from '../lib/vlc';
 import { syncStatusBar } from '../lib/theme';
 import { androidBridge, isAndroid, isIOS, isMobileApp } from '../lib/platform';
+import { useWheelVolume } from '../lib/wheelVol';
 import { getManual, setManual } from '../lib/introManual';
 import { syncSeriesMarkers } from '../lib/markerSync';
 import DanmakuLayer from '../components/DanmakuLayer';
@@ -882,6 +883,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [toggle, seekBy, setVolume, vol, toggleFull, goNext, exit, poke, drawer]);
+  useWheelVolume(() => vol, setVolume, () => { void sessRef.current?.set('mute', 'no'); poke(); });
 
   // ───────── 触屏手势（安卓）：单击显隐控制条 / 双击左右快进快退、中间暂停 / 横滑进度 / 右侧竖滑音量 / 左侧竖滑亮度 ─────────
   const [hud, setHud] = useState('');
@@ -1194,7 +1196,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
               {paused ? <svg width="26" height="26" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" /></svg> : <svg width="26" height="26" viewBox="0 0 24 24"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z" fill="currentColor" /></svg>}
             </button>
           )}
-          <div className="we-volgrp" title="鼠标滚轮调节音量" onWheel={(e) => { setVolume(vol + (e.deltaY < 0 ? 5 : -5)); void sessRef.current?.set('mute', 'no'); poke(); }}>
+          <div className="we-volgrp" title="鼠标滚轮调节音量">
           <button className="we-btn" title="静音（M）" onClick={() => void sessRef.current?.cmd('cycle', ['mute'])}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4Z" fill="currentColor" />

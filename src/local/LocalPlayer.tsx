@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { openMpv, type MpvSession } from '../lib/mpv';
 import { loadPlayPrefs } from '../lib/prefs';
 import { androidBridge, isAndroid, isMobileApp } from '../lib/platform';
+import { useWheelVolume } from '../lib/wheelVol';
 import { syncStatusBar } from '../lib/theme';
 import { winClose, winIsFullscreen, winMinimize, winSetFullscreen, winToggleMax } from '../lib/win';
 import { listenMusic, musicState, stopMusic } from '../music/player';
@@ -366,6 +367,7 @@ export default function LocalPlayer() {
   }, [poke, toggle, seekTo, step, toggleFull, exit, dark, full]);
 
   // 拖进度条
+  useWheelVolume(() => volRef.current, (v) => { volRef.current = v; setVol(v); void sessRef.current?.set('volume', v); }, poke);
   const lastTap = useRef(0);
   const barRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<number | null>(null);
