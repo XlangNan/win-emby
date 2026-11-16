@@ -10,7 +10,8 @@ import { syncStatusBar } from '../lib/theme';
 import { winClose, winIsFullscreen, winMinimize, winSetFullscreen, winToggleMax } from '../lib/win';
 import { listenMusic, musicState, stopMusic } from '../music/player';
 import { absStop } from '../abs/absPlayer';
-import { coverStyle, dsmKeepAlive, dsmPlayUrl, fmtClock, fmtSize, readPos, takePlayQueue, writePos, type LocalVideo } from './dsm';
+import Cover from './Cover';
+import { dsmKeepAlive, dsmPlayUrl, fmtClock, fmtSize, readPos, takePlayQueue, writePos, type LocalVideo } from './dsm';
 import { clearTimer, getTimer, setTimerEof, setTimerMin, stopOthers, timerLeft, useTimer } from './timer';
 
 type Loop = 'off' | 'all' | 'one';
@@ -108,7 +109,11 @@ export default function LocalPlayer() {
     return { x: 24, y: top, w: Math.round((h * 16) / 9), h };
   }, [mode, sat, win.w, win.h, sideW]);
 
-  // 把原生画面限制在 rect 里（安卓：设画面容器的位置和高度；电脑 / iOS：用 mpv 的 video-margin-ratio-*）
+  // 把原生画面摆进 rect：
+  //  安卓：设画面容器的位置和高度（像素）；
+  //  电脑 / iOS：用 mpv 的 video-zoom + video-pan-x/y（不用 video-margin-ratio，它在 gpu-next 上位置不对）。
+  //  原理：mpv 默认把画面按窗口「适应」并居中，这里把它缩放到 rect 的大小，再平移到 rect 的中心。
+  const [dims, setDims] = useState({ w: 0, h: 0 });
   useEffect(() => {
     void readyRef.current?.then((s) => {
       if (!s) return;
@@ -118,16 +123,18 @@ export default function LocalPlayer() {
         try { w.AndroidMpv?.setVideoBox?.(rect ? Math.round(rect.y * dpr) : 0, rect ? Math.round(rect.h * dpr) : 0); } catch { /* ignore */ }
         return;
       }
+      const set = (n: string, v: number): void => { void s.set(n, v).catch(() => undefined); };
+      set('video-margin-ratio-left', 0); set('video-margin-ratio-right', 0); set('video-margin-ratio-top', 0); set('video-margin-ratio-bottom', 0);
+      set('video-align-x', 0); set('video-align-y', 0);
+      if (!rect || !dims.w || !dims.h) { set('video-zoom', 0); set('video-pan-x', 0); set('video-pan-y', 0); return; }
       const W = win.w || 1, H = win.h || 1;
-      const m = rect
-        ? { l: rect.x / W, r: Math.max(0, 1 - (rect.x + rect.w) / W), t: rect.y / H, b: Math.max(0, 1 - (rect.y + rect.h) / H) }
-        : { l: 0, r: 0, t: 0, b: 0 };
-      void s.set('video-margin-ratio-left', m.l).catch(() => undefined);
-      void s.set('video-margin-ratio-right', m.r).catch(() => undefined);
-      void s.set('video-margin-ratio-top', m.t).catch(() => undefined);
-      void s.set('video-margin-ratio-bottom', m.b).catch(() => undefined);
+      const s0 = Math.min(W / dims.w, H / dims.h);                   // mpv 默认的适应窗口缩放
+      const s1 = Math.min(rect.w / dims.w, rect.h / dims.h);         // 想要的缩放：适应 rect
+      set('video-zoom', Math.log2(s1 / s0));
+      set('video-pan-x', (rect.x + rect.w / 2 - W / 2) / (dims.w * s1));
+      set('video-pan-y', (rect.y + rect.h / 2 - H / 2) / (dims.h * s1));
     });
-  }, [rect, win.w, win.h]);
+  }, [rect, win.w, win.h, dims.w, dims.h]);
 
   // ───────── 播放器 ─────────
   const onEndedRef = useRef<() => void>(() => undefined);
@@ -153,6 +160,8 @@ export default function LocalPlayer() {
             }
             break;
           case 'duration': if (typeof d === 'number') { durRef.current = d; setDur(d); } break;
+          case 'width': setDims((x) => ({ ...x, w: typeof d === 'number' ? d : 0 })); break;
+          case 'height': setDims((x) => ({ ...x, h: typeof d === 'number' ? d : 0 })); break;
           case 'volume': if (typeof d === 'number' && !fadingRef.current) { volRef.current = d; setVol(d); } break;
           case 'eof-reached': if (d === true) onEndedRef.current(); break;
           default: break;
@@ -384,7 +393,7 @@ export default function LocalPlayer() {
     <div className="lc-queue">
       {order.map((v, i) => (
         <div key={v.path} className={`lc-qi${i === idx ? ' on' : ''}`} role="button" tabIndex={0} onClick={() => play(i)} onKeyDown={(e) => e.key === 'Enter' && play(i)}>
-          <div className="lc-qth" style={coverStyle(v.title)}><span>{v.title}</span></div>
+          <Cover className="lc-qth" path={v.path} title={v.title} plain />
           <div className="lc-qx">
             <div className="lc-qt">{v.title}</div>
             <div className="lc-qm">{i === idx ? (paused ? '已暂停' : '正在播放') : fmtSize(v.size)}</div>

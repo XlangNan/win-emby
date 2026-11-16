@@ -1,8 +1,9 @@
 // 随便看看：连接群晖 → 首页（播放列表 / 继续播放 / 全部视频）。点视频进入播放页（/local/play）。
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Cover from './Cover';
 import {
-  clearDsm, coverStyle, dsmBrowse, dsmConfigured, fmtClock, fmtSize, loadDsm, loadLibrary, readPos, saveDsm, setPlayQueue, useDsmKey,
+  clearDsm, dsmBrowse, dsmConfigured, fmtClock, fmtSize, loadDsm, loadLibrary, readPos, saveDsm, setPlayQueue, useDsmKey,
   type DsmConfig, type DsmEntry, type LocalLibrary, type LocalVideo,
 } from './dsm';
 
@@ -133,11 +134,10 @@ export default function LocalPage() {
     const p = pos[v.path];
     return (
       <div className="lc-card" role="button" tabIndex={0} onClick={() => play(items, i, title)} onKeyDown={(e) => e.key === 'Enter' && play(items, i, title)}>
-        <div className="lc-th" style={coverStyle(v.title)}>
-          <span className="lc-th-t">{v.title}</span>
+        <Cover className="lc-th" path={v.path} title={v.title}>
           {p && p.d > 0 && <i className="lc-prog"><b style={{ width: `${Math.min(100, (p.t / p.d) * 100)}%` }} /></i>}
           {p && p.d > 0 && <span className="lc-dur">{fmtClock(p.d)}</span>}
-        </div>
+        </Cover>
         <div className="lc-t">{v.title}</div>
         <div className="lc-m">{[v.list !== '未分组' ? v.list : '', fmtSize(v.size), p && p.t > 30 ? `看到 ${fmtClock(p.t)}` : ''].filter(Boolean).join('　·　')}</div>
       </div>
@@ -173,10 +173,9 @@ export default function LocalPage() {
               <div className="lc-hrow">
                 {lib.lists.map((l) => (
                   <div key={l.name} className="lc-pl" role="button" tabIndex={0} onClick={() => setSel(l.name)}>
-                    <div className="lc-th" style={coverStyle(l.name)}>
-                      <span className="lc-th-t">{l.name}</span>
+                    <Cover className="lc-th" path={l.items[0]?.path ?? ''} title={l.name}>
                       <span className="lc-cnt">≡<br />{l.items.length}</span>
-                    </div>
+                    </Cover>
                     <div className="lc-t">{l.name}</div>
                     <div className="lc-m">{l.items.length} 个视频</div>
                   </div>

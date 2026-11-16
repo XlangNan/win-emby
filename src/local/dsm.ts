@@ -20,12 +20,15 @@ export function normalizeDsmServer(input: string): string {
   return s;
 }
 
+const coverCache = new Map<string, Promise<string>>();
+
 export function loadDsm(): DsmConfig {
   try { return { ...EMPTY, ...(JSON.parse(localStorage.getItem(KEY) || '{}') as Partial<DsmConfig>) }; } catch { return { ...EMPTY }; }
 }
 export function saveDsm(c: DsmConfig): void {
   try { localStorage.setItem(KEY, JSON.stringify({ server: normalizeDsmServer(c.server), user: c.user.trim(), pass: c.pass, folder: c.folder.trim() })); } catch { /* ignore */ }
   sid = '';
+  coverCache.clear();
   window.dispatchEvent(new Event('wemby-local-changed'));
 }
 export function clearDsm(): void { saveDsm({ ...EMPTY }); }
@@ -220,3 +223,41 @@ export function coverStyle(name: string): { background: string } {
 let queue: { items: LocalVideo[]; index: number; title: string } | null = null;
 export function setPlayQueue(items: LocalVideo[], index: number, title: string): void { queue = { items, index, title }; }
 export function takePlayQueue(): { items: LocalVideo[]; index: number; title: string } | null { return queue; }
+
+
+// ───────── 封面：取群晖生成的缩略图 ─────────
+let coverBusy = 0;
+const coverWait: Array<() => void> = [];
+async function coverSlot(): Promise<void> {
+  if (coverBusy >= 3) await new Promise<void>((r) => coverWait.push(r));
+  coverBusy++;
+}
+function coverFree(): void { coverBusy--; coverWait.shift()?.(); }
+
+async function fetchCover(path: string, retried = false): Promise<string> {
+  const c = loadDsm();
+  const q = new URLSearchParams({ api: 'SYNO.FileStation.Thumb', version: '2', method: 'get', path, size: 'medium', _sid: await dsmSid(retried) });
+  const res = await httpFetch(`${c.server}/webapi/entry.cgi?${q.toString()}`);
+  const type = res.headers.get('content-type') || '';
+  if (res.ok && type.startsWith('image/')) return URL.createObjectURL(await res.blob());
+  if (!retried && type.includes('json')) {
+    try {
+      const j = (await res.json()) as { error?: { code?: number } };
+      if (SESSION_ERR.has(j.error?.code ?? 0)) return fetchCover(path, true);
+    } catch { /* ignore */ }
+  }
+  return '';
+}
+
+/** 返回封面图地址（blob:）；取不到返回空串。结果有缓存。 */
+export function dsmCover(path: string): Promise<string> {
+  let p = coverCache.get(path);
+  if (!p) {
+    p = (async () => {
+      await coverSlot();
+      try { return await fetchCover(path); } catch { return ''; } finally { coverFree(); }
+    })();
+    coverCache.set(path, p);
+  }
+  return p;
+}
