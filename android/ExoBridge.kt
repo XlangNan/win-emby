@@ -99,6 +99,7 @@ class ExoBridge(private val act: Activity, private val web: WebView) : Player.Li
                 arl.addView(v, FrameLayout.LayoutParams(-1, -1))
                 fl.addView(arl, FrameLayout.LayoutParams(-1, -1, android.view.Gravity.CENTER))
                 ar = arl
+                mTop = 0f; mBot = 0f
                 val sub = SubtitleView(act)
                 // 字幕不要底色框：白字 + 黑色描边；并忽略字幕文件自带的样式（ASS / WebVTT 里常带不透明背景框）
                 sub.setStyle(androidx.media3.ui.CaptionStyleCompat(
@@ -216,6 +217,21 @@ class ExoBridge(private val act: Activity, private val web: WebView) : Player.Li
 
     private var muted = false
     private var vol = 1f
+    private var mTop = 0f
+    private var mBot = 0f
+
+    private fun applyMargins() {
+        val fl = root ?: return
+        val a = ar ?: return
+        fl.post {
+            try {
+                val lp = a.layoutParams as FrameLayout.LayoutParams
+                lp.topMargin = (mTop * fl.height).toInt()
+                lp.bottomMargin = (mBot * fl.height).toInt()
+                a.layoutParams = lp
+            } catch (_: Throwable) { }
+        }
+    }
 
     private fun setProp(pl: ExoPlayer, name: String, v: String) {
         when (name) {
@@ -233,6 +249,12 @@ class ExoBridge(private val act: Activity, private val web: WebView) : Player.Li
                 "zoom" -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                 "fill" -> AspectRatioFrameLayout.RESIZE_MODE_FILL
                 else -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+            }
+            // 直播竖屏：把画面限制在顶部一块（网页传来的是占窗口高度的比例，和 mpv 的 video-margin-ratio-* 同名同义）
+            "video-margin-ratio-top", "video-margin-ratio-bottom" -> {
+                val r = (v.toFloatOrNull() ?: 0f).coerceIn(0f, 0.95f)
+                if (name.endsWith("top")) mTop = r else mBot = r
+                applyMargins()
             }
             "user-agent" -> { ua = v; dsf?.setUserAgent(v) }
             "aid" -> selectIdx(pl, C.TRACK_TYPE_AUDIO, v.toIntOrNull() ?: -1)

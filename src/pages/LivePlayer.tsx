@@ -8,6 +8,10 @@ import { androidBridge, isMobileApp } from '../lib/platform';
 import { hhmm, nowNext, progsOf } from '../lib/epg';
 import { winClose, winIsFullscreen, winMinimize, winSetFullscreen, winToggleMax } from '../lib/win';
 
+const LAND_KEY = 'wemby-live-land';
+/** 手机直播：上次是横屏还是竖屏（默认竖屏） */
+const readLand = (): boolean => { try { return localStorage.getItem(LAND_KEY) === '1'; } catch { return false; } };
+
 export default function LivePlayer() {
   const nav = useNavigate();
   const [qs] = useSearchParams();
@@ -41,11 +45,78 @@ export default function LivePlayer() {
   const [busy, setBusy] = useState(true);
   const [err, setErr] = useState('');
   const [uiShown, setUiShown] = useState(true);
-  const [list, setList] = useState(true);
+  const [list, setList] = useState(!isMobileApp);
   const [epgOpen, setEpgOpen] = useState(false);
   const [, setClock] = useState(0);
   useEffect(() => { const t = window.setInterval(() => setClock((n) => n + 1), 30000); return () => window.clearInterval(t); }, []);
-  const [full, setFull] = useState(false);
+  const land0 = useRef(readLand());
+  const [full, setFull] = useState(isMobileApp && land0.current);
+  // 窗口宽度分档：<700 或 窗口比视频更高 → 竖屏排法（视频在上，下面是频道 / 节目单）；<1000 → 面板同时只开一个
+  const [win, setWin] = useState({ w: window.innerWidth, h: window.innerHeight });
+  useEffect(() => {
+    const f = (): void => setWin({ w: window.innerWidth, h: window.innerHeight });
+    window.addEventListener('resize', f);
+    return () => window.removeEventListener('resize', f);
+  }, []);
+  const portrait = win.w < 700 || win.h > win.w;
+  const compact = win.w < 1000;
+  const toggleList = useCallback(() => { const nv = !list; setList(nv); if (nv && compact) setEpgOpen(false); }, [list, compact]);
+  const toggleEpg = useCallback(() => { const nv = !epgOpen; setEpgOpen(nv); if (nv && compact) setList(false); }, [epgOpen, compact]);
+  // 状态栏高度（手机竖屏时视频要让开它）
+  const [sat, setSat] = useState(0);
+  useEffect(() => {
+    if (!isMobileApp) return;
+    const set = (): void => {
+      let v = 0;
+      if (!full) { try { v = androidBridge()?.getInsetTop?.() || 0; } catch { /* ignore */ } }
+      setSat(v);
+      document.documentElement.style.setProperty('--sat', `${v}px`);
+    };
+    set();
+    const ts = [150, 500, 1200].map((ms) => window.setTimeout(set, ms));
+    window.addEventListener('resize', set);
+    return () => { ts.forEach((t) => window.clearTimeout(t)); window.removeEventListener('resize', set); };
+  }, [full]);
+  const vidH = portrait ? Math.min(Math.round(win.w * 9 / 16), Math.round(win.h * 0.55)) : 0;
+  // 竖屏：用 mpv / ExoPlayer 的画面边距把视频限制在顶部 16:9 区域，下面留给网页
+  useEffect(() => {
+    const H = win.h || 1;
+    const top = portrait ? sat / H : 0;
+    const bot = portrait ? Math.max(0, 1 - (sat + vidH) / H) : 0;
+    void readyRef.current?.then((s) => {
+      if (!s) return;
+      void s.set('video-margin-ratio-top', top).catch(() => undefined);
+      void s.set('video-margin-ratio-bottom', bot).catch(() => undefined);
+    });
+  }, [portrait, sat, vidH, win.h]);
+  // 横屏 / 桌面：量顶栏和底栏的实际高度，面板和台标信息按它们让开
+  const playerRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLDivElement>(null);
+  const ctrlsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (portrait) return;
+    const root = playerRef.current, t = titleRef.current, c = ctrlsRef.current;
+    if (!root || !t || !c) return;
+    const f = (): void => {
+      const rb = root.getBoundingClientRect();
+      root.style.setProperty('--lv-top', `${Math.round(t.getBoundingClientRect().bottom - rb.top + 10)}px`);
+      root.style.setProperty('--lv-bot', `${Math.round(rb.bottom - c.getBoundingClientRect().top + 10)}px`);
+    };
+    f();
+    let ro: ResizeObserver | null = null;
+    try { ro = new ResizeObserver(f); ro.observe(t); ro.observe(c); } catch { /* ignore */ }
+    window.addEventListener('resize', f);
+    return () => { ro?.disconnect(); window.removeEventListener('resize', f); };
+  }, [portrait, ch, win.w]);
+  // 当前频道 / 当前节目滚到可见位置
+  useEffect(() => {
+    if (!portrait) return;
+    const t = window.setTimeout(() => {
+      document.querySelector('.lv-chi.on')?.scrollIntoView({ block: 'center' });
+      document.querySelector('.lv-row.now')?.scrollIntoView({ block: 'center' });
+    }, 60);
+    return () => window.clearTimeout(t);
+  }, [portrait, name]);
   // 像电视一样：开播 / 换台时在左上角显示 台号 · 台名 · 正在播放 · 接下来，5 秒后淡出
   const [osd, setOsd] = useState(false);
   useEffect(() => {
@@ -160,6 +231,7 @@ export default function LivePlayer() {
     const next = !(await winIsFullscreen());
     await winSetFullscreen(next);
     setFull(next);
+    if (isMobileApp) { try { localStorage.setItem(LAND_KEY, next ? '1' : '0'); } catch { /* ignore */ } }
   }, []);
   const exit = useCallback(async () => {
     if (await winIsFullscreen()) await winSetFullscreen(false);
@@ -184,7 +256,7 @@ export default function LivePlayer() {
         case 'ArrowLeft': setVolume(vol - 5); break;
         case 'ArrowRight': setVolume(vol + 5); break;
         case 'Tab': e.preventDefault(); if (ch && ch.lines.length > 1) setLine((l) => (l + 1) % ch.lines.length); break;
-        case 'l': case 'L': setList((v) => !v); break;
+        case 'l': case 'L': toggleList(); break;
         case 'm': case 'M': void sessRef.current?.cmd('cycle', ['mute']); break;
         case 'f': case 'F': void toggleFull(); break;
         case 'Escape': void exit(); break;
@@ -194,12 +266,13 @@ export default function LivePlayer() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [toggle, step, setVolume, vol, ch, toggleFull, exit, poke]);
+  }, [toggle, step, setVolume, vol, ch, toggleFull, exit, poke, toggleList]);
 
   useEffect(() => {
     if (!isMobileApp) return;
-    void winSetFullscreen(true);
-    setFull(true);
+    // 手机：默认竖屏（状态栏可见），点「横屏」才全屏横着看；记住上次的选择
+    void winSetFullscreen(land0.current);
+    setFull(land0.current);
     return () => {
       void winSetFullscreen(false);
     };
@@ -249,12 +322,82 @@ export default function LivePlayer() {
     if (showUi && !paused) setUiShown(false); else poke();
   };
 
+  if (portrait) {
+    const { now, next } = ch ? nowNext(ch) : { now: undefined, next: undefined };
+    const pctNow = now ? Math.min(100, Math.max(0, ((Date.now() - now.s) / (now.e - now.s)) * 100)) : 0;
+    const progs = ch ? progsOf(ch) : [];
+    return (
+      <div ref={playerRef} className={`we-player mpv lv lv-pt${showUi ? '' : ' hide-ui'}`} style={{ ['--lv-sat' as string]: `${sat}px`, ['--lv-vh' as string]: `${vidH}px` }} onMouseMove={poke}>
+        <div className="we-surface" onClick={() => { if (!isMobileApp) toggle(); }} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} />
+        {hud && <div className="we-hud">{hud}</div>}
+        {busy && !err && <div className="we-loading"><span className="spinner" aria-hidden="true" />正在连接…</div>}
+        {err && <div className="we-error">{err}</div>}
+        <div className="lv-vtop">
+          <button className="we-btn lv-ic" aria-label="返回" onClick={() => void exit()}>
+            <svg width="22" height="22" viewBox="0 0 24 24"><path d="M15.5 5l-7 7 7 7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </button>
+          <span style={{ flex: 1 }} />
+          {!isMobileApp && (
+            <div className="we-winbtns">
+              <button className="we-btn" title="最小化" onClick={() => void winMinimize()}><svg width="12" height="12" viewBox="0 0 16 16"><line x1="3.5" y1="8" x2="12.5" y2="8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></button>
+              <button className="we-btn" title="最大化" onClick={() => void winToggleMax()}><svg width="12" height="12" viewBox="0 0 16 16"><rect x="3.5" y="3.5" width="9" height="9" rx="1.2" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg></button>
+              <button className="we-btn" title="关闭" onClick={() => void winClose()}><svg width="12" height="12" viewBox="0 0 16 16"><line x1="4" y1="4" x2="12" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /><line x1="12" y1="4" x2="4" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></button>
+            </div>
+          )}
+        </div>
+        <button className="we-btn lv-ic lv-vplay" aria-label={paused ? '播放' : '暂停'} onClick={(e) => { e.stopPropagation(); toggle(); poke(); }}>
+          {paused ? <svg width="28" height="28" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" /></svg> : <svg width="28" height="28" viewBox="0 0 24 24"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z" fill="currentColor" /></svg>}
+        </button>
+        {isMobileApp && (
+          <button className="we-btn lv-ic lv-vbot" aria-label="横屏" title="横屏全屏观看" onClick={(e) => { e.stopPropagation(); void toggleFull(); }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></svg>
+          </button>
+        )}
+
+        <div className="lv-low">
+          <div className="lv-info">
+            <h1>{ch?.name || '未找到频道'}<span className="we-livedot">● 直播</span></h1>
+            {now ? (
+              <>
+                <div className="lv-now"><span>{now.t}</span><em>{hhmm(now.s)}–{hhmm(now.e)}</em></div>
+                <div className="lv-bar"><i style={{ width: `${pctNow}%` }} /></div>
+              </>
+            ) : <div className="lv-now dim"><span>暂无节目信息</span></div>}
+            {next && <div className="lv-next">接下来　{next.t}　{hhmm(next.s)}</div>}
+          </div>
+          <div className="lv-ctl">
+            <button onClick={() => step(-1)}>上一台</button>
+            <button onClick={() => step(1)}>下一台</button>
+            {ch && ch.lines.length > 1 && <button onClick={() => setLine((l) => (l + 1) % ch.lines.length)}>换线路 {line + 1}/{ch.lines.length}</button>}
+            <button onClick={() => void sessRef.current?.cmd('cycle', ['mute'])}>{muted || vol === 0 ? '取消静音' : '静音'}</button>
+          </div>
+          <div className="lv-cols">
+            <div className="lv-l">
+              <div className="lv-gh">{g === '__fav' ? '收藏频道' : g || '全部频道'}（{pool.length}）</div>
+              {pool.map((c) => (
+                <div key={c.name} className={`lv-chi${c.name === name ? ' on' : ''}`} onClick={() => pick(c)}>{c.name}</div>
+              ))}
+            </div>
+            <div className="lv-r">
+              <div className="lv-gh">{ch ? `${ch.name} · 节目单` : '节目单'}</div>
+              {progs.length === 0 && <div className="lv-row dim">没有这个频道的节目单（在直播页设置 XMLTV 地址；频道名或 tvg-id 要对得上）</div>}
+              {progs.map((p) => {
+                const isNow = p.s <= Date.now() && Date.now() < p.e;
+                return <div key={p.s} className={`lv-row${isNow ? ' now' : p.e <= Date.now() ? ' past' : ''}`}><b>{hhmm(p.s)}</b><span>{p.t}</span></div>;
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`we-player mpv${showUi ? '' : ' hide-ui'}`} onMouseMove={poke}>
+    <div ref={playerRef} className={`we-player mpv lv lv-w${compact ? ' lv-compact' : ''}${list ? ' has-list' : ''}${epgOpen ? ' has-epg' : ''}${showUi ? '' : ' hide-ui'}`} onMouseMove={poke}>
       <div className="we-surface" onClick={() => { if (!isMobileApp) toggle(); }} onDoubleClick={() => { if (!isMobileApp) void toggleFull(); }} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} />
       {hud && <div className="we-hud">{hud}</div>}
       {busy && !err && <div className="we-loading"><span className="spinner" aria-hidden="true" />正在连接…</div>}
-      {osd && ch && (() => {
+      {osd && ch && !(compact && (list || epgOpen)) && (() => {
         const { now, next } = nowNext(ch);
         const no = Math.max(0, pool.findIndex((c) => c.name === ch.name)) + 1;
         const pctNow = now ? Math.min(100, Math.max(0, ((Date.now() - now.s) / (now.e - now.s)) * 100)) : 0;
@@ -280,7 +423,7 @@ export default function LivePlayer() {
         <button className="we-btn we-back" title="返回（Esc）" aria-label="返回" onClick={() => void exit()}>
           <svg width="26" height="26" viewBox="0 0 24 24"><path d="M15.5 5l-7 7 7 7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </button>
-        <div className="we-titlebox">
+        <div className="we-titlebox" ref={titleRef}>
           <div className="we-title">{ch?.name || '未找到频道'} <span className="we-livedot">● 直播</span></div>
           {ch && nowNext(ch).now && <div className="we-epg-now">正在播放：{nowNext(ch).now?.t}　{hhmm(nowNext(ch).now?.s || 0)}–{hhmm(nowNext(ch).now?.e || 0)}</div>}
           <div className="we-subline">
@@ -327,7 +470,7 @@ export default function LivePlayer() {
       )}
 
       <div className="we-bottom" onClick={(e) => e.stopPropagation()}>
-        <div className="we-ctrls">
+        <div className="we-ctrls" ref={ctrlsRef}>
           {!isMobileApp && (
             <button className="we-btn" title="播放/暂停（空格）" aria-label={paused ? '播放' : '暂停'} onClick={() => { toggle(); poke(); }}>
               {paused ? <svg width="26" height="26" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" /></svg> : <svg width="26" height="26" viewBox="0 0 24 24"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z" fill="currentColor" /></svg>}
@@ -345,7 +488,7 @@ export default function LivePlayer() {
         <button className="we-btn" title="下一个频道（↓）" aria-label="下一台" onClick={() => { step(1); poke(); }}>
           <svg width="24" height="24" viewBox="0 0 24 24"><path d="M6 5v14l9-7-9-7Zm9.5 0H18v14h-2.5z" fill="currentColor" /></svg>
         </button>
-          <button className="we-btn we-lbl" title="节目单" onClick={() => setEpgOpen((v) => !v)}>
+          <button className="we-btn we-lbl" title="节目单" onClick={toggleEpg}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M4 10h16M9 3v4M15 3v4" /></svg><span>节目单</span>
           </button>
           {ch && ch.lines.length > 1 && (
@@ -353,9 +496,14 @@ export default function LivePlayer() {
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h12l-3-3M20 17H8l3 3" /></svg><span>换线路</span>
             </button>
           )}
-          <button className="we-btn we-lbl" title="频道列表（L）" onClick={() => setList((v) => !v)}>
+          <button className="we-btn we-lbl" title="频道列表（L）" onClick={toggleList}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h10" /></svg><span>频道</span>
           </button>
+          {isMobileApp && full && (
+            <button className="we-btn we-lbl" title="切回竖屏" onClick={() => void toggleFull()}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="7" y="3" width="10" height="18" rx="2" /></svg><span>竖屏</span>
+            </button>
+          )}
           {!isMobileApp && (
             <button className="we-btn" title="全屏（F）" onClick={() => void toggleFull()}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{full ? <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /> : <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />}</svg>

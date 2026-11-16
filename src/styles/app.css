@@ -637,3 +637,64 @@ html:not([data-motion='off']) .mu-spin{ animation-duration: 12s !important; anim
 .we-upnext-h{ padding-right: 32px; }
 .we-upnext.solo{ display: flex; align-items: center; gap: 8px; padding: 8px 10px; width: auto; }
 :root .we-upnext.solo .we-upnext-x{ position: static; flex: none; }
+
+/* ================= 直播播放页（1110-Z8）：浮层不再互相遮挡；窄窗口 / 手机竖屏改成「视频在上、列表在下」 =================
+   新增元素一律无边框：深灰底 + 当前项红色高亮 */
+/* 横屏 / 桌面：面板上下边按顶栏、底栏实测高度（--lv-top / --lv-bot，由 LivePlayer 量出）让开 */
+:root:root .we-player.lv-w .we-chlist{ top: var(--lv-top, 76px); bottom: var(--lv-bot, 76px); left: 12px; width: 220px; border: 0; border-radius: 14px; background: rgba(14, 14, 16, .86); }
+:root:root .we-player.lv-w .we-epg{ top: var(--lv-top, 76px); bottom: var(--lv-bot, 76px); right: 12px; width: 280px; border: 0; border-radius: 14px; background: rgba(14, 14, 16, .86); }
+:root:root .we-player.lv-w .we-chlist-head{ border: 0; padding: 12px 14px 8px; }
+:root:root .we-player.lv-w .we-epg-row{ border: 0; margin: 1px 4px; border-radius: 10px; padding: 9px 10px; }
+:root:root .we-player.lv-w .we-menu-item{ border-radius: 10px; padding: 10px 12px; }
+:root:root .we-player.lv-w .we-menu-item.active{ background: rgba(240, 65, 75, .16); color: #fff; }
+:root:root .we-player.lv-w .we-osd{ top: var(--lv-top, 76px); left: 28px; border: 0; border-radius: 14px; background: rgba(14, 14, 16, .86); }
+:root:root .we-player.lv-w.has-list .we-osd{ left: 248px; }
+/* 窄（<1000px）：面板同时只开一个；收起次要信息 */
+:root:root .we-player.lv-compact .we-chlist{ width: min(220px, 44vw); }
+:root:root .we-player.lv-compact .we-epg{ width: min(260px, 52vw); }
+:root:root .we-player.lv-compact .we-subline{ display: none; }
+:root:root .we-player.lv-compact .we-vol, :root:root .we-player.lv-compact .we-volnum{ display: none; }
+:root:root .we-player.lv-compact .we-lbl span{ display: none; }
+:root:root .we-player.lv-w.has-list.lv-compact .we-osd, :root:root .we-player.lv-w.has-epg.lv-compact .we-osd{ display: none; }
+/* 手机横屏：面板打开时中间的播放键让位 */
+.we-player.lv-w:has(.we-chlist) .we-center, .we-player.lv-w:has(.we-epg) .we-center{ opacity: 0; pointer-events: none; }
+.we-player.lv-w:has(.we-chlist) .we-center .we-cbtn, .we-player.lv-w:has(.we-epg) .we-center .we-cbtn{ pointer-events: none; }
+
+/* 竖屏：视频只占顶部 16:9（画面本身由 mpv / ExoPlayer 的 video-margin 限制），下面是不透明的信息区 */
+.we-player.lv-pt .we-surface{ inset: auto; left: 0; right: 0; top: 0; height: calc(var(--lv-sat, 0px) + var(--lv-vh, 220px)); }
+.we-player.lv-pt .we-loading, .we-player.lv-pt .we-error{ top: calc(var(--lv-sat, 0px) + var(--lv-vh, 220px) / 2); max-width: 86%; }
+.we-player.lv-pt .we-hud{ top: calc(var(--lv-sat, 0px) + 20px); }
+.lv-vtop{ position: absolute; left: 8px; right: 8px; top: calc(var(--lv-sat, 0px) + 6px); z-index: 5; display: flex; align-items: center; gap: 8px; transition: opacity .3s; }
+.lv-vplay, .lv-vbot{ position: absolute; z-index: 5; transition: opacity .3s; }
+.lv-vplay{ left: 50%; top: calc(var(--lv-sat, 0px) + var(--lv-vh, 220px) / 2); transform: translate(-50%, -50%); width: 56px; height: 56px; }
+.lv-vbot{ right: 10px; top: calc(var(--lv-sat, 0px) + var(--lv-vh, 220px) - 44px); }
+.we-player.lv-pt.hide-ui .lv-vtop, .we-player.lv-pt.hide-ui .lv-vplay, .we-player.lv-pt.hide-ui .lv-vbot{ opacity: 0; pointer-events: none; }
+:root:root .we-player.lv-pt .lv-ic{ width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: rgba(0, 0, 0, .42) !important; color: #fff; display: inline-flex; align-items: center; justify-content: center; }
+:root:root .we-player.lv-pt .lv-vplay{ width: 56px; height: 56px; }
+.lv-low{ position: absolute; left: 0; right: 0; bottom: 0; top: calc(var(--lv-sat, 0px) + var(--lv-vh, 220px)); z-index: 3; display: flex; flex-direction: column; background: #0b0b0d; color: #f2f2f3; }
+.lv-info{ padding: 14px 16px 6px; }
+.lv-info h1{ font-size: 19px; font-weight: 700; margin: 0; line-height: 1.3; }
+.lv-now{ margin-top: 8px; font-size: 14px; display: flex; justify-content: space-between; gap: 10px; }
+.lv-now span{ min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lv-now em{ font-style: normal; color: #9a9aa2; font-variant-numeric: tabular-nums; flex: none; }
+.lv-now.dim{ color: #9a9aa2; }
+.lv-bar{ height: 3px; margin-top: 8px; background: #2c2c32; border-radius: 2px; overflow: hidden; }
+.lv-bar i{ display: block; height: 100%; background: #f0414b; }
+.lv-next{ margin-top: 7px; font-size: 12px; color: #9a9aa2; }
+.lv-ctl{ display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 16px 10px; }
+:root:root .lv-ctl button{ border: 0 !important; box-shadow: none !important; background: #26262b !important; color: #f2f2f3 !important; border-radius: 99px; height: 32px; padding: 0 14px; font-size: 13px; }
+:root:root .lv-ctl button:active{ background: #34343a !important; }
+.lv-cols{ flex: 1; min-height: 0; display: flex; margin: 0 8px; }
+.lv-l{ width: 40%; overflow-y: auto; padding: 0 2px 12px; }
+.lv-r{ flex: 1; min-width: 0; overflow-y: auto; padding: 0 2px 12px; background: #17171a; border-radius: 14px; }
+.lv-gh{ padding: 8px 12px 10px; font-size: 12px; color: #9a9aa2; position: sticky; top: 0; z-index: 1; }
+.lv-r .lv-gh{ background: #17171a; }
+.lv-l .lv-gh{ background: #0b0b0d; }
+.lv-chi{ padding: 11px 12px; font-size: 14px; border-radius: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.lv-chi.on{ background: rgba(240, 65, 75, .16); color: #fff; }
+.lv-row{ padding: 9px 12px; font-size: 13px; display: flex; gap: 10px; border-radius: 10px; line-height: 1.45; }
+.lv-row b{ color: #f0414b; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 42px; }
+.lv-row.now{ background: rgba(240, 65, 75, .16); }
+.lv-row.past{ color: #6f6f77; }
+.lv-row.dim{ color: #9a9aa2; }
+@media (hover: hover) and (pointer: fine) { .lv-chi:hover{ background: rgba(255, 255, 255, .07); } .lv-chi.on:hover{ background: rgba(240, 65, 75, .2); } }
