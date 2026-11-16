@@ -8,7 +8,7 @@ import {
 } from './dsm';
 
 // ───────── 连接 + 选文件夹 ─────────
-function Connect({ onDone }: { onDone?: () => void }) {
+function Connect({ onDone, pick }: { onDone?: () => void; pick?: boolean }) {
   const old = loadDsm();
   const [server, setServer] = useState(old.server || '');
   const [user, setUser] = useState(old.user || '');
@@ -42,6 +42,8 @@ function Connect({ onDone }: { onDone?: () => void }) {
     const i = path.lastIndexOf('/');
     void open(i <= 0 ? '' : path.slice(0, i));
   };
+  useEffect(() => { if (pick) void open(old.folder || ''); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const choose = (): void => {
     saveDsm({ ...cfg(), folder: path });
     onDone?.();
@@ -88,7 +90,7 @@ function Connect({ onDone }: { onDone?: () => void }) {
 export default function LocalPage() {
   const key = useDsmKey();
   const nav = useNavigate();
-  const [setting, setSetting] = useState(false);
+  const [setting, setSetting] = useState<false | 'conn' | 'pick'>(false);
   const [lib, setLib] = useState<LocalLibrary | null>(null);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
@@ -135,7 +137,7 @@ export default function LocalPage() {
     return a;
   };
 
-  if (!configured || setting) return <Connect onDone={configured ? () => setSetting(false) : undefined} />;
+  if (!configured || setting) return <Connect key={String(setting)} pick={setting === 'pick'} onDone={configured ? () => setSetting(false) : undefined} />;
 
   const Card = ({ v, i, items, title }: { v: LocalVideo; i: number; items: LocalVideo[]; title: string }) => {
     const p = pos[v.path];
@@ -157,7 +159,8 @@ export default function LocalPage() {
         <h1>随便看看</h1>
         <input className="lc-q" value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索视频" />
         <button onClick={() => load(true)} disabled={busy}>{busy ? '读取中…' : '刷新'}</button>
-        <button onClick={() => setSetting(true)}>设置</button>
+        <button onClick={() => setSetting('pick')}>换文件夹</button>
+        <button onClick={() => setSetting('conn')}>设置</button>
       </div>
       {err && (
         <div className="lc-err">
@@ -165,7 +168,7 @@ export default function LocalPage() {
           <div className="lc-acts"><button className="lc-pri" onClick={() => load(true)}>重试</button><button onClick={() => { if (confirm('断开群晖？')) clearDsm(); }}>断开</button></div>
         </div>
       )}
-      {coverStat.ok === 0 && coverStat.fail > 2 && <div className="lc-sub">封面取不到：{coverStat.why}。群晖没生成缩略图时，这里会一直显示彩色底图。</div>}
+      {coverStat.ok === 0 && coverStat.fail > 2 && <div className="lc-sub">封面取不到：{coverStat.why}</div>}
       {!lib && !err && <div className="lc-empty">正在读取群晖里的视频…</div>}
       {lib && lib.all.length === 0 && <div className="lc-empty">这个文件夹里没有视频。可以到「设置」里换一个文件夹。</div>}
       {lib && lib.all.length > 0 && (
@@ -196,7 +199,7 @@ export default function LocalPage() {
             <>
               <h2 className="lc-sec">继续播放</h2>
               <div className="lc-hrow">
-                {resume.map((v, i) => <Card key={v.path} v={v} i={i} items={resume} title="继续播放" />)}
+                {resume.map((v) => <Card key={v.path} v={v} i={lib.all.indexOf(v)} items={lib.all} title="全部视频" />)}
               </div>
             </>
           )}

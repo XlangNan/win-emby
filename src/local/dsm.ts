@@ -235,32 +235,95 @@ async function coverSlot(): Promise<void> {
 function coverFree(): void { coverBusy--; coverWait.shift()?.(); }
 
 export const coverStat = { ok: 0, fail: 0, why: '' };
-const coverWhy = (w: string): string => { coverStat.fail++; if (!coverStat.why) coverStat.why = w; window.dispatchEvent(new Event('wemby-cover-stat')); return ''; };
+const coverEvt = (): void => { window.dispatchEvent(new Event('wemby-cover-stat')); };
+const coverWhy = (w: string): string => { coverStat.fail++; if (!coverStat.why) coverStat.why = w; coverEvt(); return ''; };
 
-async function fetchCover(path: string, retried = false): Promise<string> {
+// 已经取到的封面存在本地（小图，几十 KB 一张），下次打开直接用
+const COV_KEY = 'wemby-local-cov';
+function covLoad(): Record<string, string> { try { return JSON.parse(localStorage.getItem(COV_KEY) || '{}') as Record<string, string>; } catch { return {}; } }
+function covSave(path: string, data: string): void {
+  try {
+    const m = covLoad();
+    m[path] = data;
+    const keys = Object.keys(m);
+    if (keys.length > 300) for (const k of keys.slice(0, keys.length - 300)) delete m[k];
+    localStorage.setItem(COV_KEY, JSON.stringify(m));
+  } catch { /* 存满了就算了 */ }
+}
+
+let thumbMiss = 0;   // 连续 404 次数：群晖没生成缩略图时不再白白去问
+let thumbHit = false;
+
+async function fetchThumb(path: string, retried = false): Promise<string> {
   const c = loadDsm();
   const q = new URLSearchParams({ api: 'SYNO.FileStation.Thumb', version: '2', method: 'get', path, size: 'medium', _sid: await dsmSid(retried) });
   const res = await httpFetch(`${c.server}/webapi/entry.cgi?${q.toString()}`);
   const type = res.headers.get('content-type') || '';
   if (res.ok && type.startsWith('image/')) {
     const blob = await res.blob();
-    if (blob.size > 0) { coverStat.ok++; window.dispatchEvent(new Event('wemby-cover-stat')); return URL.createObjectURL(blob); }
-    return coverWhy('群晖返回了空图片');
+    if (blob.size > 0) { thumbHit = true; thumbMiss = 0; return URL.createObjectURL(blob); }
+    return '';
   }
-  if (!res.ok) return coverWhy(`群晖返回 HTTP ${res.status}（多半是这个视频没有缩略图）`);
+  if (!res.ok) { thumbMiss++; return ''; }
   let code = 0;
   try { code = ((await res.json()) as { error?: { code?: number } }).error?.code ?? 0; } catch { /* ignore */ }
-  if (!retried && SESSION_ERR.has(code)) return fetchCover(path, true);
-  return coverWhy(code ? `群晖接口错误码 ${code}（缩略图没生成，或没有权限）` : `群晖返回的不是图片（${type || '未知类型'}）`);
+  if (!retried && SESSION_ERR.has(code)) return fetchThumb(path, true);
+  thumbMiss++;
+  return '';
 }
 
-/** 返回封面图地址（blob:）；取不到返回空串。结果有缓存。 */
+/** 群晖没有缩略图时：下载视频开头一小段，在本地截一帧当封面（需要这段里带有视频头信息，且系统能解码） */
+async function fetchFrame(path: string): Promise<string> {
+  const url = await dsmPlayUrl(path);
+  const res = await httpFetch(url, { headers: { Range: 'bytes=0-4194303' } });
+  if (!res.ok) throw new Error(`下载视频开头失败 HTTP ${res.status}`);
+  const blob = await res.blob();
+  const obj = URL.createObjectURL(blob);
+  try {
+    return await new Promise<string>((resolve, reject) => {
+      const v = document.createElement('video');
+      v.muted = true; v.preload = 'auto'; v.playsInline = true;
+      const done = (e?: string, d?: string): void => { clearTimeout(t); v.removeAttribute('src'); v.load(); e ? reject(new Error(e)) : resolve(d || ''); };
+      const t = setTimeout(() => done('截图超时（这个视频的开头部分不能直接解码）'), 15000);
+      v.onerror = () => done('系统播放器解不了这个视频格式');
+      v.onloadedmetadata = () => { try { v.currentTime = Math.min(2, Math.max(0.1, (v.duration || 4) * 0.05)); } catch { done('无法定位画面'); } };
+      v.onseeked = () => {
+        try {
+          const w = 480, h = Math.max(1, Math.round((w * (v.videoHeight || 9)) / (v.videoWidth || 16)));
+          const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+          cv.getContext('2d')!.drawImage(v, 0, 0, w, h);
+          done(undefined, cv.toDataURL('image/jpeg', 0.72));
+        } catch (e) { done(e instanceof Error ? e.message : String(e)); }
+      };
+      v.src = obj;
+    });
+  } finally { URL.revokeObjectURL(obj); }
+}
+
+// 截帧一次只做一个（要下载 4MB）
+let frameChain: Promise<unknown> = Promise.resolve();
+
+/** 返回封面图地址；取不到返回空串。结果有缓存。顺序：本地已存 → 群晖缩略图 → 本地截帧 */
 export function dsmCover(path: string): Promise<string> {
   let p = coverCache.get(path);
   if (!p) {
     p = (async () => {
+      const saved = covLoad()[path];
+      if (saved) { coverStat.ok++; coverEvt(); return saved; }
       await coverSlot();
-      try { return await fetchCover(path); } catch (e) { return coverWhy(`请求失败：${e instanceof Error ? e.message : String(e)}`); } finally { coverFree(); }
+      let why = '';
+      try {
+        if (thumbHit || thumbMiss < 3) {
+          const u = await fetchThumb(path);
+          if (u) { coverStat.ok++; coverEvt(); return u; }
+        }
+      } catch (e) { why = `请求失败：${e instanceof Error ? e.message : String(e)}`; } finally { coverFree(); }
+      const job = frameChain.then(async () => {
+        try { const d = await fetchFrame(path); covSave(path, d); coverStat.ok++; coverEvt(); return d; }
+        catch (e) { return coverWhy(why || (e instanceof Error ? e.message : String(e))); }
+      });
+      frameChain = job.catch(() => undefined);
+      return job;
     })();
     coverCache.set(path, p);
   }
@@ -268,4 +331,4 @@ export function dsmCover(path: string): Promise<string> {
 }
 
 /** 刷新时清掉封面缓存（包括取失败的），让它重新去取 */
-export function clearCovers(): void { coverCache.clear(); coverStat.ok = 0; coverStat.fail = 0; coverStat.why = ''; }
+export function clearCovers(): void { coverCache.clear(); thumbMiss = 0; coverStat.ok = 0; coverStat.fail = 0; coverStat.why = ''; }

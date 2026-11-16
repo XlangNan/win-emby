@@ -366,6 +366,7 @@ export default function LocalPlayer() {
   }, [poke, toggle, seekTo, step, toggleFull, exit, dark, full]);
 
   // 拖进度条
+  const lastTap = useRef(0);
   const barRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<number | null>(null);
   const fracOf = (e: React.PointerEvent): number => {
@@ -427,7 +428,15 @@ export default function LocalPlayer() {
     <div className={`lc-player lc-${mode}${showCtl ? '' : ' hide-ui'}`} onMouseMove={poke} onTouchStart={poke}>
       {/* 视频区：画面在原生层，这里只放控制层 */}
       <div className="lc-stage" style={stageStyle}
-        onClick={(e) => { if ((e.target as HTMLElement).closest('button,.lc-bar')) return; if (isMobileApp) { if (uiShown) setUiShown(false); else poke(); } else toggle(); }}
+        onClick={(e) => {
+          if ((e.target as HTMLElement).closest('button,.lc-bar,.lc-top')) return;
+          if (!isMobileApp) { toggle(); return; }
+          // 手机：单击显示 / 隐藏控制条；双击切换全屏 / 小屏
+          const now = Date.now();
+          if (now - lastTap.current < 320) { lastTap.current = 0; void toggleFull(); poke(); return; }
+          lastTap.current = now;
+          if (uiShown) setUiShown(false); else poke();
+        }}
         onDoubleClick={() => { if (!isMobileApp) void toggleFull(); }}>
         {prefs.warm && <div className="lc-warm" />}
         {busy && !err && <div className="lc-center-msg"><span className="spinner" aria-hidden="true" />正在读取…</div>}
@@ -451,14 +460,14 @@ export default function LocalPlayer() {
             <i style={{ width: `${progPct}%` }} /><b style={{ left: `${progPct}%` }} />
           </div>
           <span className="lc-time">{fmtClock(dur)}</span>
-          <button className="lc-ic lc-sm" aria-label="上一个" onClick={() => step(-1)}>⏮</button>
-          <button className="lc-ic lc-sm" aria-label="下一个" onClick={() => step(1)}>⏭</button>
+          <button className="lc-ic lc-sm" aria-label="上一个" onClick={() => step(-1)}><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 5H18v14h-2.5zM14.5 12 5 5v14z" /></svg></button>
+          <button className="lc-ic lc-sm" aria-label="下一个" onClick={() => step(1)}><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2.5v14H6zM9.5 12 19 5v14z" /></svg></button>
           {!isMobileApp && (
             <input className="lc-vol" type="range" min={0} max={100} value={Math.round(vol)} aria-label="音量"
               onChange={(e) => { const v = Number(e.target.value); volRef.current = v; setVol(v); void sessRef.current?.set('volume', v); }} />
           )}
-          {mode === 'full' && <button className="lc-ic lc-sm" aria-label="定时停止" onClick={() => setSheet(true)}>☾</button>}
-          {mode === 'full' && <button className="lc-ic lc-sm" aria-label="熄屏只听声音" onClick={() => setDark(true)}>▭</button>}
+          {mode === 'full' && <button className="lc-ic lc-sm" aria-label="定时停止" onClick={() => setSheet(true)}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z" /></svg></button>}
+          {mode === 'full' && <button className="lc-ic lc-sm" aria-label="熄屏只听声音" onClick={() => setDark(true)}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="12" rx="2" /><path d="M8 21h8M12 17v4" /></svg></button>}
           <button className="lc-ic lc-sm" aria-label={full ? '退出全屏' : '全屏'} onClick={() => void toggleFull()}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></svg>
           </button>

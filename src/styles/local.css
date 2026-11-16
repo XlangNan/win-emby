@@ -74,9 +74,10 @@
 .lc-info{ padding: 12px 16px 4px; }
 .lc-info h2{ margin: 0; font-size: 18px; font-weight: 700; line-height: 1.35; }
 .lc-meta{ margin-top: 4px; font-size: 12px; color: #9a9aa2; }
-.lc-tools{ display: flex; gap: 8px; padding: 10px 16px 12px; overflow-x: auto; flex: none; scrollbar-width: none; }
+.lc-tools{ display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 16px 10px; flex: none; }
 .lc-tools::-webkit-scrollbar{ display: none; }
-:root:root .lc-tools button{ flex: none; height: 34px; padding: 0 14px; border-radius: 99px; background: #26262b !important; color: #f2f2f3; font-size: 13px; white-space: nowrap; }
+:root:root .lc-tools button{ flex: none; height: 28px; padding: 0 11px; border-radius: 99px; background: #26262b !important; color: #f2f2f3; font-size: 12px; white-space: nowrap; }
+@media (min-width: 761px) { :root:root .lc-tools button{ height: 34px; padding: 0 14px; font-size: 13px; } .lc-tools{ gap: 8px; } }
 :root:root .lc-tools button.on{ background: var(--accent, #f0414b) !important; color: #fff; }
 .lc-qh{ display: flex; justify-content: space-between; align-items: center; padding: 6px 16px 8px; flex: none; }
 .lc-qh b{ font-size: 15px; }
@@ -142,3 +143,7 @@
   .lc-t{ font-size: 15px; margin-top: 11px; }
   .lc-m{ font-size: 12.5px; }
 }
+
+.lc-player.lc-full .lc-top{ top: max(12px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left)); }
+.lc-player.lc-full .lc-bar{ padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+.lc-ic svg{ display: block; }
