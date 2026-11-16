@@ -669,8 +669,8 @@ html:not([data-motion='off']) .mu-spin{ animation-duration: 12s !important; anim
 .lv-vplay{ left: 50%; top: calc(var(--lv-sat, 0px) + var(--lv-vh, 220px) / 2); transform: translate(-50%, -50%); width: 56px; height: 56px; }
 .lv-vbot{ right: 10px; top: calc(var(--lv-sat, 0px) + var(--lv-vh, 220px) - 44px); }
 .we-player.lv-pt.hide-ui .lv-vtop, .we-player.lv-pt.hide-ui .lv-vplay, .we-player.lv-pt.hide-ui .lv-vbot{ opacity: 0; pointer-events: none; }
-:root:root .we-player.lv-pt .lv-ic{ width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: rgba(0, 0, 0, .42) !important; color: #fff; display: inline-flex; align-items: center; justify-content: center; }
-:root:root .we-player.lv-pt .lv-vplay{ width: 56px; height: 56px; }
+:root:root .we-player.lv-pt .lv-ic{ box-sizing: border-box; flex: none; width: 40px; height: 40px; min-width: 40px; min-height: 40px; max-width: 40px; max-height: 40px; padding: 0; margin: 0; border: 0; border-radius: 50%; background: rgba(0, 0, 0, .45) !important; color: #fff; line-height: 0; display: inline-flex; align-items: center; justify-content: center; }
+:root:root .we-player.lv-pt .lv-vplay{ width: 56px; height: 56px; min-width: 56px; min-height: 56px; max-width: 56px; max-height: 56px; }
 .lv-low{ position: absolute; left: 0; right: 0; bottom: 0; top: calc(var(--lv-sat, 0px) + var(--lv-vh, 220px)); z-index: 3; display: flex; flex-direction: column; background: #0b0b0d; color: #f2f2f3; }
 .lv-info{ padding: 14px 16px 6px; }
 .lv-info h1{ font-size: 19px; font-weight: 700; margin: 0; line-height: 1.3; }
