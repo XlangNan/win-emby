@@ -37,7 +37,7 @@ export default function LivePlayer() {
   chRef.current = ch;
 
   const [paused, setPaused] = useState(false);
-  const [vol, setVol] = useState(Math.round(loadPlayPrefs().volume * 100));
+  const [vol, setVol] = useState(isMobileApp ? 100 : Math.round(loadPlayPrefs().volume * 100));
   const [muted, setMuted] = useState(false);
   const [fps, setFps] = useState(0);
   const [dim, setDim] = useState({ w: 0, h: 0 });
@@ -160,6 +160,7 @@ export default function LivePlayer() {
     document.documentElement.classList.add('mpv-on');
     readyRef.current = openMpv({
       hdr: loadPlayPrefs().hdr,
+      forceMpv: true,
       onProp: (n, d) => {
         switch (n) {
           case 'pause': pausedRef.current = !!d; setPaused(!!d); break;
@@ -187,7 +188,9 @@ export default function LivePlayer() {
           return null;
         }
         sessRef.current = s;
-        await s.set('volume', Math.round(loadPlayPrefs().volume * 100));
+        // 手机：播放器音量固定 100，音量交给系统音量键 / 右侧竖滑（和点播一致）；电脑才用保存的音量
+        await s.set('volume', isMobileApp ? 100 : Math.round(loadPlayPrefs().volume * 100));
+        await s.set('mute', 'no').catch(() => undefined);
         return s;
       })
       .catch((e: unknown) => {

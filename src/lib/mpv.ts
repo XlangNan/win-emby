@@ -55,13 +55,15 @@ export interface MpvSession {
 export interface MpvOpenOpts {
   /** 把 HDR 直通给显示器 */
   hdr: boolean;
+  /** 强制用 MPV（忽略设置里的内核）：直播流的音频常是 MP2 / AC-3，ExoPlayer 解不了会没声音 */
+  forceMpv?: boolean;
   onProp: (name: string, data: unknown) => void;
 }
 
 /** 安卓：走 Kotlin 桥（android/MpvBridge.kt），接口与桌面端一致 */
 function openAndroid(o: MpvOpenOpts): Promise<MpvSession> {
   return enqueue(async () => {
-    const useExo = loadPlayPrefs().engine === 'exo' && !!(window as unknown as { AndroidExo?: unknown }).AndroidExo;
+    const useExo = !o.forceMpv && loadPlayPrefs().engine === 'exo' && !!(window as unknown as { AndroidExo?: unknown }).AndroidExo;
     const b = useExo ? (window as unknown as { AndroidExo: NonNullable<ReturnType<typeof androidBridge>> }).AndroidExo : androidBridge();
     if (!b) throw new Error('没有找到安卓 MPV 桥（应用版本不对？）');
     const w = window as unknown as { __mpvEvt?: (name: string, data: unknown) => void };
