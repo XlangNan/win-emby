@@ -1,5 +1,6 @@
 // 外观模式：深色 / 浅色 / 跟随系统。写 <html data-mode="dark|light">，样式见 styles/light.css。
 import { androidBridge } from './platform';
+import { syncWindowBg } from './bars';
 const KEY = 'wemby-mode';
 export type ModePref = 'dark' | 'light' | 'system';
 export const MODE_LABELS: [ModePref, string][] = [['dark', '深色'], ['light', '浅色'], ['system', '跟随系统']];
@@ -26,6 +27,7 @@ export function applyMode(p: ModePref): void {
   m.content = light ? '#f5f5f7' : '#000000';
   // 安卓：状态栏 / 导航栏图标跟着明暗走（浅色模式用深色图标，否则白底上看不见）；播放页内保持浅色图标
   try { if (!window.location.hash.startsWith('#/player/')) androidBridge()?.setStatusBarLight?.(light); } catch { /* ignore */ }
+  syncWindowBg(window.location.hash.startsWith('#/player/') || window.location.hash.startsWith('#/live/play'));
   try { localStorage.setItem(KEY, p); } catch { /* ignore */ }
 }
 

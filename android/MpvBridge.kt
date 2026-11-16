@@ -231,6 +231,14 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
         }
     }
 
+    /** 窗口底色：系统栏（手势条）那一块没有网页内容，露出来的就是它；让它跟页面背景同色 */
+    @JavascriptInterface
+    fun setWindowBg(argb: Int) {
+        act.runOnUiThread {
+            try { act.window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(argb)) } catch (_: Throwable) { }
+        }
+    }
+
     /** 状态栏 / 导航栏图标颜色：浅色主题（白底）用深色图标，深色主题用浅色图标 */
     @JavascriptInterface
     fun setStatusBarLight(light: Boolean) {

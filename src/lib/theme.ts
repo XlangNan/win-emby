@@ -2,6 +2,7 @@
 // 并把布局度量写成 CSS 变量；global.css 的「宿主结构层」按这些属性生效。
 import { useEffect, useState } from 'react';
 import { androidBridge } from './platform';
+import { syncWindowBg } from './bars';
 import { DEFAULT_THEME, normalizeTheme, skinBase, skinLayout, type Theme, type ThemeLayout } from './themeTokens';
 
 export type { Theme };
@@ -26,6 +27,8 @@ function applyLayoutVars(layout: ThemeLayout): void {
 /** 安卓：状态栏 / 导航栏图标跟着主题明暗走（浅色模式用深色图标，否则看不清） */
 export function syncStatusBar(light?: boolean): void {
   try { androidBridge()?.setStatusBarLight?.(light ?? document.documentElement.getAttribute('data-mode') === 'light'); } catch { /* ignore */ }
+  // 播放页（light===false 由播放页传入）底下是黑色画面：窗口底色也用黑；离开后取页面背景色
+  syncWindowBg(light === false);
 }
 
 export function applyTheme(t: Theme): void {
@@ -44,6 +47,7 @@ export function applyTheme(t: Theme): void {
   } catch {
     /* ignore */
   }
+  syncWindowBg(window.location.hash.startsWith('#/player/') || window.location.hash.startsWith('#/live/play'));
   window.dispatchEvent(new Event(THEME_EVENT));
 }
 

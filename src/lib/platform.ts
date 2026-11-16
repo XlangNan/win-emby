@@ -24,6 +24,8 @@ export interface AndroidBridge {
   getInsetTop?(): number;
   /** 状态栏图标：true=深色图标（给白底用）；仅安卓实现 */
   setStatusBarLight?(light: boolean): void;
+  /** 窗口底色（ARGB 整数）：手势条那一块露出的颜色；仅安卓实现 */
+  setWindowBg?(argb: number): void;
 }
 
 interface WkHandler { postMessage(m: unknown): Promise<unknown> | void }

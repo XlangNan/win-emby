@@ -126,13 +126,13 @@ export default function LivePage() {
 
   return (
     <>
-      <div className="topbar">
+      <div className="topbar lv-top">
         <h3 style={{ margin: 0 }}>电视直播</h3>
-        <input style={{ marginLeft: 16, width: 200 }} value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索频道…" />
+        <input className="lv-q" style={{ marginLeft: 16, width: 200 }} value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索频道…" />
         <span style={{ flex: 1 }} />
-        <button onClick={() => setMgr((v) => !v)}>{mgr ? '收起直播源' : '直播源管理'}</button>
+        <button className="lv-mgr" onClick={() => setMgr((v) => !v)}>{mgr ? '收起直播源' : '直播源管理'}</button>
       </div>
-      <div className="content">
+      <div className="content lv-page">
         {mgr && (
           <div className="card we-set" style={{ marginBottom: 14 }}>
             <h3>直播源</h3>
