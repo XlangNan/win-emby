@@ -1,5 +1,5 @@
 /* ================= 随便看看（群晖本地视频）：首页 + 播放页。新增元素一律无边框：深灰底，主按钮 / 选中用强调色 ================= */
-.lc-page{ max-width: 1400px; margin: 0 auto; overflow-x: hidden; }
+.lc-page{ width: 100%; max-width: 1480px; margin: 0 auto; overflow-x: hidden; box-sizing: border-box; }
 .lc-page button, .lc-player button, .lc-sheet button{ border: 0 !important; box-shadow: none !important; }
 :root:root .lc-page button, :root:root .lc-sheet button{ border-radius: 99px; background: var(--surface-3, #26262b) !important; color: inherit; }
 :root:root .lc-page .lc-pri, :root:root .lc-page button.on, :root:root .lc-sheet .lc-pri{ background: var(--accent, #f0414b) !important; color: #fff !important; }
@@ -123,3 +123,22 @@
 /* 熄屏：全黑，只留一行很淡的提示 */
 .lc-dark{ position: absolute; inset: 0; z-index: 40; background: #000; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 12vh; }
 .lc-dark span{ font-size: 12px; color: #2c2c30; }
+
+/* 电脑：占满宽度，卡片更大、列数更多，和手机分开 */
+@media (min-width: 761px) {
+  .lc-page:not(:has(.lc-conn)){ padding: 8px 40px 48px; }
+  .lc-head{ margin: 10px 0 18px; gap: 12px; }
+  .lc-head h1{ font-size: 28px; }
+  .lc-head .lc-q{ max-width: 560px; height: 40px; }
+  .lc-head button{ height: 38px; padding: 0 20px; font-size: 14px; }
+  .lc-head::after{ content: ''; }
+  .lc-chips{ flex-wrap: wrap; overflow: visible; margin-bottom: 10px; }
+  .lc-sec{ font-size: 20px; margin: 26px 0 14px; }
+  .lc-hrow{ gap: 20px; }
+  .lc-hrow .lc-card, .lc-hrow .lc-pl{ width: 300px; }
+  .lc-grid{ grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 28px 22px; }
+  .lc-th{ border-radius: 16px; }
+  .lc-th-t{ font-size: 17px; }
+  .lc-t{ font-size: 15px; margin-top: 11px; }
+  .lc-m{ font-size: 12.5px; }
+}

@@ -234,19 +234,24 @@ async function coverSlot(): Promise<void> {
 }
 function coverFree(): void { coverBusy--; coverWait.shift()?.(); }
 
+export const coverStat = { ok: 0, fail: 0, why: '' };
+const coverWhy = (w: string): string => { coverStat.fail++; if (!coverStat.why) coverStat.why = w; window.dispatchEvent(new Event('wemby-cover-stat')); return ''; };
+
 async function fetchCover(path: string, retried = false): Promise<string> {
   const c = loadDsm();
   const q = new URLSearchParams({ api: 'SYNO.FileStation.Thumb', version: '2', method: 'get', path, size: 'medium', _sid: await dsmSid(retried) });
   const res = await httpFetch(`${c.server}/webapi/entry.cgi?${q.toString()}`);
   const type = res.headers.get('content-type') || '';
-  if (res.ok && type.startsWith('image/')) return URL.createObjectURL(await res.blob());
-  if (!retried && type.includes('json')) {
-    try {
-      const j = (await res.json()) as { error?: { code?: number } };
-      if (SESSION_ERR.has(j.error?.code ?? 0)) return fetchCover(path, true);
-    } catch { /* ignore */ }
+  if (res.ok && type.startsWith('image/')) {
+    const blob = await res.blob();
+    if (blob.size > 0) { coverStat.ok++; window.dispatchEvent(new Event('wemby-cover-stat')); return URL.createObjectURL(blob); }
+    return coverWhy('群晖返回了空图片');
   }
-  return '';
+  if (!res.ok) return coverWhy(`群晖返回 HTTP ${res.status}（多半是这个视频没有缩略图）`);
+  let code = 0;
+  try { code = ((await res.json()) as { error?: { code?: number } }).error?.code ?? 0; } catch { /* ignore */ }
+  if (!retried && SESSION_ERR.has(code)) return fetchCover(path, true);
+  return coverWhy(code ? `群晖接口错误码 ${code}（缩略图没生成，或没有权限）` : `群晖返回的不是图片（${type || '未知类型'}）`);
 }
 
 /** 返回封面图地址（blob:）；取不到返回空串。结果有缓存。 */
@@ -255,9 +260,12 @@ export function dsmCover(path: string): Promise<string> {
   if (!p) {
     p = (async () => {
       await coverSlot();
-      try { return await fetchCover(path); } catch { return ''; } finally { coverFree(); }
+      try { return await fetchCover(path); } catch (e) { return coverWhy(`请求失败：${e instanceof Error ? e.message : String(e)}`); } finally { coverFree(); }
     })();
     coverCache.set(path, p);
   }
   return p;
 }
+
+/** 刷新时清掉封面缓存（包括取失败的），让它重新去取 */
+export function clearCovers(): void { coverCache.clear(); coverStat.ok = 0; coverStat.fail = 0; coverStat.why = ''; }

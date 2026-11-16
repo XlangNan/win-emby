@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Cover from './Cover';
 import {
-  clearDsm, dsmBrowse, dsmConfigured, fmtClock, fmtSize, loadDsm, loadLibrary, readPos, saveDsm, setPlayQueue, useDsmKey,
+  clearCovers, clearDsm, coverStat, dsmBrowse, dsmConfigured, fmtClock, fmtSize, loadDsm, loadLibrary, readPos, saveDsm, setPlayQueue, useDsmKey,
   type DsmConfig, type DsmEntry, type LocalLibrary, type LocalVideo,
 } from './dsm';
 
@@ -95,8 +95,15 @@ export default function LocalPage() {
   const [sel, setSel] = useState('');
   const [q, setQ] = useState('');
   const configured = dsmConfigured();
+  const [, bump] = useState(0);
+  useEffect(() => {
+    const f = (): void => bump((n) => n + 1);
+    window.addEventListener('wemby-cover-stat', f);
+    return () => window.removeEventListener('wemby-cover-stat', f);
+  }, []);
 
   const load = (force: boolean): void => {
+    if (force) clearCovers();
     setBusy(true);
     setErr('');
     loadLibrary(force).then((l) => setLib(l)).catch((e: unknown) => setErr(e instanceof Error ? e.message : String(e))).finally(() => setBusy(false));
@@ -158,6 +165,7 @@ export default function LocalPage() {
           <div className="lc-acts"><button className="lc-pri" onClick={() => load(true)}>重试</button><button onClick={() => { if (confirm('断开群晖？')) clearDsm(); }}>断开</button></div>
         </div>
       )}
+      {coverStat.ok === 0 && coverStat.fail > 2 && <div className="lc-sub">封面取不到：{coverStat.why}。群晖没生成缩略图时，这里会一直显示彩色底图。</div>}
       {!lib && !err && <div className="lc-empty">正在读取群晖里的视频…</div>}
       {lib && lib.all.length === 0 && <div className="lc-empty">这个文件夹里没有视频。可以到「设置」里换一个文件夹。</div>}
       {lib && lib.all.length > 0 && (
