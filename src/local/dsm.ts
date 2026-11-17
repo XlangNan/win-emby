@@ -239,7 +239,7 @@ const coverEvt = (): void => { window.dispatchEvent(new Event('wemby-cover-stat'
 const coverWhy = (w: string): string => { coverStat.fail++; if (!coverStat.why) coverStat.why = w; coverEvt(); return ''; };
 
 // 已经取到的封面存在本地（小图，几十 KB 一张），下次打开直接用
-const COV_KEY = 'wemby-local-cov';
+const COV_KEY = 'wemby-local-cov2';
 function covLoad(): Record<string, string> { try { return JSON.parse(localStorage.getItem(COV_KEY) || '{}') as Record<string, string>; } catch { return {}; } }
 function covSave(path: string, data: string): void {
   try {
@@ -286,12 +286,25 @@ async function fetchFrame(path: string): Promise<string> {
       const done = (e?: string, d?: string): void => { clearTimeout(t); v.removeAttribute('src'); v.load(); e ? reject(new Error(e)) : resolve(d || ''); };
       const t = setTimeout(() => done('截图超时（这个视频的开头部分不能直接解码）'), 15000);
       v.onerror = () => done('系统播放器解不了这个视频格式');
-      v.onloadedmetadata = () => { try { v.currentTime = Math.min(2, Math.max(0.1, (v.duration || 4) * 0.05)); } catch { done('无法定位画面'); } };
+      // 依次试几个时间点，跳过全黑的帧（片头黑屏，或系统不让读取画面）
+      const times = [1.5, 4, 8, 0.4];
+      let ti = 0;
+      const seek = (): void => {
+        if (ti >= times.length) { done('截到的画面都是黑的'); return; }
+        const want = Math.min(times[ti++], Math.max(0.1, (v.duration || 10) - 0.2));
+        try { v.currentTime = want; } catch { seek(); }
+      };
+      v.onloadedmetadata = () => seek();
       v.onseeked = () => {
         try {
           const w = 480, h = Math.max(1, Math.round((w * (v.videoHeight || 9)) / (v.videoWidth || 16)));
           const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-          cv.getContext('2d')!.drawImage(v, 0, 0, w, h);
+          const cx = cv.getContext('2d')!;
+          cx.drawImage(v, 0, 0, w, h);
+          const px = cx.getImageData(0, 0, w, h).data;
+          let sum = 0, n = 0;
+          for (let i = 0; i < px.length; i += 4 * 97) { sum += px[i] + px[i + 1] + px[i + 2]; n += 3; }
+          if (sum / Math.max(1, n) < 14) { seek(); return; }
           done(undefined, cv.toDataURL('image/jpeg', 0.72));
         } catch (e) { done(e instanceof Error ? e.message : String(e)); }
       };

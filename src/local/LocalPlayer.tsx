@@ -427,7 +427,7 @@ export default function LocalPlayer() {
   const showCtl = uiShown || paused || !!err;
 
   return (
-    <div className={`lc-player lc-${mode}${showCtl ? '' : ' hide-ui'}`} onMouseMove={poke} onTouchStart={poke}>
+    <div className={`lc-player lc-${mode}${showCtl ? '' : ' hide-ui'}`} onMouseMove={isMobileApp ? undefined : poke}>
       {/* 视频区：画面在原生层，这里只放控制层 */}
       <div className="lc-stage" style={stageStyle}
         onClick={(e) => {

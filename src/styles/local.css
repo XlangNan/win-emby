@@ -50,12 +50,13 @@
 .lc-player{ position: fixed; inset: 0; z-index: 50; color: #f2f2f3; overflow: hidden; background: transparent; user-select: none; -webkit-user-select: none; }
 .lc-stage{ position: absolute; overflow: hidden; }
 .lc-warm{ position: absolute; inset: 0; background: rgba(255, 120, 20, .16); pointer-events: none; z-index: 1; }
-.lc-top{ position: absolute; left: 8px; right: 8px; top: 6px; z-index: 4; display: flex; align-items: center; gap: 10px; transition: opacity .3s; }
+.lc-top{ position: absolute; left: 0; right: 0; top: 0; padding: 6px 8px 28px; z-index: 4; background: linear-gradient(#000a, #0000); display: flex; align-items: center; gap: 10px; transition: opacity .3s; }
 .lc-top-t{ font-size: 15px; font-weight: 600; text-shadow: 0 1px 6px #000; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 :root:root .lc-player .lc-ic{ box-sizing: border-box; flex: none; width: 40px; height: 40px; min-width: 40px; min-height: 40px; padding: 0; border-radius: 50%; background: rgba(0, 0, 0, .45) !important; color: #fff; line-height: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; }
-:root:root .lc-player .lc-ic.lc-sm{ width: 34px; height: 34px; min-width: 34px; min-height: 34px; background: transparent !important; font-size: 15px; }
+:root:root .lc-player .lc-ic.lc-sm{ width: 36px; height: 36px; min-width: 36px; min-height: 36px; background: rgba(255, 255, 255, .16) !important; color: #fff !important; font-size: 15px; }
+.lc-player .lc-ic svg{ filter: drop-shadow(0 1px 3px #000); }
 :root:root .lc-player .lc-playbtn{ position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 56px; height: 56px; min-width: 56px; min-height: 56px; z-index: 4; transition: opacity .3s; }
-.lc-bar{ position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; padding: 26px 10px 8px; display: flex; align-items: center; gap: 8px; background: linear-gradient(#0000, #000b); font-size: 12px; transition: opacity .3s; }
+.lc-bar{ position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; padding: 40px 10px 8px; display: flex; align-items: center; gap: 8px; background: linear-gradient(#0000, #000c 55%, #000e); font-size: 12px; color: #fff; text-shadow: 0 1px 4px #000; transition: opacity .3s; }
 .lc-time{ font-variant-numeric: tabular-nums; flex: none; min-width: 38px; text-align: center; }
 .lc-seek{ position: relative; flex: 1; height: 24px; display: flex; align-items: center; touch-action: none; cursor: pointer; min-width: 40px; }
 .lc-seek::before{ content: ''; position: absolute; left: 0; right: 0; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .3); }
