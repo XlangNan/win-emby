@@ -96,6 +96,7 @@ export default function LocalPage() {
   const [busy, setBusy] = useState(false);
   const [sel, setSel] = useState('');
   const [q, setQ] = useState('');
+  const [chipsOpen, setChipsOpen] = useState(false);
   const configured = dsmConfigured();
   const [, bump] = useState(0);
   useEffect(() => {
@@ -173,9 +174,12 @@ export default function LocalPage() {
       {lib && lib.all.length === 0 && <div className="lc-empty">这个文件夹里没有视频。可以到「设置」里换一个文件夹。</div>}
       {lib && lib.all.length > 0 && (
         <>
-          <div className="lc-chips">
-            <button className={!sel ? 'on' : ''} onClick={() => setSel('')}>全部 {lib.all.length}</button>
-            {lib.lists.map((l) => <button key={l.name} className={sel === l.name ? 'on' : ''} onClick={() => setSel(l.name)}>{l.name}</button>)}
+          <div className={`lc-chipbar${chipsOpen ? ' open' : ''}`}>
+            <div className="lc-chips">
+              <button className={!sel ? 'on' : ''} onClick={() => setSel('')}>全部 {lib.all.length}</button>
+              {lib.lists.map((l) => <button key={l.name} className={sel === l.name ? 'on' : ''} onClick={() => setSel(l.name)}>{l.name}</button>)}
+            </div>
+            {lib.lists.length > 1 && <button className="lc-more" onClick={() => setChipsOpen(!chipsOpen)}>{chipsOpen ? '收起' : '展开'}</button>}
           </div>
 
           {!sel && !q.trim() && lib.lists.length > 1 && (
