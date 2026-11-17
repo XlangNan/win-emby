@@ -462,8 +462,8 @@ export default function LocalPlayer() {
             <i style={{ width: `${progPct}%` }} /><b style={{ left: `${progPct}%` }} />
           </div>
           <span className="lc-time">{fmtClock(dur)}</span>
-          <button className="lc-ic lc-sm" aria-label="上一个" onClick={() => step(-1)}><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 5H18v14h-2.5zM14.5 12 5 5v14z" /></svg></button>
-          <button className="lc-ic lc-sm" aria-label="下一个" onClick={() => step(1)}><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2.5v14H6zM9.5 12 19 5v14z" /></svg></button>
+          <button className="lc-ic lc-sm" aria-label="上一个" onClick={() => step(-1)}><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2.5v14H6zM9.5 12 19 5v14z" /></svg></button>
+          <button className="lc-ic lc-sm" aria-label="下一个" onClick={() => step(1)}><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 5H18v14h-2.5zM14.5 12 5 5v14z" /></svg></button>
           {!isMobileApp && (
             <input className="lc-vol" type="range" min={0} max={100} value={Math.round(vol)} aria-label="音量"
               onChange={(e) => { const v = Number(e.target.value); volRef.current = v; setVol(v); void sessRef.current?.set('volume', v); }} />
