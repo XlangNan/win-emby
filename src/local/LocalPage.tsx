@@ -155,7 +155,7 @@ export default function LocalPage() {
   };
 
   return (
-    <div className="content lc-page">
+    <div className="content lc-page lc-home">
       <div className="lc-head">
         <h1>随便看看</h1>
         <input className="lc-q" value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索视频" />

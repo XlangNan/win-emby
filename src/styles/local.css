@@ -156,15 +156,15 @@
 .lc-player, .lc-sheet, .lc-sheet-h, .lc-info h2, .lc-qh b, .lc-qt, .lc-top-t{ color: #f2f2f3; }
 :root:root .lc-sheet-h, :root:root .lc-info h2, :root:root .lc-qh b, :root:root .lc-qt, :root:root .lc-top-t{ color: #f2f2f3 !important; }
 
-/* 手机：页面两侧留边；「全部 / 各播放列表」那一行默认只显示一行，点「展开」看全部，再点「收起」 */
+/* 手机：页面两侧留边；「全部 / 各播放列表」那一行默认只显示放得下的完整标签（一行），点「展开」看全部，再点「收起」 */
 .lc-more{ display: none; }
 @media (max-width: 760px) {
-  .lc-page:not(:has(.lc-conn)){ padding: 4px 16px 24px; }
+  :root:root .lc-page.lc-home{ padding: 8px 22px 28px !important; box-sizing: border-box; }
   .lc-head{ gap: 8px; }
   .lc-head button{ padding: 0 14px; }
   .lc-chipbar{ display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
-  .lc-chipbar .lc-chips{ flex: 1; min-width: 0; margin-bottom: 0; flex-wrap: nowrap; overflow: hidden; }
-  .lc-chipbar.open .lc-chips{ flex-wrap: wrap; }
-  .lc-chips button{ max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .lc-chipbar .lc-chips{ flex: 1; min-width: 0; margin-bottom: 0; flex-wrap: wrap; overflow: hidden; max-height: 34px; }
+  .lc-chipbar.open .lc-chips{ max-height: none; }
+  :root:root .lc-chips button{ max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .lc-chipbar .lc-more{ display: block; flex: none; height: 34px; padding: 0 14px; font-size: 13px; white-space: nowrap; }
 }
