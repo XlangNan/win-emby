@@ -66,7 +66,7 @@
 .lc-player.hide-ui .lc-top, .lc-player.hide-ui .lc-bar, .lc-player.hide-ui .lc-playbtn{ opacity: 0; pointer-events: none; }
 .lc-player.hide-ui .lc-stage{ cursor: none; }
 .lc-center-msg{ position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 3; max-width: 86%; text-align: center; font-size: 14px; padding: 10px 16px; border-radius: 14px; background: rgba(0, 0, 0, .6); display: flex; flex-direction: column; align-items: center; gap: 10px; line-height: 1.6; }
-.lc-center-msg button{ height: 34px; padding: 0 18px; border-radius: 99px; background: var(--accent, #f0414b) !important; color: #fff; font-size: 13px; }
+.lc-center-msg button{ height: 34px; padding: 0 18px; border-radius: 99px; background: var(--accent, #f0414b) !important; color: #fff !important; font-size: 13px; }
 .lc-playbtn + .lc-bar, .lc-center-msg ~ .lc-playbtn{ }
 .lc-err{ }
 
@@ -99,7 +99,7 @@
 .lc-player.lc-wide .lc-head{ position: absolute; left: 24px; right: 24px; top: 0; height: 60px; z-index: 5; display: flex; align-items: center; gap: 12px; margin: 0; }
 .lc-head-t{ font-size: 19px; font-weight: 700; }
 .lc-win{ display: flex; gap: 4px; }
-:root:root .lc-win button{ width: 36px; height: 30px; min-width: 0; padding: 0; background: transparent !important; color: #ddd; border-radius: 8px; }
+:root:root .lc-win button{ width: 36px; height: 30px; min-width: 0; padding: 0; background: transparent !important; color: #ddd !important; border-radius: 8px; }
 :root:root .lc-win button:hover{ background: rgba(255, 255, 255, .14) !important; }
 .lc-main{ position: absolute; z-index: 3; }
 .lc-main .lc-info, .lc-main .lc-tools{ padding-left: 0; padding-right: 0; }
@@ -117,9 +117,9 @@
 .lc-sheet{ width: min(420px, 100%); max-height: 80%; overflow-y: auto; background: #1b1b1e; border-radius: 18px 18px 0 0; padding: 8px 8px calc(14px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 4px; }
 @media (min-width: 700px) { .lc-sheet-bg{ align-items: center; } .lc-sheet{ border-radius: 18px; } }
 .lc-sheet-h{ padding: 12px 12px 6px; font-size: 16px; font-weight: 700; }
-:root:root .lc-sheet button{ height: 46px; text-align: left; padding: 0 14px; border-radius: 12px; background: transparent !important; color: #f2f2f3; font-size: 14px; }
+:root:root .lc-sheet button{ height: 46px; text-align: left; padding: 0 14px; border-radius: 12px; background: transparent !important; color: #f2f2f3 !important; font-size: 14px; }
 :root:root .lc-sheet button:active{ background: #2a2a30 !important; }
-:root:root .lc-sheet .lc-danger{ color: #ff6b73; }
+:root:root .lc-sheet .lc-danger{ color: #ff6b73 !important; }
 .lc-sheet-tip{ padding: 8px 12px 4px; font-size: 12px; color: #9a9aa2; line-height: 1.6; }
 
 /* 熄屏：全黑，只留一行很淡的提示 */
@@ -151,3 +151,7 @@
 :root:root .lc-player .lc-ic svg{ color: #fff; stroke-opacity: 1; fill-opacity: 1; opacity: 1; }
 :root:root .lc-player .lc-playbtn{ background: rgba(0, 0, 0, .6) !important; }
 :root:root .lc-player .lc-playbtn svg{ width: 30px; height: 30px; }
+
+/* 浅色主题下，播放页和弹层里的文字一律用白色系（防止被全局按钮 / 文字颜色盖成深色） */
+.lc-player, .lc-sheet, .lc-sheet-h, .lc-info h2, .lc-qh b, .lc-qt, .lc-top-t{ color: #f2f2f3; }
+:root:root .lc-sheet-h, :root:root .lc-info h2, :root:root .lc-qh b, :root:root .lc-qt, :root:root .lc-top-t{ color: #f2f2f3 !important; }
