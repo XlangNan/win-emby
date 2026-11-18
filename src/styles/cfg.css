@@ -1,0 +1,32 @@
+/* ================= 设置页：类别分组。电脑 = 左边类别 + 右边内容；手机 = 类别列表 → 二级页 ================= */
+.cfg-find{ box-sizing: border-box; width: 100%; height: 38px; border: 0 !important; outline: none; border-radius: 99px; padding: 0 16px; background: var(--surface-3) !important; color: inherit; font-size: 13.5px; box-shadow: none !important; }
+.cfg-ver{ font-size: 12px; text-align: center; padding: 14px 0 6px; }
+
+/* 电脑 */
+.cfg-desk{ display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 28px; align-items: start; max-width: 1180px; margin: 0 auto; }
+.cfg-side{ position: sticky; top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.cfg-side .cfg-find{ margin-bottom: 8px; }
+:root:root .cfg-nav{ display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; height: 40px; padding: 0 14px; border: 0 !important; border-radius: 10px; background: transparent !important; color: inherit; font-size: 14px; box-shadow: none !important; cursor: pointer; }
+:root:root .cfg-nav i{ font-style: normal; width: 18px; text-align: center; opacity: .7; }
+:root:root .cfg-nav:hover{ background: var(--surface-3) !important; }
+:root:root .cfg-nav.on{ background: var(--surface-3) !important; color: var(--accent); }
+:root:root .cfg-nav.on i{ opacity: 1; }
+.cfg-main{ min-width: 0; padding-bottom: 40px; }
+.cfg-h{ margin: 0 0 4px; font-size: 22px; font-weight: 700; }
+.cfg-sub{ margin: 0 0 18px; font-size: 13px; }
+.cfg-body{ display: flex; flex-direction: column; gap: 16px; }
+.cfg-body > .we-set{ margin: 0 !important; }
+
+/* 手机 */
+.cfg-wrap{ padding-left: 16px; padding-right: 16px; padding-bottom: 28px; display: flex; flex-direction: column; gap: 14px; box-sizing: border-box; }
+.cfg-wrap .cfg-body > .we-set{ margin-left: 0 !important; margin-right: 0 !important; }
+.cfg-group{ background: var(--surface-2); border-radius: 14px; overflow: hidden; }
+:root:root .cfg-item{ display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px 14px; border: 0 !important; border-radius: 0; background: transparent !important; color: inherit; box-shadow: none !important; cursor: pointer; min-height: 56px; }
+.cfg-item + .cfg-item{ border-top: 1px solid var(--border-soft) !important; }
+.cfg-ic{ flex: none; width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; font-style: normal; font-size: 15px; color: #fff; }
+.cfg-tx{ flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cfg-tx b{ font-size: 15px; font-weight: 600; }
+.cfg-tx small{ font-size: 12px; opacity: .6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cfg-go{ opacity: .45; font-size: 20px; }
+.cfg-bar{ display: flex; align-items: center; gap: 6px; }
+:root:root .cfg-back{ width: 36px; height: 36px; min-width: 36px; padding: 0; border: 0 !important; border-radius: 50%; background: transparent !important; color: inherit; font-size: 28px; line-height: 1; box-shadow: none !important; }

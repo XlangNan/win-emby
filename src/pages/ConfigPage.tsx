@@ -2,7 +2,8 @@
 import { httpFetch } from '../emby/http';
 import PartyPanel from '../components/PartyPanel';
 import { partyUrl, setPartyUrl, usePartyStore } from '../lib/party';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { emby } from '../emby/client';
 import { getSession, listAccounts, removeAccount, sameAccount, saveSession } from '../emby/session';
 import type { EmbyItem, Session } from '../emby/types';
@@ -494,64 +495,8 @@ function MusicOptionsSettings() {
   );
 }
 
-export default function ConfigPage() {
-  const [prefs, setPrefs] = useState(loadPlayPrefs);
-  const [introOn, setIntroOn] = useState(introDbOn);
-  const set = (p: Partial<typeof prefs>): void => setPrefs(savePlayPrefs(p));
-
-  // 每个设置卡片按标题折叠：默认只展开「账号与服务器」，展开状态记在本机
-  const root = useRef<HTMLDivElement>(null);
-  const FOLD_KEY = 'wemby-cfg-open';
-  const readOpen = (): string[] => { try { return JSON.parse(localStorage.getItem(FOLD_KEY) || '["账号与服务器"]') as string[]; } catch { return ['账号与服务器']; } };
-  const titleOf = (c: Element): string => c.querySelector('h3')?.textContent?.trim() || '';
-  useEffect(() => {
-    const el = root.current;
-    if (!el) return;
-    // 有的卡片是稍后才渲染出来的（等数据 / 重新挂载），所以要盯着新出现的卡片，每张只初始化一次
-    const apply = (): void => {
-      const open = new Set(readOpen());
-      el.querySelectorAll<HTMLElement>(':scope > .we-set').forEach((c) => {
-        if (c.dataset.foldInit) return;
-        c.dataset.foldInit = '1';
-        // 标记「标题所在的那一块」，折叠时只留它（不依赖 :has，旧 WebView 也能用）
-        for (let n = 0; n < c.children.length; n++) { const k = c.children[n]; if (k.tagName === 'H3' || k.querySelector('h3')) k.setAttribute('data-fold-head', ''); }
-        if (!open.has(titleOf(c))) c.classList.add('fold');
-      });
-    };
-    apply();
-    const mo = new MutationObserver(apply);
-    mo.observe(el, { childList: true });
-    return () => mo.disconnect();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  const onFold = (e: React.MouseEvent): void => {
-    const h = (e.target as HTMLElement).closest('h3');
-    const c = h?.closest('.we-set');
-    if (!h || !c || c.parentElement !== root.current) return;
-    c.classList.toggle('fold');
-    const t = titleOf(c);
-    const open = new Set(readOpen());
-    if (c.classList.contains('fold')) open.delete(t); else open.add(t);
-    try { localStorage.setItem(FOLD_KEY, JSON.stringify([...open])); } catch { /* ignore */ }
-  };
-
+function PlaySettings({ prefs, set, introOn, setIntroOn }: { prefs: ReturnType<typeof loadPlayPrefs>; set: (p: Partial<ReturnType<typeof loadPlayPrefs>>) => void; introOn: boolean; setIntroOn: (v: boolean) => void }) {
   return (
-    <>
-      <div className="topbar"><h3 style={{ margin: 0 }}>设置</h3></div>
-      <div className="content cfg-fold" ref={root} onClick={onFold}>
-        <Accounts />
-        <HeroSettings prefs={prefs} set={set} />
-        <HomeLibs prefs={prefs} set={set} />
-        <NavidromeSettings />
-        <MusicOptionsSettings />
-        <TmdbSettings />
-        <KgSettings />
-        <MpSettings />
-        <DanmakuSettings />
-
-        <PartySettings />
-        <ModeSettings />
-        <FontSettings />
-
         <div className="card we-set">
           <h3>播放</h3>
           <div className="we-set-row">
@@ -637,7 +582,143 @@ export default function ConfigPage() {
             <input type="checkbox" checked={prefs.autoNext} onChange={(e) => set({ autoNext: e.target.checked })} />
           </label>
         </div>
-        <div className="muted" style={{ textAlign: 'center', fontSize: 12, padding: '14px 0 6px' }}>织影 · 版本编号 {BUILD_ID}</div>
+  );
+}
+
+
+interface Sec { cat: string; title: string; kw: string; node: React.ReactNode }
+const CATS: { id: string; label: string; ico: string; color: string; sub: string }[] = [
+  { id: 'account', label: '账号与服务器', ico: '◉', color: '#5b8def', sub: 'Emby 账号、服务器地址、切换账号' },
+  { id: 'play', label: '播放', ico: '▶', color: '#ee1b24', sub: '播放内核、音轨字幕、片头片尾、弹幕、一起看' },
+  { id: 'home', label: '首页与片库', ico: '▦', color: '#f59e0b', sub: '首页媒体库、轮播、TMDB、随便看看文件夹' },
+  { id: 'sub', label: '订阅与下载', ico: '⇩', color: '#10b981', sub: '追更服务、MoviePilot' },
+  { id: 'music', label: '音乐', ico: '♪', color: '#ec4899', sub: 'Navidrome、音乐选项' },
+  { id: 'look', label: '外观', ico: '◐', color: '#8b5cf6', sub: '浅色 / 深色、界面字体' },
+  { id: 'about', label: '关于', ico: 'ⓘ', color: '#6b7280', sub: '版本编号' },
+];
+const CAT_KEY = 'wemby-cfg-cat';
+
+export default function ConfigPage() {
+  const nav = useNavigate();
+  const [prefs, setPrefs] = useState(loadPlayPrefs);
+  const [introOn, setIntroOn] = useState(introDbOn);
+  const set = (p: Partial<typeof prefs>): void => setPrefs(savePlayPrefs(p));
+  const [narrow, setNarrow] = useState(() => window.innerWidth < 760);
+  useEffect(() => {
+    const f = (): void => setNarrow(window.innerWidth < 760);
+    window.addEventListener('resize', f);
+    return () => window.removeEventListener('resize', f);
+  }, []);
+  const [cat, setCat] = useState<string | null>(() => {
+    try { const v = localStorage.getItem(CAT_KEY); return CATS.some((c) => c.id === v) ? v : 'account'; } catch { return 'account'; }
+  });
+  // 手机：当前在哪个类别写在地址里（?c=play），所以系统返回键 / 返回手势会先退回类别列表，再退出设置
+  const [sp, setSp] = useSearchParams();
+  const phoneCat = CATS.some((c) => c.id === sp.get('c')) ? sp.get('c') : null;
+  const setPhoneCat = (id: string | null): void => { if (id) setSp({ c: id }); else nav(-1); };
+  const [q, setQ] = useState('');
+  const pick = (id: string): void => {
+    if (narrow) setPhoneCat(id);
+    else { setCat(id); try { localStorage.setItem(CAT_KEY, id); } catch { /* ignore */ } }
+    setQ('');
+  };
+
+  const secs: Sec[] = [
+    { cat: 'account', title: '账号与服务器', kw: '账号 服务器 登录 切换 emby 地址', node: <Accounts key="acc" /> },
+    { cat: 'play', title: '播放', kw: '播放 内核 mpv hdr 音轨 字幕 片头 跳过 下一集 画质 hevc introdb 代理 片尾', node: <PlaySettings key="play" prefs={prefs} set={set} introOn={introOn} setIntroOn={setIntroOn} /> },
+    { cat: 'play', title: '弹幕', kw: '弹幕 字号 透明度 速度', node: <DanmakuSettings key="dm" /> },
+    { cat: 'play', title: '一起看', kw: '一起看 房间 同步 观影', node: <PartySettings key="party" /> },
+    { cat: 'home', title: '首页显示的媒体库', kw: '首页 媒体库 显示', node: <HomeLibs key="libs" prefs={prefs} set={set} /> },
+    { cat: 'home', title: '首页轮播', kw: '首页 轮播 海报 横幅', node: <HeroSettings key="hero" prefs={prefs} set={set} /> },
+    { cat: 'home', title: 'TMDB', kw: 'tmdb 片库 数据 密钥 代理 hosts', node: <TmdbSettings key="tmdb" /> },
+    { cat: 'home', title: '随便看看', kw: '随便看看 群晖 文件夹 本地 视频', node: (
+      <div className="card we-set" key="local">
+        <h3>随便看看（群晖本地视频）</h3>
+        <div className="we-set-row"><span>群晖地址、账号、播放的文件夹<span className="muted" style={{ display: 'block', fontSize: 12 }}>在「随便看看」页面右上角点「设置」或「换文件夹」</span></span><button onClick={() => nav('/local')}>打开随便看看</button></div>
+      </div>
+    ) },
+    { cat: 'sub', title: '追更服务', kw: '追更 kuakego 订阅', node: <KgSettings key="kg" /> },
+    { cat: 'sub', title: 'MoviePilot', kw: 'moviepilot 下载 订阅', node: <MpSettings key="mp" /> },
+    { cat: 'music', title: 'Navidrome', kw: '音乐 navidrome 服务器 账号', node: <NavidromeSettings key="nd" /> },
+    { cat: 'music', title: '音乐选项', kw: '音乐 选项 歌词 在线 音质', node: <MusicOptionsSettings key="mo" /> },
+    { cat: 'look', title: '外观', kw: '外观 主题 浅色 深色 模式 皮肤', node: <ModeSettings key="mode" /> },
+    { cat: 'look', title: '界面字体', kw: '字体 界面 字号', node: <FontSettings key="font" /> },
+    { cat: 'about', title: '关于', kw: '关于 版本 编号', node: (
+      <div className="card we-set" key="about"><h3>关于</h3><div className="we-set-row"><span>织影 · 版本编号</span><span className="muted">{BUILD_ID}</span></div></div>
+    ) },
+  ];
+
+  const kw = q.trim().toLowerCase();
+  const hits = kw ? secs.filter((x) => (x.title + ' ' + x.kw).toLowerCase().includes(kw)) : [];
+  const active = narrow ? phoneCat : cat;
+  const activeMeta = CATS.find((c) => c.id === active);
+
+  const search = (
+    <input className="cfg-find" value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索设置，如：字幕、代理、字体" aria-label="搜索设置" />
+  );
+  const results = kw ? (
+    <div className="cfg-body">
+      {hits.length ? hits.map((x) => x.node) : <div className="muted" style={{ padding: '30px 0', textAlign: 'center' }}>没有找到「{q}」相关的设置</div>}
+    </div>
+  ) : null;
+
+  // ───── 手机：类别列表 → 二级页 ─────
+  if (narrow) {
+    if (kw) return (<><div className="topbar"><h3 style={{ margin: 0 }}>设置</h3></div><div className="content cfg-wrap">{search}{results}</div></>);
+    if (phoneCat && activeMeta) {
+      return (
+        <>
+          <div className="topbar cfg-bar"><button className="cfg-back" aria-label="返回" onClick={() => setPhoneCat(null)}>‹</button><h3 style={{ margin: 0 }}>{activeMeta.label}</h3></div>
+          <div className="content cfg-wrap"><div className="cfg-body">{secs.filter((x) => x.cat === phoneCat).map((x) => x.node)}</div></div>
+        </>
+      );
+    }
+    const group = (ids: string[]): React.ReactNode => (
+      <div className="cfg-group">
+        {ids.map((id) => { const c = CATS.find((x) => x.id === id)!; return (
+          <button key={id} className="cfg-item" onClick={() => pick(id)}>
+            <i className="cfg-ic" style={{ background: c.color }}>{c.ico}</i>
+            <span className="cfg-tx"><b>{c.label}</b><small>{c.sub}</small></span>
+            <span className="cfg-go">›</span>
+          </button>
+        ); })}
+      </div>
+    );
+    return (
+      <>
+        <div className="topbar"><h3 style={{ margin: 0 }}>设置</h3></div>
+        <div className="content cfg-wrap">
+          {search}
+          {group(['account'])}
+          {group(['play', 'home', 'sub'])}
+          {group(['music', 'look', 'about'])}
+          <div className="muted cfg-ver">织影 · 版本编号 {BUILD_ID}</div>
+        </div>
+      </>
+    );
+  }
+
+  // ───── 电脑：左边类别，右边内容 ─────
+  return (
+    <>
+      <div className="topbar"><h3 style={{ margin: 0 }}>设置</h3></div>
+      <div className="content cfg-desk">
+        <nav className="cfg-side" aria-label="设置类别">
+          {search}
+          {CATS.map((c) => (
+            <button key={c.id} className={`cfg-nav${!kw && cat === c.id ? ' on' : ''}`} onClick={() => pick(c.id)}><i>{c.ico}</i>{c.label}</button>
+          ))}
+          <div className="muted cfg-ver">织影 · 版本 {BUILD_ID}</div>
+        </nav>
+        <section className="cfg-main">
+          {kw ? results : (
+            <>
+              <h2 className="cfg-h">{CATS.find((c) => c.id === cat)?.label}</h2>
+              <p className="muted cfg-sub">{CATS.find((c) => c.id === cat)?.sub}</p>
+              <div className="cfg-body">{secs.filter((x) => x.cat === cat).map((x) => x.node)}</div>
+            </>
+          )}
+        </section>
       </div>
     </>
   );

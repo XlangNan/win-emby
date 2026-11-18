@@ -1,21 +1,35 @@
 // 演员 / 导演页：头像 + 简介 + 在媒体库里的作品
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import BackButton from '../components/BackButton';
 import MediaCard from '../components/MediaCard';
 import { emby, personUrl } from '../emby/client';
-import { useAsync } from '../lib/useAsync';
+import { getSession } from '../emby/session';
+import { useCachedAsync } from '../lib/useAsync';
+
+// 离开演员页（点进作品）再返回时：数据走缓存不重新请求，滚动位置和「展开简介」状态也恢复
+const mem = new Map<string, { scroll: number; more: boolean }>();
 
 const day = (v?: string): string => (v ? v.slice(0, 10) : '');
 
 export default function PersonPage() {
   const { id = '' } = useParams();
-  const [more, setMore] = useState(false);
-  const who = useAsync(() => emby.person(id), [id]);
-  const works = useAsync(
+  const sk = `${getSession()?.server ?? ''}:${getSession()?.userId ?? ''}:${id}`;
+  const [more, setMoreRaw] = useState(() => mem.get(sk)?.more ?? false);
+  const setMore = (f: (v: boolean) => boolean): void => setMoreRaw((v) => { const n = f(v); const m = mem.get(sk) ?? { scroll: 0, more: false }; mem.set(sk, { ...m, more: n }); return n; });
+  const box = useRef<HTMLDivElement>(null);
+  const who = useCachedAsync(`person:${sk}`, () => emby.person(id), 30 * 60 * 1000);
+  const works = useCachedAsync(
+    `person-works:${sk}`,
     () => emby.items({ personIds: id, types: 'Movie,Series', sortBy: 'ProductionYear,SortName', sortOrder: 'Descending', limit: 200 }).then((r) => r.Items),
-    [id],
+    30 * 60 * 1000,
   );
+  const ready = !!who.data && !!works.data;
+  useLayoutEffect(() => {
+    const y = mem.get(sk)?.scroll ?? 0;
+    if (ready && box.current && y > 0) box.current.scrollTop = y;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, sk]);
   const p = who.data;
   const img = p ? personUrl({ Id: p.Id, PrimaryImageTag: p.ImageTags?.Primary }, 300) : '';
   const born = day(p?.PremiereDate);
@@ -28,7 +42,7 @@ export default function PersonPage() {
         <BackButton fallback="/" label="返回" />
         <span className="muted">{p?.Name}</span>
       </div>
-      <div className="content">
+      <div className="content" ref={box} onScroll={(e) => { const m = mem.get(sk) ?? { scroll: 0, more: false }; mem.set(sk, { ...m, scroll: e.currentTarget.scrollTop }); }}>
         {who.loading && !p ? (
           <div className="empty"><span className="spinner" aria-hidden="true" />加载中…</div>
         ) : who.error || !p ? (
