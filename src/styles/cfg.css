@@ -97,3 +97,12 @@ html:not([data-motion='off']) input[type='checkbox']:not(.sel-box){
 :root:root:root[data-mode='light'] .abs-bar-wrap input[type='range']{ background: transparent !important; border: 0 !important; }
 :root:root:root[data-mode='light'] .abs-bar-wrap .abs-bar-t{ color: #f2f4f9; }
 :root:root:root[data-mode='light'] .abs-bar-wrap .abs-bar-s, :root:root:root[data-mode='light'] .abs-bar-wrap .abs-bar-seek{ color: #aab2c3; }
+
+/* ---- Z38：电脑端宽度固定（不再随内容忽宽忽窄）；手机端分组不被压扁 ---- */
+.cfg-desk{ width: 100%; box-sizing: border-box; }
+.cfg-main{ width: 100%; }
+.cfg-body > .we-set{ width: 100%; box-sizing: border-box; }
+.cfg-wrap{ min-height: min-content; }
+.cfg-wrap > *{ flex: none !important; }
+.cfg-group{ flex: none !important; height: auto !important; max-height: none !important; overflow: hidden; }
+.cfg-item{ flex: none; height: auto; min-height: 60px; }

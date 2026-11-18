@@ -4,6 +4,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
 COPY app.py .
+COPY web ./web
 ENV DATA_DIR=/data PORT=8765
 VOLUME /data
 EXPOSE 8765

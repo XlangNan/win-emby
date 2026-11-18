@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>织影同步</title>
+<style>
+:root{--bg:#141416;--card:#1d1d21;--pill:#2a2a2f;--pill2:#34343a;--tx:#ececef;--dim:#9a9aa3;--ac:#e5484d;--ok:#4cc38a}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.6 system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+body{padding:0 16px 60px}
+.wrap{max-width:860px;margin:0 auto}
+header{display:flex;align-items:center;gap:12px;padding:22px 0 14px}
+header h1{font-size:20px;margin:0;font-weight:700;flex:1}
+button,input,select{font:inherit;color:inherit;border:0;outline:0}
+button{background:var(--pill);padding:7px 16px;border-radius:99px;cursor:pointer}
+button:hover{background:var(--pill2)}
+button.p{background:var(--ac);color:#fff}
+button.d{color:#ff8a8e}
+button:disabled{opacity:.5;cursor:default}
+input[type=text],input[type=password]{background:var(--pill);padding:10px 16px;border-radius:99px;width:100%}
+input:focus-visible,button:focus-visible{box-shadow:0 0 0 2px var(--ac)}
+.card{background:var(--card);border-radius:18px;padding:18px 20px;margin:0 0 14px}
+.card h2{margin:0 0 8px;font-size:16px}
+.dim{color:var(--dim);font-size:13px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:640px){.grid{grid-template-columns:1fr}}
+.login{max-width:380px;margin:12vh auto 0}
+.login .card{display:flex;flex-direction:column;gap:12px}
+.err{color:#ff8a8e;min-height:1.4em;font-size:13px}
+.big{font-size:28px;font-weight:700}
+table{width:100%;border-collapse:collapse}
+td,th{padding:8px 6px;text-align:left;vertical-align:top;font-size:14px}
+th{color:var(--dim);font-weight:400;font-size:13px}
+tr+tr td{background:linear-gradient(var(--pill),var(--pill)) top/100% 1px no-repeat}
+.k{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;word-break:break-all;width:34%}
+.v{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#c9c9d1;word-break:break-all;white-space:pre-wrap;max-height:9em;overflow:auto}
+.tag{display:inline-block;background:var(--pill);border-radius:99px;padding:1px 10px;font-size:12px;color:var(--dim)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-start;justify-content:center;padding:6vh 12px;overflow:auto;z-index:5}
+.modal .card{width:100%;max-width:820px;margin:0}
+#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--pill2);padding:8px 18px;border-radius:99px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+#toast.on{opacity:1}
+.hide{display:none!important}
+</style></head><body>
+<div class="wrap" id="app"></div>
+<div id="toast"></div>
+<script src="/web/cryptofb.js"></script>
+<script>
+'use strict';
+const $=(s,r=document)=>r.querySelector(s);
+const enc=new TextEncoder(),dec=new TextDecoder();
+const subtle=window.crypto&&window.crypto.subtle;
+const toB64=u=>{let s='';for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)};
+const fromB64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const hex=u=>Array.from(u).map(b=>b.toString(16).padStart(2,'0')).join('');
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const tick=()=>new Promise(r=>setTimeout(r,30));
+async function pbkdf2(pw,salt){
+  if(subtle){const k=await subtle.importKey('raw',enc.encode(pw),'PBKDF2',false,['deriveBits']);
+    return new Uint8Array(await subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:enc.encode(salt),iterations:200000},k,256));}
+  await tick();return CryptoFB.pbkdf2(pw,salt,200000);
+}
+async function encrypt(ek,text){
+  const iv=crypto.getRandomValues(new Uint8Array(12)),data=enc.encode(text);
+  let ct;
+  if(subtle){const k=await subtle.importKey('raw',ek,'AES-GCM',false,['encrypt']);ct=new Uint8Array(await subtle.encrypt({name:'AES-GCM',iv},k,data));}
+  else ct=CryptoFB.gcmEncrypt(ek,iv,data);
+  return toB64(iv)+'.'+toB64(ct);
+}
+async function decrypt(ek,blob){
+  const [a,b]=blob.split('.'),iv=fromB64(a),ct=fromB64(b);
+  if(subtle){const k=await subtle.importKey('raw',ek,'AES-GCM',false,['decrypt']);return dec.decode(await subtle.decrypt({name:'AES-GCM',iv},k,ct));}
+  return dec.decode(CryptoFB.gcmDecrypt(ek,iv,ct));
+}
+async function api(path,opt={}){
+  const t=S.token;
+  const r=await fetch(path,{method:opt.method||'GET',headers:{'Content-Type':'application/json',...(t?{Authorization:'Bearer '+t}:{})},body:opt.body===undefined?undefined:JSON.stringify(opt.body)});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){const e=new Error(j.error||('HTTP '+r.status));e.status=r.status;e.data=j;if(r.status===401&&t&&!opt.quiet){logout(true)}throw e}
+  return j;
+}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),2200)}
+const fmt=ts=>ts?new Date(ts*1000).toLocaleString('zh-CN',{hour12:false}):'—';
+const PN={desktop:'电脑',mobile:'手机'};
+
+// 登录状态：令牌放 sessionStorage（关掉标签页就没了）；解密密钥只在内存里
+const S={token:null,ek:null,me:null,meta:{},busy:false};
+try{S.token=sessionStorage.getItem('ws-token')}catch(e){}
+
+function logout(expired){
+  if(S.token&&!expired)fetch('/api/logout',{method:'POST',headers:{Authorization:'Bearer '+S.token}}).catch(()=>{});
+  S.token=null;S.ek=null;S.me=null;try{sessionStorage.removeItem('ws-token')}catch(e){}
+  renderLogin(expired?'登录已失效，请重新登录':'');
+}
+
+async function renderLogin(msg){
+  let reg=false,open=false;
+  try{const p=await api('/api/ping');open=p.register;reg=p.users===0}catch(e){}
+  $('#app').innerHTML=`<div class="login"><div class="card">
+    <h2 style="font-size:20px">织影同步</h2>
+    <div class="dim">${reg?'还没有账号，先创建一个（这个账号就是管理员）':'用织影里同一个账号登录'}</div>
+    <input id="u" type="text" placeholder="用户名" autocomplete="username" autocapitalize="off">
+    <input id="p" type="password" placeholder="密码" autocomplete="current-password">
+    <div class="err" id="e">${esc(msg||'')}</div>
+    <button class="p" id="go">${reg?'创建账号':'登录'}</button>
+    ${(open&&!reg)?'<button id="rg">没有账号？注册新账号</button>':''}
+    ${subtle?'':'<div class="dim">当前是 http 地址，用的是兼容模式加密，登录会慢几秒。想更快可以用 https 打开。</div>'}
+  </div></div>`;
+  let mode=reg;
+  const go=async()=>{
+    const user=$('#u').value.trim().toLowerCase(),pw=$('#p').value,e=$('#e');
+    if(!user||!pw){e.textContent='用户名和密码都要填';return}
+    const b=$('#go');b.disabled=true;e.textContent='';b.textContent=subtle?'请稍等…':'计算中，约几秒…';
+    try{
+      const salt=mode?hex(crypto.getRandomValues(new Uint8Array(16))):(await api('/api/salt?user='+encodeURIComponent(user))).salt;
+      const auth=await pbkdf2(pw,salt+':auth'),ek=await pbkdf2(pw,salt+':enc');
+      const r=await api(mode?'/api/register':'/api/login',{method:'POST',body:{user,authKey:toB64(auth),salt,device:'网页'},quiet:true});
+      S.token=r.token;S.ek=ek;try{sessionStorage.setItem('ws-token',r.token)}catch(x){}
+      await renderMain();
+    }catch(x){e.textContent=x.message;b.disabled=false;b.textContent=mode?'创建账号':'登录'}
+  };
+  $('#go').onclick=go;$('#p').onkeydown=e=>{if(e.key==='Enter')go()};
+  const rg=$('#rg');if(rg)rg.onclick=()=>{mode=true;$('#go').textContent='创建账号';rg.remove()};
+}
+
+async function renderMain(){
+  S.me=await api('/api/me');
+  // 刷新页面后令牌还在，但密钥没了：需要重新输入密码才能看内容
+  const metas={};
+  for(const p of ['desktop','mobile'])metas[p]=await api('/api/profile/'+p+'/meta');
+  S.meta=metas;
+  $('#app').innerHTML=`<header><h1>织影同步</h1><span class="dim">${esc(S.me.user)}${S.me.admin?' · 管理员':''}</span><button id="out">退出</button></header>
+  <div class="grid" id="cards"></div>
+  <div class="card" id="sess"></div>
+  <div class="card hide" id="adm"></div>`;
+  $('#out').onclick=()=>logout();
+  const c=$('#cards');
+  for(const p of ['desktop','mobile']){
+    const m=metas[p];
+    const d=document.createElement('div');d.className='card';
+    d.innerHTML=`<h2>${PN[p]}设置</h2>
+      ${m.version?`<div class="big">第 ${m.version} 版</div><div class="dim">${fmt(m.updated)}${m.device?' · 来自 '+esc(m.device):''}</div>`:'<div class="dim" style="padding:8px 0">还没有上传过。在织影的设置 → 同步里登录并上传就会出现在这里。</div>'}
+      <div class="row" style="margin-top:14px">
+        <button data-a="view" ${m.version?'':'disabled'}>查看内容</button>
+        <button data-a="hist" ${m.version?'':'disabled'}>历史版本</button>
+        <button data-a="dl" ${m.version?'':'disabled'}>下载备份</button>
+        <button data-a="up">导入备份</button>
+      </div>`;
+    d.onclick=e=>{const a=e.target.dataset&&e.target.dataset.a;if(a)act(p,a)};
+    c.appendChild(d);
+  }
+  renderSessions();
+  if(S.me.admin)renderAdmin();
+}
+
+function renderSessions(){
+  const s=$('#sess');
+  s.innerHTML='<h2>已登录的设备</h2><div class="dim" style="margin-bottom:6px">每次登录会留一条。不认识的可以踢掉。</div><table>'+
+   S.me.sessions.map(x=>`<tr><td>${esc(x.device||'未知设备')}${x.current?' <span class="tag">当前</span>':''}</td><td class="dim">${fmt(x.created)} 登录</td><td style="text-align:right">${x.current?'':`<button class="d" data-s="${x.id}">踢掉</button>`}</td></tr>`).join('')+'</table>';
+  s.onclick=async e=>{const id=e.target.dataset&&e.target.dataset.s;if(!id)return;await api('/api/session/'+id,{method:'DELETE'});S.me=await api('/api/me');renderSessions();toast('已踢掉')};
+}
+
+async function renderAdmin(){
+  const a=$('#adm');a.classList.remove('hide');
+  const r=await api('/api/admin/users');
+  a.innerHTML='<h2>所有账号</h2><table><tr><th>用户名</th><th>电脑</th><th>手机</th><th></th></tr>'+r.items.map(u=>`<tr><td>${esc(u.name)}</td><td class="dim">${u.desktop?'第 '+u.desktop.version+' 版':'—'}</td><td class="dim">${u.mobile?'第 '+u.mobile.version+' 版':'—'}</td><td style="text-align:right">${u.name===S.me.user?'':`<button class="d" data-u="${esc(u.name)}">删除</button>`}</td></tr>`).join('')+'</table>';
+  a.onclick=async e=>{const n=e.target.dataset&&e.target.dataset.u;if(!n)return;if(!confirm('删除账号 '+n+' 和它的所有云端数据？删了找不回。'))return;await api('/api/admin/users/'+encodeURIComponent(n),{method:'DELETE'});toast('已删除');renderAdmin()};
+}
+
+// 需要密钥的操作：没有就让用户输密码（刷新页面后会遇到）
+function needKey(){
+  return new Promise((ok,no)=>{
+    if(S.ek)return ok();
+    const m=document.createElement('div');m.className='modal';
+    m.innerHTML=`<div class="card" style="max-width:380px;display:flex;flex-direction:column;gap:12px"><h2>输入密码</h2><div class="dim">内容是加密的，要用密码解开。密码只在这个页面里用，不会发给服务器。</div><input id="kp" type="password" placeholder="密码" autocomplete="current-password"><div class="err" id="ke"></div><div class="row"><button class="p" id="kok">确定</button><button id="kno">取消</button></div></div>`;
+    document.body.appendChild(m);
+    const close=()=>m.remove();
+    $('#kno',m).onclick=()=>{close();no(new Error('已取消'))};
+    const go=async()=>{
+      const b=$('#kok',m);b.disabled=true;$('#ke',m).textContent='';
+      try{
+        const sl=await api('/api/salt?user='+encodeURIComponent(S.me.user));
+        const ek=await pbkdf2($('#kp',m).value,sl.salt+':enc');
+        // 用最新一版试解，确认密码对
+        let test=null;for(const p of ['desktop','mobile'])if(S.meta[p].version){test=await api('/api/profile/'+p);break}
+        if(test&&test.blob)await decrypt(ek,test.blob);
+        S.ek=ek;close();ok();
+      }catch(x){$('#ke',m).textContent='密码不对';b.disabled=false}
+    };
+    $('#kok',m).onclick=go;$('#kp',m).onkeydown=e=>{if(e.key==='Enter')go()};$('#kp',m).focus();
+  });
+}
+
+const SENS=/(token|pass|pwd|secret|apikey|api_key|authkey|cookie|^ek$)/i;
+function maskJson(v,show){
+  if(show)return v;
+  if(Array.isArray(v))return v.map(x=>maskJson(x,show));
+  if(v&&typeof v==='object'){const o={};for(const k in v)o[k]=SENS.test(k)&&typeof v[k]==='string'&&v[k]?'••••••':maskJson(v[k],show);return o}
+  return v;
+}
+function pretty(raw,show){
+  if(raw.length>20000)return raw.slice(0,20000)+'\n…（太长，已截断，完整内容请下载备份）';
+  try{const j=JSON.parse(raw);if(typeof j==='object'&&j)return JSON.stringify(maskJson(j,show),null,1)}catch(e){}
+  return raw;
+}
+
+async function loadPlain(p,version){
+  await needKey();
+  const r=await api('/api/profile/'+p+(version?'?version='+version:''));
+  if(!r.blob)throw new Error('这一版是空的');
+  return {r,obj:JSON.parse(await decrypt(S.ek,r.blob))};
+}
+
+function modal(html){
+  const m=document.createElement('div');m.className='modal';m.innerHTML='<div class="card">'+html+'</div>';
+  m.onclick=e=>{if(e.target===m)m.remove()};document.body.appendChild(m);return m;
+}
+function download(name,text){
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'application/json'}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+
+async function act(p,a){
+  try{
+    if(a==='view')return await viewVer(p,0);
+    if(a==='dl'){const {r,obj}=await loadPlain(p,0);download(`weave-${p}-v${r.version}.json`,JSON.stringify(obj,null,1));return toast('已下载（里面是明文，注意保管）')}
+    if(a==='hist')return await histVer(p);
+    if(a==='up')return await importVer(p);
+  }catch(e){if(e.message!=='已取消')toast(e.message)}
+}
+
+async function viewVer(p,version){
+  const {r,obj}=await loadPlain(p,version);
+  let show=false,q='';
+  const keys=Object.keys(obj).sort();
+  const m=modal(`<div class="row"><h2 style="flex:1;margin:0">${PN[p]}设置 · 第 ${r.version} 版</h2><button id="sh">显示密码等敏感内容</button><button id="cl">关闭</button></div>
+    <div class="dim" style="margin:6px 0 10px">共 ${keys.length} 项，${fmt(r.updated)}${r.device?' · 来自 '+esc(r.device):''}</div>
+    <input id="q" type="text" placeholder="搜索名称或内容" style="margin-bottom:8px"><table id="t"></table>`);
+  const draw=()=>{
+    const f=q.toLowerCase();
+    $('#t',m).innerHTML=keys.filter(k=>!f||k.toLowerCase().includes(f)||String(obj[k]).toLowerCase().includes(f)).map(k=>{
+      const raw=String(obj[k]);const sens=SENS.test(k);
+      return `<tr><td class="k">${esc(k)}</td><td><div class="v">${esc(sens&&!show?'••••••':pretty(raw,show))}</div></td></tr>`}).join('')||'<tr><td class="dim">没有匹配的</td></tr>';
+  };
+  draw();
+  $('#q',m).oninput=e=>{q=e.target.value;draw()};
+  $('#sh',m).onclick=e=>{show=!show;e.target.textContent=show?'隐藏敏感内容':'显示密码等敏感内容';draw()};
+  $('#cl',m).onclick=()=>m.remove();
+}
+
+async function histVer(p){
+  const h=await api('/api/profile/'+p+'/history');
+  const m=modal(`<div class="row"><h2 style="flex:1;margin:0">${PN[p]}历史版本</h2><button id="cl">关闭</button></div><div class="dim" style="margin:6px 0">服务器保留最近的版本，更早的会自动清掉。</div><table id="t"></table>`);
+  const cur=h.items.length?h.items[0].version:0;
+  $('#t',m).innerHTML=h.items.map(x=>`<tr><td>第 ${x.version} 版 ${x.version===cur?'<span class="tag">最新</span>':''}</td><td class="dim">${fmt(x.updated)}${x.device?' · '+esc(x.device):''}</td><td style="text-align:right;white-space:nowrap"><button data-a="v" data-v="${x.version}">查看</button> <button data-a="d" data-v="${x.version}">下载</button> ${x.version===cur?'':`<button class="d" data-a="x" data-v="${x.version}">删除</button>`}</td></tr>`).join('');
+  $('#cl',m).onclick=()=>m.remove();
+  m.onclick=async e=>{
+    if(e.target===m)return m.remove();
+    const a=e.target.dataset&&e.target.dataset.a,v=+(e.target.dataset&&e.target.dataset.v);if(!a)return;
+    try{
+      if(a==='v'){await viewVer(p,v)}
+      else if(a==='d'){const {r,obj}=await loadPlain(p,v);download(`weave-${p}-v${r.version}.json`,JSON.stringify(obj,null,1));toast('已下载')}
+      else if(a==='x'){if(!confirm('删除第 '+v+' 版？'))return;await api('/api/profile/'+p+'/'+v,{method:'DELETE'});m.remove();histVer(p)}
+    }catch(x){if(x.message!=='已取消')toast(x.message)}
+  };
+}
+
+async function importVer(p){
+  await needKey();
+  const f=document.createElement('input');f.type='file';f.accept='.json,application/json';
+  f.onchange=async()=>{
+    try{
+      const file=f.files[0];if(!file)return;
+      const text=await file.text();let o;
+      try{o=JSON.parse(text)}catch(e){throw new Error('不是有效的 JSON 文件')}
+      if(!o||typeof o!=='object'||Array.isArray(o)||Object.values(o).some(v=>typeof v!=='string'))throw new Error('格式不对：需要是从这里下载的备份文件');
+      const n=Object.keys(o).length;
+      if(!confirm(`用这个文件覆盖${PN[p]}设置？共 ${n} 项。会作为新的一版上传，旧版本还在历史里。`))return;
+      const m=await api('/api/profile/'+p+'/meta');
+      const blob=await encrypt(S.ek,JSON.stringify(o,Object.keys(o).sort()));
+      await api('/api/profile/'+p,{method:'PUT',body:{blob,baseVersion:m.version,device:'网页'}});
+      toast('已导入，其它设备下次同步时会拿到');renderMain();
+    }catch(e){toast(e.message)}
+  };
+  f.click();
+}
+
+(async()=>{
+  if(S.token){try{await renderMain();return}catch(e){S.token=null}}
+  renderLogin('');
+})();
+</script></body></html>

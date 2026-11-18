@@ -9,7 +9,7 @@ import sqlite3
 import time
 from functools import wraps
 
-from flask import Flask, g, jsonify, request
+from flask import Flask, g, jsonify, request, send_from_directory
 
 DATA = os.environ.get("DATA_DIR", "/data")
 os.makedirs(DATA, exist_ok=True)
@@ -250,6 +250,88 @@ def history(p):
         return jsonify(error="平台只能是 desktop 或 mobile"), 400
     rows = db().execute("SELECT version, updated, device FROM profiles WHERE user=? AND platform=? ORDER BY version DESC", (g.user, p)).fetchall()
     return jsonify(items=[dict(version=r["version"], updated=r["updated"], device=r["device"] or "") for r in rows])
+
+
+# ───────── 网页管理界面 ─────────
+WEB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
+
+
+@app.get("/")
+def index():
+    r = send_from_directory(WEB, "index.html")
+    r.headers["Cache-Control"] = "no-cache"
+    return r
+
+
+@app.get("/web/<path:f>")
+def web_file(f):
+    r = send_from_directory(WEB, f)
+    r.headers["Cache-Control"] = "no-cache"
+    return r
+
+
+def is_admin(user: str) -> bool:
+    r = db().execute("SELECT name FROM users ORDER BY created, rowid LIMIT 1").fetchone()
+    return bool(r) and r["name"] == user
+
+
+@app.get("/api/me")
+@need_login
+def me():
+    now = int(time.time())
+    rows = db().execute("SELECT hash, device, created, expires FROM tokens WHERE user=? AND expires>? ORDER BY created DESC", (g.user, now)).fetchall()
+    return jsonify(user=g.user, admin=is_admin(g.user),
+                   sessions=[dict(id=r["hash"][:16], device=r["device"] or "", created=r["created"], expires=r["expires"], current=r["hash"] == g.tok) for r in rows])
+
+
+@app.delete("/api/session/<sid>")
+@need_login
+def del_session(sid):
+    db().execute("DELETE FROM tokens WHERE user=? AND substr(hash,1,16)=?", (g.user, sid))
+    db().commit()
+    return jsonify(ok=True)
+
+
+@app.delete("/api/profile/<p>/<int:v>")
+@need_login
+def del_version(p, v):
+    if not plat(p):
+        return jsonify(error="平台只能是 desktop 或 mobile"), 400
+    cur = latest(g.user, p)
+    if cur and cur["version"] == v:
+        return jsonify(error="最新版本不能删（要清空请先上传一份新的）"), 400
+    db().execute("DELETE FROM profiles WHERE user=? AND platform=? AND version=?", (g.user, p, v))
+    db().commit()
+    return jsonify(ok=True)
+
+
+@app.get("/api/admin/users")
+@need_login
+def admin_users():
+    if not is_admin(g.user):
+        return jsonify(error="只有第一个账号（管理员）能看"), 403
+    rows = db().execute("SELECT name, created FROM users ORDER BY created, rowid").fetchall()
+    out = []
+    for r in rows:
+        d = {}
+        for p in PLATFORMS:
+            x = latest(r["name"], p)
+            d[p] = dict(version=x["version"], updated=x["updated"]) if x else None
+        out.append(dict(name=r["name"], created=r["created"], **d))
+    return jsonify(items=out)
+
+
+@app.delete("/api/admin/users/<name>")
+@need_login
+def admin_del_user(name):
+    if not is_admin(g.user):
+        return jsonify(error="只有第一个账号（管理员）能删"), 403
+    if name == g.user:
+        return jsonify(error="不能删自己"), 400
+    for t in ("users", "tokens", "profiles"):
+        db().execute(f"DELETE FROM {t} WHERE " + ("name" if t == "users" else "user") + "=?", (name,))
+    db().commit()
+    return jsonify(ok=True)
 
 
 if __name__ == "__main__":
