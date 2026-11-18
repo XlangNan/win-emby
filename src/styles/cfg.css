@@ -58,3 +58,10 @@
   :root:root input[type='checkbox']:hover, :root:root input[type='checkbox']:checked:hover{ filter: none !important; }
 }
 :root.android input[type='checkbox'], :root.ios input[type='checkbox']{ outline: none !important; box-shadow: none !important; -webkit-tap-highlight-color: transparent; }
+
+/* 开关的滑动动画：系统开了「减弱动效」时，全局规则会把所有过渡压成 0.01ms（开关就变成瞬间跳变）。
+   开关的滑动属于操作反馈，这里单独放行；只有在应用里把「界面动效」明确设成「关闭」时才不滑动。 */
+html:not([data-motion='off']) input[type='checkbox']:not(.sel-box){
+  transition-duration: .22s !important;
+  transition-property: background-color, background-position !important;
+}
