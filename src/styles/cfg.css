@@ -30,3 +30,31 @@
 .cfg-go{ opacity: .45; font-size: 20px; }
 .cfg-bar{ display: flex; align-items: center; gap: 6px; }
 :root:root .cfg-back{ width: 36px; height: 36px; min-width: 36px; padding: 0; border: 0 !important; border-radius: 50%; background: transparent !important; color: inherit; font-size: 28px; line-height: 1; box-shadow: none !important; }
+
+/* 设置行：开关固定成 40×22 的胶囊（手机端老规则把它设成了 width/height:auto，会缩成一个小方块），文字正常换行 */
+:root:root[data-shell] .we-set-row input[type='checkbox']:not(.sel-box){ width: 40px !important; height: 22px !important; min-width: 40px; flex: none !important; margin: 0 !important; }
+:root:root[data-shell] .we-set-row{ align-items: center; }
+:root:root[data-shell] .we-set-row > span, :root:root[data-shell] .we-set-row > label{ min-width: 0; word-break: normal !important; overflow-wrap: anywhere; }
+:root:root[data-shell] .we-set-row > span .muted{ display: block; margin: 3px 0 0; line-height: 1.55; font-size: 12px; }
+.cfg-body > .we-set{ padding: 16px 18px; }
+.cfg-body .we-set h3{ margin: 0 0 8px; font-size: 16px; }
+@media (max-width: 760px) { .cfg-body > .we-set{ padding: 14px 14px; } }
+
+/* 「关于」：版本号靠右，不换行 */
+:root:root[data-shell] .cfg-about{ flex-wrap: nowrap; }
+:root:root[data-shell] .cfg-about > span:first-child{ flex: 1 1 auto; white-space: nowrap; }
+:root:root[data-shell] .cfg-about > span:last-child{ flex: none; text-align: right; }
+
+/* 开关行（label.row 里放着开关 + 文字）：开关在左，文字紧跟在右边，不再换到下一行 */
+:root:root[data-shell] .we-set label.row:has(> input[type='checkbox']){ flex-wrap: nowrap; align-items: center; gap: 12px; }
+/* 数字输入行：文字在左，输入框在右，宽度固定 */
+:root:root[data-shell] .we-set label.row:has(> input[type='number']){ flex-wrap: nowrap; align-items: center; justify-content: space-between; gap: 12px; }
+:root:root[data-shell] .we-set label.row > input[type='number']{ width: 96px !important; flex: none; }
+
+/* 触屏（手机 / 平板）：去掉电脑上的操作痕迹——点开关后残留的聚焦外圈、悬停变亮、点按高亮 */
+@media (hover: none), (pointer: coarse) {
+  :root input[type='checkbox'], :root .we-set button, :root .we-set select, :root .cfg-item{ -webkit-tap-highlight-color: transparent; }
+  :root:root input[type='checkbox']:focus, :root:root input[type='checkbox']:focus-visible, :root:root input[type='checkbox']:active{ outline: none !important; box-shadow: none !important; }
+  :root:root input[type='checkbox']:hover, :root:root input[type='checkbox']:checked:hover{ filter: none !important; }
+}
+:root.android input[type='checkbox'], :root.ios input[type='checkbox']{ outline: none !important; box-shadow: none !important; -webkit-tap-highlight-color: transparent; }

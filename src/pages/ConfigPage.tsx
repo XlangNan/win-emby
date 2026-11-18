@@ -644,7 +644,7 @@ export default function ConfigPage() {
     { cat: 'look', title: '外观', kw: '外观 主题 浅色 深色 模式 皮肤', node: <ModeSettings key="mode" /> },
     { cat: 'look', title: '界面字体', kw: '字体 界面 字号', node: <FontSettings key="font" /> },
     { cat: 'about', title: '关于', kw: '关于 版本 编号', node: (
-      <div className="card we-set" key="about"><h3>关于</h3><div className="we-set-row"><span>织影 · 版本编号</span><span className="muted">{BUILD_ID}</span></div></div>
+      <div className="card we-set" key="about"><div className="we-set-row cfg-about"><span>织影 · 版本编号</span><span className="muted">{BUILD_ID}</span></div></div>
     ) },
   ];
 
