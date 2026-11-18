@@ -732,5 +732,19 @@ html:not([data-motion='off']) .mu-spin{ animation-duration: 12s !important; anim
 .we-player .we-grp{ display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 99px; background: rgba(42, 42, 47, .78); }
 .we-player .we-ctrls{ gap: 10px; }
 .we-player .we-grp .we-btn{ border-radius: 99px; }
-html.android .we-player .we-grp, html.ios .we-player .we-grp{ display: contents; }
 .we-player .we-grp:empty{ display: none; }
+
+/* Z40：手机也用分组胶囊；竖屏 5 列网格里每个按钮是一块深灰圆角方块 */
+html.android .we-player .we-ctrls, html.ios .we-player .we-ctrls{ gap: 8px; }
+@media (orientation: portrait){
+  html.android .we-player .we-grp, html.ios .we-player .we-grp{ display: contents; }
+  html.android .we-player .we-ctrls .we-lbl.we-lbl{ background: rgba(42, 42, 47, .82) !important; border-radius: 16px; min-height: 58px; padding: 6px 2px; }
+}
+@media (orientation: landscape){
+  html.android .we-player .we-grp .we-lbl{ min-width: 56px; padding: 4px 6px; }
+}
+/* 电脑窗口变窄：先收起按钮文字，再收起音量条，最后允许换行，保证按钮不被切掉 */
+.we-player .we-ctrls{ min-width: 0; }
+@media (max-width: 1200px){ html:not(.android):not(.ios) .we-player .we-lbl > span{ display: none; } html:not(.android):not(.ios) .we-player .we-lbl{ padding: 0 10px; } }
+@media (max-width: 900px){ html:not(.android):not(.ios) .we-player .we-vol, html:not(.android):not(.ios) .we-player .we-volnum{ display: none; } }
+@media (max-width: 640px){ html:not(.android):not(.ios) .we-player .we-ctrls{ flex-wrap: wrap; row-gap: 6px; } }
