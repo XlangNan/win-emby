@@ -128,6 +128,18 @@ export function cacheSource(id: string, text: string): number {
   return ch.length;
 }
 
+/** 这个源本机缓存了多少频道（0 = 还没下载过） */
+export const cachedCount = (id: string): number => readJson<RawCh[]>(CKEY + id, []).length;
+/** 同步用：没有订阅地址的源（本地导入的文件）只有缓存这一份数据，需要跟着设置一起同步 */
+export function localOnlyCaches(): Record<string, string> {
+  const o: Record<string, string> = {};
+  for (const s of listSources()) {
+    if (s.url) continue;
+    try { const v = localStorage.getItem(CKEY + s.id); if (v && v.length < 1_500_000) o[CKEY + s.id] = v; } catch { /* ignore */ }
+  }
+  return o;
+}
+
 export function removeCache(id: string): void {
   try {
     localStorage.removeItem(CKEY + id);

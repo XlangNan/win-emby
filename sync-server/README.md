@@ -13,7 +13,7 @@
    - 项目名称：`weave-sync`
    - 路径：选 `docker/weave-sync`
    - 来源：使用现有的 `docker-compose.yml`
-3. 点下一步直到完成。第一次会自己构建镜像（基础镜像走 DaoCloud、pip 走清华源，国内可直接用）。
+3. 点下一步直到完成。第一次会自己构建镜像（基础镜像走你 Docker 自带的镜像加速、pip 走清华源）。
 4. 构建完成后访问 `http://群晖IP:8765/api/ping`，看到 `{"app":"weave-sync","ok":true,...}` 就成功了。
 
 只用命令行的话：

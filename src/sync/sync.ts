@@ -2,6 +2,8 @@
 // 加密在本机完成：同步密码 → PBKDF2 → 两把独立的钥匙（一把登录用、一把加密用），服务器只看得到密文。
 import { useEffect, useState } from 'react';
 import { httpFetch } from '../emby/http';
+import { refreshEpg } from '../lib/epg';
+import { listSources, localOnlyCaches, refreshSource } from '../lib/live';
 import { isMobileApp } from '../lib/platform';
 
 export type Platform = 'desktop' | 'mobile';
@@ -18,6 +20,7 @@ const KEYS = [
 ];
 
 const CFG_KEY = 'wemby-sync';
+const REFRESH_FLAG = 'wemby-sync-refresh';   // 刚从云端还原过：下次启动时重新下载直播源和节目单
 export interface SyncCfg {
   server: string; user: string; token: string; ek: string;
   auto: boolean; ver: number; hash: string; at: number;
@@ -74,6 +77,7 @@ async function sha(text: string): Promise<string> { return hex(new Uint8Array(aw
 function collect(): string {
   const o: Record<string, string> = {};
   for (const k of KEYS) { try { const v = localStorage.getItem(k); if (v !== null) o[k] = v; } catch { /* ignore */ } }
+  Object.assign(o, localOnlyCaches());   // 本地导入的直播源：只有缓存这一份
   return JSON.stringify(o, Object.keys(o).sort());
 }
 function applyLocal(text: string): void {
@@ -81,6 +85,7 @@ function applyLocal(text: string): void {
   for (const k of KEYS) {
     try { if (k in o) localStorage.setItem(k, o[k]); else localStorage.removeItem(k); } catch { /* ignore */ }
   }
+  for (const k of Object.keys(o)) if (k.startsWith('wemby-live-cache:')) { try { localStorage.setItem(k, o[k]); } catch { /* ignore */ } }
 }
 const deviceName = (): string => {
   const u = navigator.userAgent;
@@ -157,6 +162,7 @@ export async function pullApply(version?: number, reload = true): Promise<boolea
   let text: string;
   try { text = await decrypt(c.ek, r.blob); } catch { throw new Error('解密失败：同步密码和上传时不一致？'); }
   applyLocal(text);
+  try { localStorage.setItem(REFRESH_FLAG, '1'); } catch { /* ignore */ }
   saveCfg({ ...(loadSync() ?? c), ver: r.version, hash: await sha(collect()), at: Date.now(), conflict: null });
   if (reload) window.location.reload();
   return true;
@@ -204,6 +210,16 @@ export function startSync(): void {
       if (now !== c.hash) await pushNow(false);
     } catch { /* 下次再试；错误在设置页手动同步时会显示 */ } finally { busy = false; }
   };
+  // 刚从云端还原：后台把所有直播源和节目单（指南）重新下载一遍
+  window.setTimeout(() => {
+    let flag = false;
+    try { flag = localStorage.getItem(REFRESH_FLAG) === '1'; localStorage.removeItem(REFRESH_FLAG); } catch { /* ignore */ }
+    if (!flag) return;
+    void Promise.allSettled([
+      ...listSources().filter((s) => s.url).map((s) => refreshSource(s)),
+      refreshEpg(),
+    ]).then(() => window.dispatchEvent(new Event('wemby-live-changed')));
+  }, 4000);
   window.setTimeout(() => void tick(true), 2500);
   window.setInterval(() => void tick(false), 15000);
   document.addEventListener('visibilitychange', () => { if (document.hidden) void tick(false); });

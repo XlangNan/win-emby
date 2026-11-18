@@ -119,7 +119,7 @@
 .mu-np-right{ max-height: none; }
 .mu-lyr{ padding: 18vh 0; gap: 18px; }
 .mu-lyr-l{ font-size: 20px; }
-.mu-np-ctl{ padding: 6px 22px calc(18px + env(safe-area-inset-bottom)); }
+.mu-np-ctl{ padding: 6px 22px calc(18px + var(--sab)); }
 .mu-np-btns{ gap: 14px; }
 .mu-dhead-cv{ width: 160px !important; }
 .mu-dhead{ flex-direction: column; align-items: center; text-align: center; }
@@ -380,7 +380,7 @@
 @media (max-width: 899px){
 .mu-np-hint{ display: block; }
 .mu-np-lyrbtn{ display: flex; }
-/* 歌曲菜单：手机上改成底部抽屉 */.mu-menu{ left: 0 !important; right: 0; top: auto !important; bottom: 0; width: auto !important; border-radius: 16px 16px 0 0; padding: 8px 8px calc(12px + env(safe-area-inset-bottom)); max-height: 70vh; border: none; }
+/* 歌曲菜单：手机上改成底部抽屉 */.mu-menu{ left: 0 !important; right: 0; top: auto !important; bottom: 0; width: auto !important; border-radius: 16px 16px 0 0; padding: 8px 8px calc(12px + var(--sab)); max-height: 70vh; border: none; }
 .mu-menu-i{ padding: 14px 12px; font-size: 15.5px; }
 .mu-menu-mask{ background: rgba(0, 0, 0, .5); }
 
@@ -614,7 +614,7 @@
 .mu-mini.inline .mu-mini-sl{ left: 22px; right: 22px; bottom: -8px; }
 /* 手机小播放条：music.css 比 mobile.css 后加载，前面的 position: relative 把悬浮定位盖掉了，这里强制 */.mu-mini.inline{
   position: absolute !important; left: 22px !important; right: 22px !important; margin: 0 !important; z-index: 59;
-  bottom: calc(var(--m-mini-b, 12px) + env(safe-area-inset-bottom)) !important;
+  bottom: calc(var(--m-mini-b, 12px) + var(--sab)) !important;
   background: var(--mu-r3636419, rgba(36, 36, 41, .9)) !important; -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
 }
 .mu-mini.inline .mu-mini-sl .mu-sl-tr{ height: 3px; }
@@ -664,7 +664,7 @@
 .mu-np-l3{ display: block; }
  }
 /* ───────── 歌曲列表悬浮按钮 ───────── */.mu-fab{ position: fixed; right: 18px; bottom: calc(var(--mini-h, 0px) + 24px); z-index: 80; display: flex; flex-direction: column; gap: 12px; }
-:root.android[data-shell] .mu-fab{ bottom: calc(var(--m-dock, 0px) + env(safe-area-inset-bottom) + 14px); right: 16px; }
+:root.android[data-shell] .mu-fab{ bottom: calc(var(--m-dock, 0px) + var(--sab) + 14px); right: 16px; }
 :root.tablet .tb-app .mu-fab{ bottom: calc(var(--mini-h, 0px) + 34px); right: 26px; }
 .mu-fab-b{ all: unset; box-sizing: border-box; width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--mu-cffffff, #fff); background: var(--mu-r40404686, rgba(40, 40, 46, .86)); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: 1px solid var(--mu-w1, rgba(255,255,255,.1)); box-shadow: 0 6px 18px rgba(0, 0, 0, .55); -webkit-tap-highlight-color: transparent; }
 .mu-fab-b:active{ transform: scale(.94); }

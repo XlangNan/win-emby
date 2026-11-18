@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  cacheSource, listSources, loadChannels, loadFavs, newId, refreshSource, removeCache, saveSources, toggleFav, type LiveSource,
+  cachedCount, cacheSource, listSources, loadChannels, loadFavs, newId, refreshSource, removeCache, saveSources, toggleFav, type LiveSource,
 } from '../lib/live';
 import { epgAt, epgChannels, getEpgUrl, hhmm, nowNext, refreshEpg, setEpgUrl } from '../lib/epg';
 
@@ -31,6 +31,20 @@ export default function LivePage() {
   }, []);
 
   const reloadChs = (): void => setChs(loadChannels());
+  // 同步还原后台刷新完直播源 → 列表跟着更新
+  useEffect(() => {
+    const f = (): void => setChs(loadChannels());
+    window.addEventListener('wemby-live-changed', f);
+    return () => window.removeEventListener('wemby-live-changed', f);
+  }, []);
+  // 从同步还原 / 新装后，源的订阅地址有了但频道列表还没下载：进页面自动补下载
+  useEffect(() => {
+    const miss = listSources().filter((s) => s.url && cachedCount(s.id) === 0);
+    if (!miss.length) return;
+    setBusy(true);
+    void Promise.allSettled(miss.map((s) => refreshSource(s))).then(() => { reloadChs(); setBusy(false); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const groups = useMemo(() => {
     const g: string[] = [];

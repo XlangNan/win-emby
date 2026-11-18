@@ -120,6 +120,25 @@ export default function MobileShell({ views, routes }: { views: EmbyItem[]; rout
     window.addEventListener('resize', set);
     return () => { window.clearTimeout(t); window.removeEventListener('resize', set); };
   }, []);
+  // 导航栏（手势条）区域透明：网页铺到它下面，底部留白按真实高度 --sab 自己留
+  useEffect(() => {
+    const b = androidBridge();
+    if (!b?.setEdgeBottom) return;
+    const root = document.documentElement;
+    const set = (): void => {
+      try { const v = b.getInsetBottom?.(); if (typeof v === 'number') root.style.setProperty('--sab', `${v}px`); } catch { /* ignore */ }
+    };
+    try { b.setEdgeBottom?.(true); } catch { /* ignore */ }
+    set();
+    const t1 = window.setTimeout(set, 150);
+    const t2 = window.setTimeout(set, 600);
+    window.addEventListener('resize', set);
+    return () => {
+      window.clearTimeout(t1); window.clearTimeout(t2); window.removeEventListener('resize', set);
+      try { b.setEdgeBottom?.(false); } catch { /* ignore */ }
+      root.style.removeProperty('--sab');
+    };
+  }, []);
   const hasMini = !!useMusic().cur;
   const hideTabsNow = p.startsWith('/live/play') || p.startsWith('/detail') || /^\/discover\/(movie|tv)\//.test(p);
   // 悬浮导航 / 小播放条不占布局，页面内容从它们下面透出；这两个变量让页面底部留出空白、小播放条停在导航上方

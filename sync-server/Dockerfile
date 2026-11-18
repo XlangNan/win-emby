@@ -1,5 +1,5 @@
-# 国内镜像：基础镜像走 DaoCloud，pip 走清华源
-FROM docker.m.daocloud.io/library/python:3.12-slim
+# 基础镜像用你 Docker 里已配好的镜像加速（直接拉 python）；pip 走清华源
+FROM python:3.12-slim
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt

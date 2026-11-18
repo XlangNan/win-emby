@@ -37,6 +37,8 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
     companion object {
         /** 播放页全屏时为 true：此时不给内容区加系统栏留白 */
         @Volatile var fullscreen = false
+        /** 手机主界面（底部标签栏那套）：网页铺到导航栏下面，导航栏区域不再留一条底色 */
+        @Volatile var edgeBottom = false
     }
     // 这个版本的 libmpv 是「实例」接口：MPVLib.create(context) 返回实例，之后都调实例方法
     private var mpv: MPVLib? = null
@@ -306,6 +308,22 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
         val ins = ViewCompat.getRootWindowInsets(act.window.decorView)
             ?.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
         return (ins?.top ?: 0) / act.resources.displayMetrics.density
+    }
+
+    /** 手机主界面打开：网页内容延伸到系统导航栏下面（导航栏透明），底部留白改由网页按 --sab 自己留 */
+    @JavascriptInterface
+    fun setEdgeBottom(on: Boolean) {
+        edgeBottom = on
+        act.runOnUiThread { try { act.findViewById<android.view.View>(android.R.id.content).requestApplyInsets() } catch (_: Throwable) { } }
+    }
+
+    /** 系统导航栏（手势条）的高度，单位 dp */
+    @JavascriptInterface
+    fun getInsetBottom(): Float {
+        if (fullscreen) return 0f
+        val ins = ViewCompat.getRootWindowInsets(act.window.decorView)
+            ?.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+        return (ins?.bottom ?: 0) / act.resources.displayMetrics.density
     }
 
     @JavascriptInterface

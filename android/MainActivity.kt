@@ -94,7 +94,8 @@ class MainActivity : TauriActivity() {
             } else {
                 val m = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
                 // 顶部不留白：网页自己按 --sat 留（详情页要让图片铺到状态栏下面）
-                v.setPadding(m.left, 0, m.right, m.bottom)
+                // 手机主界面：底部也不留白（网页铺到导航栏下面，导航栏透明）；其余页面照旧留出导航栏高度
+                v.setPadding(m.left, 0, m.right, if (MpvBridge.edgeBottom) 0 else m.bottom)
             }
             WindowInsetsCompat.CONSUMED
         }

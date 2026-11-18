@@ -102,7 +102,7 @@
 :root[data-shell] .content.abs-page{ padding-top: 0; padding-bottom: 110px; }
 
 /* 手机 / 平板外壳：播放条抬到底部标签栏上方，页面底部多留空 */
-:root.mobile .abs-bar-wrap, .m-app .abs-bar-wrap{ bottom: calc(var(--m-mini-b, 86px) + env(safe-area-inset-bottom)); left: 8px; right: 8px; border-radius: 16px; border: 1px solid var(--border, #262c3b); }
+:root.mobile .abs-bar-wrap, .m-app .abs-bar-wrap{ bottom: calc(var(--m-mini-b, 86px) + var(--sab)); left: 8px; right: 8px; border-radius: 16px; border: 1px solid var(--border, #262c3b); }
 :root.mobile .content.abs-page, .m-app .abs-page{ padding-bottom: 190px; }
 
 /* 无框按钮：实心深灰胶囊，主要 = 红色，文字链接无底色 */

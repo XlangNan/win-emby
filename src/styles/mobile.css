@@ -7,7 +7,7 @@ html.android body { font-size: 15px; }
 .m-app { display: flex; flex-direction: column; height: 100dvh; background: #000; color: #fff; }
 .m-main { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
 .m-main .page-anim { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.m-tabs { flex: none; display: flex; background: #121212; border-top: 1px solid #262626; padding-bottom: env(safe-area-inset-bottom); }
+.m-tabs { flex: none; display: flex; background: #121212; border-top: 1px solid #262626; padding-bottom: var(--sab); }
 .m-tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0 6px; font-size: 10.5px; color: #8c8c8c; text-decoration: none; }
 .m-tab.active { color: #fff; }
 .m-head { position: absolute; left: 0; right: 0; top: 0; z-index: 40; padding: 6px 14px 12px; background: linear-gradient(180deg, #000 78%, rgba(0, 0, 0, 0)); }
@@ -343,7 +343,7 @@ html.android * { scrollbar-width: none; }
 
 /* ───────── 底部导航：悬浮椭圆 ───────── */
 :root.android[data-shell] .m-tabs, .m-tabs {
-  margin: 0 22px calc(12px + env(safe-area-inset-bottom)); padding: 0 6px; height: 62px; align-items: center; justify-content: space-around;
+  margin: 0 22px calc(12px + var(--sab)); padding: 0 6px; height: 62px; align-items: center; justify-content: space-around;
   border: 1px solid rgba(255, 255, 255, .09); border-radius: 31px; background: rgba(34, 34, 40, .88);
   -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); box-shadow: 0 10px 30px rgba(0, 0, 0, .6);
 }
@@ -356,7 +356,7 @@ html.android * { scrollbar-width: none; }
 /* ───────── 悬浮导航：真正浮在内容上，内容从下面透出；选中只高亮图标和文字 ───────── */
 .m-app { position: relative; }
 :root.android[data-shell] .m-tabs, .m-tabs {
-  position: absolute; left: 22px; right: 22px; bottom: calc(12px + env(safe-area-inset-bottom)); margin: 0; z-index: 60;
+  position: absolute; left: 22px; right: 22px; bottom: calc(12px + var(--sab)); margin: 0; z-index: 60;
   background: rgba(28, 28, 34, .55); -webkit-backdrop-filter: blur(22px) saturate(1.4); backdrop-filter: blur(22px) saturate(1.4);
 }
 :root.android[data-shell] .m-tab, .m-tab { color: #c4c4cc !important; background: none !important; }
@@ -364,7 +364,7 @@ html.android * { scrollbar-width: none; }
 :root.android[data-shell] .m-tab.active svg, .m-tab.active svg { stroke: #ff5a64; }
 .mu-mini.inline {
   position: absolute; left: 16px; right: 16px; margin: 0; z-index: 59;
-  bottom: calc(var(--m-mini-b, 12px) + env(safe-area-inset-bottom));
+  bottom: calc(var(--m-mini-b, 12px) + var(--sab));
   background: rgba(36, 36, 41, .9); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
 }
-.m-main .content, :root.android[data-shell] .m-main .content { padding-bottom: calc(var(--m-dock, 0px) + env(safe-area-inset-bottom) + 14px) !important; }
+.m-main .content, :root.android[data-shell] .m-main .content { padding-bottom: calc(var(--m-dock, 0px) + var(--sab) + 14px) !important; }

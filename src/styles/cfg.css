@@ -87,3 +87,13 @@ html:not([data-motion='off']) input[type='checkbox']:not(.sel-box){
 
 :root:root .we-login-wrap{ flex-direction: column; }
 .we-login-sync{ display: flex; justify-content: center; }
+
+/* 听书播放条：条本身是深色底，浅色主题的通用按钮 / 输入框规则（浅灰底 + 深字）会让里面的按钮、进度条变得看不清。
+   这里在浅色模式下把条里的控件恢复成深色底配浅色字。 */
+:root:root:root[data-mode='light'] .abs-bar-wrap button{ background: rgba(255, 255, 255, .12) !important; border-color: rgba(255, 255, 255, .18) !important; color: #e8ecf4 !important; box-shadow: none !important; }
+:root:root:root[data-mode='light'] .abs-bar-wrap button.on{ color: var(--accent, #5b8cff) !important; border-color: var(--accent, #5b8cff) !important; }
+:root:root:root[data-mode='light'] .abs-bar-wrap .abs-bar-play{ background: #fff !important; color: #000 !important; border: 0 !important; }
+:root:root:root[data-mode='light'] .abs-bar-wrap select{ background: rgba(255, 255, 255, .12) !important; border-color: rgba(255, 255, 255, .18) !important; color: #e8ecf4 !important; }
+:root:root:root[data-mode='light'] .abs-bar-wrap input[type='range']{ background: transparent !important; border: 0 !important; }
+:root:root:root[data-mode='light'] .abs-bar-wrap .abs-bar-t{ color: #f2f4f9; }
+:root:root:root[data-mode='light'] .abs-bar-wrap .abs-bar-s, :root:root:root[data-mode='light'] .abs-bar-wrap .abs-bar-seek{ color: #aab2c3; }
