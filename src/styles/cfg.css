@@ -65,3 +65,17 @@ html:not([data-motion='off']) input[type='checkbox']:not(.sel-box){
   transition-duration: .22s !important;
   transition-property: background-color, background-position !important;
 }
+
+/* 浅色主题：浅色皮肤里有一条给所有输入框设「background: #fff」的简写规则，会把开关的轨道和滑块一起抹掉（变成白框）。
+   这里在浅色模式下把开关完整重画一遍，并用 !important 压过那条简写。 */
+:root:root:root[data-mode='light'] input[type='checkbox']:not(.sel-box):not(.tag *){
+  appearance: none !important; -webkit-appearance: none !important;
+  width: 40px !important; height: 22px !important; padding: 2px !important; margin: 0 !important; border: 0 !important; border-radius: 999px !important; box-sizing: border-box !important;
+  background-color: rgba(120, 120, 128, .34) !important;
+  background-image: radial-gradient(circle at 50% 50%, #fff 0 6.4px, rgba(0, 0, 0, .2) 6.4px 7.4px, transparent 7.4px) !important;
+  background-size: 18px 18px !important; background-repeat: no-repeat !important; background-origin: content-box !important; background-position: 0% 50% !important;
+  box-shadow: none !important;
+}
+:root:root:root[data-mode='light'] input[type='checkbox']:not(.sel-box):not(.tag *):checked{
+  background-color: var(--accent) !important; background-position: 100% 50% !important;
+}
