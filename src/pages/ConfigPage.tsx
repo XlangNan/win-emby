@@ -8,6 +8,7 @@ import { emby } from '../emby/client';
 import { getSession, listAccounts, removeAccount, sameAccount, saveSession } from '../emby/session';
 import type { EmbyItem, Session } from '../emby/types';
 import { isAndroid } from '../lib/platform';
+import { fetchHistory, firstSync, loadSync, platform, platformLabel, pullApply, pushNow, setAuto, syncLogin, syncLogout, useSync, type Meta } from '../sync/sync';
 import { applyFont, FONT_PRESETS, loadFont } from '../lib/font';
 import { applyMode, loadMode, MODE_LABELS, type ModePref } from '../lib/mode';
 import { introDbOn, loadIntroProxy, saveIntroProxy, setIntroDbOn } from '../lib/introdb';
@@ -586,6 +587,91 @@ function PlaySettings({ prefs, set, introOn, setIntroOn }: { prefs: ReturnType<t
 }
 
 
+
+const fmtTime = (ms: number): string => (ms ? new Date(ms).toLocaleString('zh-CN', { hour12: false }) : '—');
+
+function SyncSettings() {
+  const c = useSync();
+  const [server, setServer] = useState('');
+  const [user, setUser] = useState('');
+  const [pw, setPw] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [bad, setBad] = useState(false);
+  const [hist, setHist] = useState<Meta[] | null>(null);
+  const say = (m: string, isErr = false): void => { setMsg(m); setBad(isErr); };
+  const run = async (f: () => Promise<void>): Promise<void> => {
+    setBusy(true); say('');
+    try { await f(); } catch (e) { say(e instanceof Error ? e.message : String(e), true); } finally { setBusy(false); }
+  };
+  const login = (register: boolean): Promise<void> => run(async () => {
+    await syncLogin(server, user, pw, register);
+    setPw('');
+    const r = await firstSync();
+    say(r === 'uploaded' ? `已登录，并把这台${platformLabel()}的设置上传到云端` : `已登录。云端已经有一份${platformLabel()}的设置，请在下面选择用哪边`);
+  });
+
+  if (!c) {
+    return (
+      <div className="card we-set">
+        <h3>同步账号</h3>
+        <div className="muted" style={{ marginBottom: 10, fontSize: 12.5, lineHeight: 1.6 }}>登录自己搭的同步服务后，设置、账号、hosts 会加密保存到云端。电脑和手机各存一份，换设备登录就能还原。</div>
+        <div style={{ display: 'grid', gap: 10 }}>
+          <input value={server} onChange={(e) => setServer(e.target.value)} placeholder="同步服务地址，如 192.168.1.10:8765 或 https://sync.example.com" spellCheck={false} autoCapitalize="off" />
+          <input value={user} onChange={(e) => setUser(e.target.value)} placeholder="用户名" spellCheck={false} autoCapitalize="off" autoComplete="username" />
+          <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="同步密码（忘记了无法找回云端数据）" autoComplete="current-password" />
+          <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+            <button type="button" className="primary" disabled={busy} onClick={() => void login(false)}>{busy ? '请稍候…' : '登录'}</button>
+            <button type="button" disabled={busy} onClick={() => void login(true)}>注册新账号</button>
+          </div>
+          {msg && <div className={bad ? 'err' : 'muted'} style={{ fontSize: 12.5 }}>{msg}</div>}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card we-set">
+      <h3>同步账号</h3>
+      <div className="we-set-row"><span>账号<span className="muted">{c.user}　·　{c.server}</span></span></div>
+      <div className="we-set-row"><span>这台设备<span className="muted">按「{platformLabel()}」保存和还原，和{platform === 'mobile' ? '电脑' : '手机'}互不影响</span></span></div>
+      <div className="we-set-row"><span>云端版本<span className="muted">第 {c.ver} 版　·　上次同步 {fmtTime(c.at)}</span></span></div>
+      <label className="we-set-row"><span>自动同步<span className="muted">改了设置自动上传；打开应用时如果云端更新就自动取回</span></span><input type="checkbox" checked={c.auto} onChange={(e) => setAuto(e.target.checked)} /></label>
+
+      {c.conflict && (
+        <div className="cfg-sync-conf">
+          <b>云端和本机的设置不一样</b>
+          <div className="muted" style={{ fontSize: 12.5, margin: '4px 0 10px' }}>云端第 {c.conflict.ver} 版（{fmtTime(c.conflict.at)}）。选一边为准：</div>
+          <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+            <button type="button" className="primary" disabled={busy} onClick={() => void run(async () => { await pullApply(); })}>用云端覆盖本机</button>
+            <button type="button" disabled={busy} onClick={() => void run(async () => { await pushNow(true); say('已用本机覆盖云端'); })}>用本机覆盖云端</button>
+          </div>
+        </div>
+      )}
+
+      <div className="row" style={{ gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
+        <button type="button" disabled={busy} onClick={() => void run(async () => { await pushNow(true); say('已上传到云端'); })}>立即上传</button>
+        <button type="button" disabled={busy} onClick={() => void run(async () => { const ok = await pullApply(); if (!ok) say(`云端还没有${platformLabel()}的设置`, true); })}>从云端恢复</button>
+        <button type="button" disabled={busy} onClick={() => void run(async () => { const cur = loadSync(); if (cur) setHist(await fetchHistory(cur)); })}>历史版本</button>
+        <button type="button" disabled={busy} onClick={() => void run(async () => { await syncLogout(); setHist(null); say('已退出同步账号（本机设置保留）'); })}>退出同步账号</button>
+      </div>
+      {msg && <div className={bad ? 'err' : 'muted'} style={{ fontSize: 12.5, marginTop: 8 }}>{msg}</div>}
+
+      {hist && (
+        <div style={{ marginTop: 12 }}>
+          {hist.length === 0 && <div className="muted" style={{ fontSize: 12.5 }}>云端还没有历史版本</div>}
+          {hist.map((h) => (
+            <div key={h.version} className="we-set-row">
+              <span>第 {h.version} 版<span className="muted">{fmtTime(h.updated * 1000)}　·　{h.device || '未知设备'}</span></span>
+              <button type="button" disabled={busy} onClick={() => void run(async () => { await pullApply(h.version); })}>恢复</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface Sec { cat: string; title: string; kw: string; node: React.ReactNode }
 const CATS: { id: string; label: string; ico: string; color: string; sub: string }[] = [
   { id: 'account', label: '账号与服务器', ico: '◉', color: '#5b8def', sub: 'Emby 账号、服务器地址、切换账号' },
@@ -594,6 +680,7 @@ const CATS: { id: string; label: string; ico: string; color: string; sub: string
   { id: 'sub', label: '订阅与下载', ico: '⇩', color: '#10b981', sub: '追更服务、MoviePilot' },
   { id: 'music', label: '音乐', ico: '♪', color: '#ec4899', sub: 'Navidrome、音乐选项' },
   { id: 'look', label: '外观', ico: '◐', color: '#8b5cf6', sub: '浅色 / 深色、界面字体' },
+  { id: 'sync', label: '同步与备份', ico: '⟳', color: '#0ea5e9', sub: '同步账号、电脑 / 手机各存一份设置' },
   { id: 'about', label: '关于', ico: 'ⓘ', color: '#6b7280', sub: '版本编号' },
 ];
 const CAT_KEY = 'wemby-cfg-cat';
@@ -643,6 +730,7 @@ export default function ConfigPage() {
     { cat: 'music', title: '音乐选项', kw: '音乐 选项 歌词 在线 音质', node: <MusicOptionsSettings key="mo" /> },
     { cat: 'look', title: '外观', kw: '外观 主题 浅色 深色 模式 皮肤', node: <ModeSettings key="mode" /> },
     { cat: 'look', title: '界面字体', kw: '字体 界面 字号', node: <FontSettings key="font" /> },
+    { cat: 'sync', title: '同步账号', kw: '同步 备份 恢复 云端 账号 导出 换设备 hosts 服务', node: <SyncSettings key="sync" /> },
     { cat: 'about', title: '关于', kw: '关于 版本 编号', node: (
       <div className="card we-set" key="about"><div className="we-set-row cfg-about"><span>织影 · 版本编号</span><span className="muted">{BUILD_ID}</span></div></div>
     ) },
@@ -691,7 +779,7 @@ export default function ConfigPage() {
           {search}
           {group(['account'])}
           {group(['play', 'home', 'sub'])}
-          {group(['music', 'look', 'about'])}
+          {group(['music', 'look', 'sync', 'about'])}
           <div className="muted cfg-ver">织影 · 版本编号 {BUILD_ID}</div>
         </div>
       </>

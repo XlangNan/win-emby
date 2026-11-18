@@ -4,6 +4,7 @@ import AppAmbient from '../components/AppAmbient';
 import TitleBar from '../components/TitleBar';
 import { emby } from '../emby/client';
 import { saveSession } from '../emby/session';
+import { restoreFromAccount } from '../sync/sync';
 
 const LAST = 'wemby-last-login';
 
@@ -22,6 +23,20 @@ export default function LoginPage() {
   const [pw, setPw] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [rs, setRs] = useState(false);
+  const [sv, setSv] = useState('');
+  const [su, setSu] = useState('');
+  const [sp, setSp] = useState('');
+  const [sb, setSb] = useState(false);
+  const [sm, setSm] = useState('');
+  const restore = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault();
+    setSb(true); setSm('');
+    try {
+      const ok = await restoreFromAccount(sv, su, sp);
+      if (!ok) setSm('登录成功，但云端还没有这个设备类型的设置。先在上面登录 Emby，之后在「设置 → 同步与备份」里上传。');
+    } catch (x) { setSm(x instanceof Error ? x.message : String(x)); } finally { setSb(false); }
+  };
 
   const submit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
@@ -77,6 +92,21 @@ export default function LoginPage() {
               {busy ? '连接中…' : '登录'}
             </button>
           </form>
+          <div className="we-login-sync">
+            {!rs ? (
+              <button type="button" className="we-login-synclink" onClick={() => setRs(true)}>已经有同步账号？一键还原设置</button>
+            ) : (
+              <form className="card we-login" onSubmit={(e) => void restore(e)}>
+                <h2 style={{ margin: '0 0 4px', fontSize: 17 }}>用同步账号还原</h2>
+                <div className="muted" style={{ marginBottom: 12, fontSize: 12 }}>登录后会取回这台设备类型的账号、hosts 和各项设置</div>
+                <input value={sv} onChange={(e) => setSv(e.target.value)} placeholder="同步服务地址" spellCheck={false} autoCapitalize="off" style={{ marginBottom: 8 }} />
+                <input value={su} onChange={(e) => setSu(e.target.value)} placeholder="同步用户名" spellCheck={false} autoCapitalize="off" style={{ marginBottom: 8 }} />
+                <input type="password" value={sp} onChange={(e) => setSp(e.target.value)} placeholder="同步密码" style={{ marginBottom: 8 }} />
+                {sm && <div className="err" style={{ margin: '4px 0 10px' }}>{sm}</div>}
+                <button type="submit" className="primary" disabled={sb} style={{ width: '100%' }}>{sb ? '还原中…' : '登录并还原'}</button>
+              </form>
+            )}
+          </div>
         </div>
       </main>
     </div>

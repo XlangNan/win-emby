@@ -7,6 +7,7 @@ import { applyTheme, initTheme } from './lib/theme';
 import { isMobileApp } from './lib/platform';
 import { initFont } from './lib/font';
 import { initMode } from './lib/mode';
+import { startSync } from './sync/sync';
 import './lib/platform';
 import './styles/global.css';
 import './styles/netflix.css';
@@ -28,6 +29,7 @@ if (isMobileApp) applyTheme('netflix'); // 手机端固定用流媒体风格
 initFont();
 initMode();
 installDragRegion();
+startSync();
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

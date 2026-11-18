@@ -79,3 +79,11 @@ html:not([data-motion='off']) input[type='checkbox']:not(.sel-box){
 :root:root:root[data-mode='light'] input[type='checkbox']:not(.sel-box):not(.tag *):checked{
   background-color: var(--accent) !important; background-position: 100% 50% !important;
 }
+
+.cfg-sync-conf{ margin-top: 10px; padding: 12px 14px; border-radius: 12px; background: var(--surface-3); }
+
+.we-login-sync{ margin-top: 14px; text-align: center; width: 100%; }
+:root:root .we-login-synclink{ background: transparent !important; border: 0 !important; box-shadow: none !important; color: var(--accent); font-size: 13px; padding: 8px; cursor: pointer; }
+
+:root:root .we-login-wrap{ flex-direction: column; }
+.we-login-sync{ display: flex; justify-content: center; }
