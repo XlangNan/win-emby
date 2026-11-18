@@ -727,3 +727,10 @@ html:not([data-motion='off']) .mu-spin{ animation-duration: 12s !important; anim
   .lv-page .we-set-row span{ min-width: 0; overflow-wrap: anywhere; }
   .lv-page .we-set input{ min-width: 0; max-width: 100%; }
 }
+
+/* ---- Z39 播放器控制栏：分组胶囊（深灰、无边框）；手机端保持原来的 5 列网格 ---- */
+.we-player .we-grp{ display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 99px; background: rgba(42, 42, 47, .78); }
+.we-player .we-ctrls{ gap: 10px; }
+.we-player .we-grp .we-btn{ border-radius: 99px; }
+html.android .we-player .we-grp, html.ios .we-player .we-grp{ display: contents; }
+.we-player .we-grp:empty{ display: none; }

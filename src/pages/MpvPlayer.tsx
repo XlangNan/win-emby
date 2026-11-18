@@ -1191,6 +1191,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           <span className="we-time we-time-r" title={`${fmtDuration(shownCur)} / ${fmtDuration(total)}`}>{total > 0 ? `-${fmtDuration(Math.max(0, total - shownCur))}` : ''}<i className="we-clock">{clock.toTimeString().slice(0, 5)}</i></span>
         </div>
         <div className="we-ctrls">
+          <div className="we-grp we-grp-l">
           {!isMobileApp && (
             <button className="we-btn" title="播放/暂停（空格）" aria-label={paused ? '播放' : '暂停'} onClick={() => { toggle(); poke(); }}>
               {paused ? <svg width="26" height="26" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" /></svg> : <svg width="26" height="26" viewBox="0 0 24 24"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z" fill="currentColor" /></svg>}
@@ -1198,9 +1199,9 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           )}
           <div className="we-volgrp" title="鼠标滚轮调节音量">
           <button className="we-btn" title="静音（M）" onClick={() => void sessRef.current?.cmd('cycle', ['mute'])}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4Z" fill="currentColor" />
-              {muted || vol === 0 ? <path d="M16 9l5 6M21 9l-5 6" /> : <path d="M16 9a4.5 4.5 0 0 1 0 6" />}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 10v4h4l5 4V6l-5 4Z" />
+              {muted || vol === 0 ? <path d="M17 9l5 6M22 9l-5 6" /> : <path d="M16.5 9a4 4 0 0 1 0 6M19 6.5a8 8 0 0 1 0 11" />}
             </svg>
           </button>
           <input className="we-vol" type="range" min={0} max={100} step={1} value={muted ? 0 : vol} aria-label="音量" onChange={(e) => { void sessRef.current?.set('mute', 'no'); setVolume(Number(e.target.value)); }} />
@@ -1215,10 +1216,11 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12a8 8 0 1 1-3-6.2M20 4v4h-4" /><text x="8.4" y="15.2" fontSize="6.6" fill="currentColor" stroke="none" fontWeight="700">10</text></svg>
         </button>
           </>)}
+          </div>
           <span style={{ flex: 1 }} />
           {isMobileApp && (
             <div className="we-menu-wrap">
-              <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'sleep' ? '' : 'sleep')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" /></svg><span>{sleepEnd ? (item?.Type === 'Episode' ? '播完本集' : '播完退出') : sleepAt ? '定时中' : '定时'}</span></button>
+              <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'sleep' ? '' : 'sleep')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z" /></svg><span>{sleepEnd ? (item?.Type === 'Episode' ? '播完本集' : '播完退出') : sleepAt ? '定时中' : '定时'}</span></button>
               {menu === 'sleep' && (
                 <div className="we-menu" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
                   <div className={`we-menu-item${!sleepAt && !sleepEnd ? ' active' : ''}`} onClick={() => { setSleepEnd(false); setSleepAt(0); setMenu(''); }}>不开启</div>
@@ -1233,9 +1235,10 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
               )}
             </div>
           )}
+          <div className="we-grp">
           {nextEp && (
             <button className="we-btn we-lbl" title="下一集（N）" onClick={goNext}>
-              <svg width="22" height="22" viewBox="0 0 24 24"><path d="M6 5v14l9-7-9-7Zm10 0h2.5v14H16z" fill="currentColor" /></svg><span>下一集</span>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 5l9 7-9 7Z M18 5v14" /></svg><span>下一集</span>
             </button>
           )}
           {episodes.length > 1 && (
@@ -1261,7 +1264,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
 
           {item?.Type === 'Episode' && (
             <div className="we-menu-wrap">
-              <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'intro' ? '' : 'intro')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 5v14l8-7-8-7Zm10 0v14" /></svg><span>片头</span></button>
+              <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'intro' ? '' : 'intro')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6l7 6-7 6Z M13 6l7 6-7 6Z" /></svg><span>片头</span></button>
               {menu === 'intro' && (
                 <div className="we-menu" onClick={(e) => e.stopPropagation()}>
                   <div className="we-menu-head">片头 / 片尾（整部剧通用，自动同步到 Emby）</div>
@@ -1296,8 +1299,10 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
               )}
             </div>
           )}
+          </div>
+          <div className="we-grp">
           <div className="we-menu-wrap">
-            <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'danmu' ? '' : 'danmu')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="12" rx="2" /><path d="M7 9h6M10 13h7M8 21l3-4" /></svg><span>弹幕{dmCfg.on && dmList.length ? '' : dmCfg.on ? '' : '·关'}</span></button>
+            <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'danmu' ? '' : 'danmu')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 5h16v11H11l-4 3.5V16H4Z M8 9h8 M8 12h5" /></svg><span>弹幕{dmCfg.on && dmList.length ? '' : dmCfg.on ? '' : '·关'}</span></button>
             {menu === 'danmu' && (
               <div className="we-menu we-dm" style={{ minWidth: 220, padding: 10 }} onClick={(e) => e.stopPropagation()}>
                 {dmSel ? (
@@ -1318,7 +1323,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           </div>
           {partyUrl() && (
             <div className="we-menu-wrap">
-              <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'party' ? '' : 'party')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.2" /><circle cx="17" cy="9.5" r="2.5" /><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5M16 14.2c2.9-.3 5 1.5 5 4.3" /></svg><span>{party.inRoom ? '一起看 ●' : '一起看'}</span></button>
+              <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'party' ? '' : 'party')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M3.5 19a5.5 5.5 0 0 1 11 0 M16 6.3a3 3 0 0 1 0 5.4 M17.5 14a5.5 5.5 0 0 1 3 5" /></svg><span>{party.inRoom ? '一起看 ●' : '一起看'}</span></button>
               {menu === 'party' && (
                 <div className="we-menu we-menu-party" onClick={(e) => e.stopPropagation()}>
                   <PartyPanel item={item} getPos={() => partyAd.current.pos()} started={startedRef.current} onClose={() => setMenu('')} onCreated={() => setMenu('')} />
@@ -1327,7 +1332,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
             </div>
           )}
           <div className="we-menu-wrap">
-            <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'speed' ? '' : 'speed')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg><span>{shownRate === 1 ? '倍速' : `${shownRate}x`}</span></button>
+            <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'speed' ? '' : 'speed')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><path d="M4.9 18.5A9 9 0 1 1 19.1 18.5 M12 14l3.5-3.5" /></svg><span>{shownRate === 1 ? '倍速' : `${shownRate}x`}</span></button>
             {menu === 'speed' && (
               <div className="we-menu">
                 {[0.5, 0.75, 1, 1.25, 1.5, 2, 3].map((r) => (
@@ -1357,7 +1362,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
 
           {audios.length > 0 && (
             <div className="we-menu-wrap">
-              <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'audio' ? '' : 'audio')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4Zm13 0a4 4 0 0 1 0 6" /></svg><span>音轨</span></button>
+              <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'audio' ? '' : 'audio')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 10v4 M8 7v10 M12 4v16 M16 8v8 M20 11v2" /></svg><span>音轨</span></button>
               {menu === 'audio' && (
                 <div className="we-menu">
                   {audios.map((a, i) => (
@@ -1369,7 +1374,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           )}
 
           <div className="we-menu-wrap">
-            <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'sub' || menu === 'substyle' ? '' : 'sub')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 5h16v11H9l-5 4V5Z" /><path d="M8 10h8M8 13h5" /></svg><span>字幕{sid ? ' ●' : ''}</span></button>
+            <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'sub' || menu === 'substyle' ? '' : 'sub')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z M7 11h4 M13 11h4 M7 15h2 M12 15h5" /></svg><span>字幕{sid ? ' ●' : ''}</span></button>
             {menu === 'sub' && (
               <div className="we-menu">
                 <div className="we-menu-item" onClick={() => setMenu('substyle')}>字幕大小 / 位置 / 延迟 ›</div>
@@ -1396,6 +1401,8 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
                 <div className="we-ss-btns"><button className="we-btn we-txt" onClick={() => changeSubStyle({ ...SUB_DEFAULT })}>恢复默认</button><button className="we-btn we-txt" onClick={() => setMenu('sub')}>返回</button></div>
               </div>
             )}
+          </div>
+
           </div>
 
           {isMobileApp ? (
