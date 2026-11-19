@@ -1,6 +1,6 @@
 // MPV 播放页：画面由内嵌的 libmpv 渲染（原生子窗口，支持 HDR10 / HLG / 杜比视界），
 // 网页层背景透明，只画控制条与右侧信息抽屉。mpv 起不来时通知上层改用 HTML5 播放器。
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import PlayerDrawer from '../components/PlayerDrawer';
 import { httpFetch } from '../emby/http';
@@ -1136,6 +1136,29 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
               <span>{full ? '竖屏' : '横屏'}</span>
             </button>
   );
+
+
+  // 手机：弹窗打开后量一下位置，必要时平移，保证完整落在屏幕内（左右各留 12px）
+  useLayoutEffect(() => {
+    if (!isMobileApp) return;
+    const fit = () => {
+      document.querySelectorAll<HTMLElement>('.we-player .we-menu').forEach((el) => {
+        if (getComputedStyle(el).position === 'fixed') return;
+        el.style.translate = '0 0';
+        const r = el.getBoundingClientRect();
+        const vw = window.innerWidth;
+        let dx = 0;
+        if (r.left < 12) dx = 12 - r.left;
+        else if (r.right > vw - 12) dx = vw - 12 - r.right;
+        if (r.width > vw - 24) dx = 12 - r.left;
+        el.style.translate = dx ? `${Math.round(dx)}px 0` : '';
+      });
+    };
+    fit();
+    const t = window.setTimeout(fit, 60);
+    window.addEventListener('resize', fit);
+    return () => { window.clearTimeout(t); window.removeEventListener('resize', fit); };
+  }, [menu, dmSel, isMobileApp]);
 
   return (
     <div className={`we-player mpv${isMobileApp ? ' we-phone' : ''}${showUi ? '' : ' hide-ui'}`} onMouseMove={poke} onClick={() => menu && setMenu('')}>

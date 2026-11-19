@@ -810,3 +810,15 @@ html.android .we-skip.up, html.android .we-upnext.up, html.ios .we-skip.up, html
 }
 /* Z47 播放器弹窗背景不透明，不再透出后面的图标 */
 html .we-player .we-menu, html .we-player .we-menu.we-dm, html .we-player .we-menu.we-menu-party{ background: #1c1c20 !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+/* Z48 手机播放器弹窗：宽度受限、文字可换行、弹幕设置单列；位置再由 JS 夹在屏幕内 */
+html .we-player.we-phone.mpv .we-menu, html .we-player.we-phone.mpv .we-menu.we-dm{
+  width: max-content !important; min-width: 160px !important; max-width: min(320px, calc(100vw - 24px)) !important; box-sizing: border-box !important;
+}
+html .we-player.we-phone.mpv .we-menu .we-menu-item{ white-space: normal !important; word-break: break-word; text-align: left; }
+html .we-player.we-phone.mpv .we-menu.we-dm{ display: block !important; grid-template-columns: none !important; min-width: min(260px, calc(100vw - 24px)) !important; padding: 8px 10px !important; }
+html .we-player.we-phone.mpv .we-menu.we-dm > *{ grid-column: auto !important; }
+html .we-player.we-phone.mpv .we-dm .we-dm-row{ display: flex !important; flex-wrap: nowrap !important; align-items: center; gap: 10px; padding: 6px 4px; font-size: 13px; white-space: nowrap; }
+html .we-player.we-phone.mpv .we-dm .we-dm-row input[type='range']{ flex: 1 1 auto !important; min-width: 80px; width: auto; }
+html .we-player.we-phone.mpv .we-dm .we-menu-item{ font-size: 13px; padding: 8px 4px; }
+html .we-player.we-phone.mpv .we-dm .we-dm-chip{ flex: none; }
+html .we-player.we-phone.mpv .we-dmpick{ min-width: 0; max-width: 100%; width: min(300px, calc(100vw - 48px)); }
