@@ -82,6 +82,8 @@ class MainActivity : TauriActivity() {
         volumeControlStream = AudioManager.STREAM_MUSIC
         // 和主流流媒体 App 一样：平时锁竖屏，只有播放时才横屏
         requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        // 软键盘弹出时让内容区缩小（配合下面的 IME 留白）
+        window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
 
         // 深色界面：状态栏 / 导航栏用浅色图标；内容区按系统栏和刘海留白（播放全屏时不留）
         val ic = WindowCompat.getInsetsController(window, window.decorView)
@@ -95,7 +97,11 @@ class MainActivity : TauriActivity() {
                 val m = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
                 // 顶部不留白：网页自己按 --sat 留（详情页要让图片铺到状态栏下面）
                 // 手机主界面：底部也不留白（网页铺到导航栏下面，导航栏透明）；其余页面照旧留出导航栏高度
-                v.setPadding(m.left, 0, m.right, if (MpvBridge.edgeBottom) 0 else m.bottom)
+                // 软键盘弹出时：底部留出键盘高度，网页可视区域随之缩小，输入框不会被键盘盖住
+                val imeOn = insets.isVisible(WindowInsetsCompat.Type.ime())
+                val imeB = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+                val bottom = if (imeOn) imeB else if (MpvBridge.edgeBottom) 0 else m.bottom
+                v.setPadding(m.left, 0, m.right, bottom)
             }
             WindowInsetsCompat.CONSUMED
         }

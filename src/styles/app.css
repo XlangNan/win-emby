@@ -799,3 +799,14 @@ html.android .we-player.we-phone .we-menu.we-menu-party, html.ios .we-player.we-
 .we-cbtn .we-spin-r{ animation: weSpinR .5s ease-out; }
 @keyframes weSpinL{ 0%{ transform: rotate(0); } 55%{ transform: rotate(-380deg) scale(1.12); } 100%{ transform: rotate(-360deg) scale(1); } }
 @keyframes weSpinR{ 0%{ transform: rotate(0); } 55%{ transform: rotate(380deg) scale(1.12); } 100%{ transform: rotate(360deg) scale(1); } }
+/* 弹幕弹窗内容多：竖屏给更高的可视高度，内部可滚动 */
+html .we-player.we-phone .we-menu.we-dm{ max-height: 68vh; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+/* Z46 电脑版：弹幕按钮仍在最左（手机版里它排在最右，和渲染图一致） */
+.we-player:not(.we-phone) .we-dmwrap{ order: -1; }
+/* 手机：「跳过片头 / 下一集」浮层要躲开新的底部控制区（竖屏更高，横屏靠右下的胶囊在下面） */
+html.android .we-skip.up, html.android .we-upnext.up, html.ios .we-skip.up, html.ios .we-upnext.up{ bottom: 214px; }
+@media (orientation: landscape){
+  html.android .we-skip.up, html.android .we-upnext.up, html.ios .we-skip.up, html.ios .we-upnext.up{ bottom: 150px; }
+}
+/* Z47 播放器弹窗背景不透明，不再透出后面的图标 */
+html .we-player .we-menu, html .we-player .we-menu.we-dm, html .we-player .we-menu.we-menu-party{ background: #1c1c20 !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }

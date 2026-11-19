@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { HashRouter } from 'react-router-dom';
 import App from './App';
 import { installDragRegion } from './lib/dragRegion';
+import { installKeyboardAware } from './lib/keyboard';
 import { applyTheme, initTheme } from './lib/theme';
 import { isMobileApp } from './lib/platform';
 import { initFont } from './lib/font';
@@ -29,6 +30,7 @@ if (isMobileApp) applyTheme('netflix'); // 手机端固定用流媒体风格
 initFont();
 initMode();
 installDragRegion();
+if (isMobileApp) installKeyboardAware();
 startSync();
 
 createRoot(document.getElementById('root')!).render(

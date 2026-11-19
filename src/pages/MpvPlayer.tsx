@@ -1347,26 +1347,6 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           {!isMobileApp && introNode}
           </div>
           <div className="we-grp">
-          <div className="we-menu-wrap we-a-r">
-            <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'danmu' ? '' : 'danmu')}><Ico {...IC.danmu} /><span>弹幕{dmCfg.on && dmList.length ? '' : dmCfg.on ? '' : '·关'}</span></button>
-            {menu === 'danmu' && (
-              <div className="we-menu we-dm" style={{ minWidth: 220, padding: 10 }} onClick={(e) => e.stopPropagation()}>
-                {dmSel ? (
-                  <DanmakuPicker cfg={dmCfg} keyword={item.Type === 'Episode' ? item.SeriesName || item.Name : item.Name} current={loadDmPick(item.Type === 'Episode' ? item.SeriesId || item.Id : item.Id)}
-                    onClose={() => setDmSel(false)}
-                    onPick={(p: DmPick | null) => { saveDmPick(item.Type === 'Episode' ? item.SeriesId || item.Id : item.Id, p); clearDanmakuCache(); setDmList([]); setDmPickVer((v) => v + 1); setDmSel(false); }} />
-                ) : (<>
-                <div className={`we-menu-item${dmCfg.on ? ' active' : ''}`} onClick={() => updDm({ on: !dmCfg.on })}>{dmCfg.on ? '弹幕：开' : '弹幕：关'}{dmMsg ? `（${dmMsg}）` : !dmCfg.url.trim() ? '（还没设置弹幕服务）' : ''}</div>
-                <label className="we-dm-row">透明度<input type="range" min={20} max={100} value={Math.round(dmCfg.opacity * 100)} onChange={(e) => updDm({ opacity: Number(e.target.value) / 100 })} /></label>
-                <label className="we-dm-row">字号<input type="range" min={16} max={40} value={dmCfg.size} onChange={(e) => updDm({ size: Number(e.target.value) })} /></label>
-                <label className="we-dm-row">速度<input type="range" min={80} max={300} step={10} value={dmCfg.speed} onChange={(e) => updDm({ speed: Number(e.target.value) })} /></label>
-                <label className="we-dm-row">上下位置<input type="range" min={0} max={40} value={Math.round(dmCfg.offset * 100)} onChange={(e) => updDm({ offset: Number(e.target.value) / 100 })} /></label>
-                <div className="we-dm-row">区域{[0.25, 0.5, 0.75, 1].map((a) => <button key={a} type="button" className={`we-dm-chip${dmCfg.area === a ? ' on' : ''}`} onClick={() => updDm({ area: a })}>{a === 1 ? '全屏' : `${a * 100}%`}</button>)}</div>
-                {dmCfg.url.trim() && <div className="we-menu-item" onClick={() => setDmSel(true)}>选择弹幕源…{loadDmPick(item.Type === 'Episode' ? item.SeriesId || item.Id : item.Id) ? '（已手动指定）' : ''}</div>}
-                </>)}
-              </div>
-            )}
-          </div>
           {!isMobileApp && partyNode}
           <div className="we-menu-wrap">
             <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'speed' ? '' : 'speed')}><Ico {...IC.speed} /><span>{shownRate === 1 ? '倍速' : `${shownRate}x`}</span></button>
@@ -1436,6 +1416,27 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
                 <label className="we-ss"><span>延迟 {subStyle.delay > 0 ? '+' : ''}{subStyle.delay.toFixed(1)} 秒</span>
                   <input type="range" min={-10} max={10} step={0.5} value={subStyle.delay} onChange={(e) => changeSubStyle({ delay: Number(e.target.value) })} /></label>
                 <div className="we-ss-btns"><button className="we-btn we-txt" onClick={() => changeSubStyle({ ...SUB_DEFAULT })}>恢复默认</button><button className="we-btn we-txt" onClick={() => setMenu('sub')}>返回</button></div>
+              </div>
+            )}
+          </div>
+
+          <div className="we-menu-wrap we-a-r we-dmwrap">
+            <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'danmu' ? '' : 'danmu')}><Ico {...IC.danmu} /><span>弹幕{dmCfg.on && dmList.length ? '' : dmCfg.on ? '' : '·关'}</span></button>
+            {menu === 'danmu' && (
+              <div className="we-menu we-dm" style={{ minWidth: 220, padding: 10 }} onClick={(e) => e.stopPropagation()}>
+                {dmSel ? (
+                  <DanmakuPicker cfg={dmCfg} keyword={item.Type === 'Episode' ? item.SeriesName || item.Name : item.Name} current={loadDmPick(item.Type === 'Episode' ? item.SeriesId || item.Id : item.Id)}
+                    onClose={() => setDmSel(false)}
+                    onPick={(p: DmPick | null) => { saveDmPick(item.Type === 'Episode' ? item.SeriesId || item.Id : item.Id, p); clearDanmakuCache(); setDmList([]); setDmPickVer((v) => v + 1); setDmSel(false); }} />
+                ) : (<>
+                <div className={`we-menu-item${dmCfg.on ? ' active' : ''}`} onClick={() => updDm({ on: !dmCfg.on })}>{dmCfg.on ? '弹幕：开' : '弹幕：关'}{dmMsg ? `（${dmMsg}）` : !dmCfg.url.trim() ? '（还没设置弹幕服务）' : ''}</div>
+                <label className="we-dm-row">透明度<input type="range" min={20} max={100} value={Math.round(dmCfg.opacity * 100)} onChange={(e) => updDm({ opacity: Number(e.target.value) / 100 })} /></label>
+                <label className="we-dm-row">字号<input type="range" min={16} max={40} value={dmCfg.size} onChange={(e) => updDm({ size: Number(e.target.value) })} /></label>
+                <label className="we-dm-row">速度<input type="range" min={80} max={300} step={10} value={dmCfg.speed} onChange={(e) => updDm({ speed: Number(e.target.value) })} /></label>
+                <label className="we-dm-row">上下位置<input type="range" min={0} max={40} value={Math.round(dmCfg.offset * 100)} onChange={(e) => updDm({ offset: Number(e.target.value) / 100 })} /></label>
+                <div className="we-dm-row">区域{[0.25, 0.5, 0.75, 1].map((a) => <button key={a} type="button" className={`we-dm-chip${dmCfg.area === a ? ' on' : ''}`} onClick={() => updDm({ area: a })}>{a === 1 ? '全屏' : `${a * 100}%`}</button>)}</div>
+                {dmCfg.url.trim() && <div className="we-menu-item" onClick={() => setDmSel(true)}>选择弹幕源…{loadDmPick(item.Type === 'Episode' ? item.SeriesId || item.Id : item.Id) ? '（已手动指定）' : ''}</div>}
+                </>)}
               </div>
             )}
           </div>
