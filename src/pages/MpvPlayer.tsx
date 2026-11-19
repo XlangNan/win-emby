@@ -1036,7 +1036,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const showUi = uiShown || paused || drawer || !!menu || scrub !== null;
 
   return (
-    <div className={`we-player mpv${showUi ? '' : ' hide-ui'}`} onMouseMove={poke} onClick={() => menu && setMenu('')}>
+    <div className={`we-player mpv${isMobileApp ? ' we-phone' : ''}${showUi ? '' : ' hide-ui'}`} onMouseMove={poke} onClick={() => menu && setMenu('')}>
       {/* 透明点击层：mpv 画面在它下面的原生窗口里 */}
       {isMobileApp ? (
         <div className="we-surface" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} />
@@ -1158,6 +1158,12 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       )}
 
       <div className="we-bottom" onClick={(e) => e.stopPropagation()} onPointerEnter={(e) => { if (e.pointerType === 'mouse') hoverUi.current = true; }} onPointerLeave={(e) => { if (e.pointerType === 'mouse') { hoverUi.current = false; poke(); } }}>
+        {isMobileApp && (
+          <div className="we-mtitle">
+            {item?.Type === 'Episode' && <div className="we-mtitle-sub">{`S${item.ParentIndexNumber ?? 1}:E${item.IndexNumber ?? 0} - ${item.Name}`}</div>}
+            <div className="we-mtitle-main">{item?.Type === 'Episode' ? item.SeriesName || title : title}</div>
+          </div>
+        )}
         <div className="we-seekrow">
           <span className="we-time we-time-l">{fmtDuration(shownCur)}</span>
           <div
@@ -1418,6 +1424,13 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
             </button>
           )}
         </div>
+        {isMobileApp && (
+          <div className="we-mlinks">
+            <button type="button" className="we-mlink" onClick={() => setDrawer((v) => !v)}>信息</button>
+            {episodes.length > 1 && <button type="button" className="we-mlink" onClick={() => setMenu(menu === 'eps' ? '' : 'eps')}>选集</button>}
+            {nextEp && <button type="button" className="we-mlink" onClick={goNext}>下个播放</button>}
+          </div>
+        )}
       </div>
     </div>
   );
