@@ -748,51 +748,50 @@ html.android .we-player .we-ctrls, html.ios .we-player .we-ctrls{ gap: 8px; }
 @media (max-width: 900px){ html:not(.android):not(.ios) .we-player .we-vol, html:not(.android):not(.ios) .we-player .we-volnum{ display: none; } }
 @media (max-width: 640px){ html:not(.android):not(.ios) .we-player .we-ctrls{ flex-wrap: wrap; row-gap: 6px; } }
 
-/* ---- Z41 手机横屏播放器：按参考图——标题在左下、图标在右下无边框、粗进度条、时间在条下、文字链接一行 ---- */
-.we-mtitle, .we-mlinks{ display: none; }
-@media (orientation: landscape){
-  .we-player.we-phone .we-titlebox{ display: none; }
-  .we-player.we-phone .we-bottom{ display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; row-gap: 2px; padding: 56px 28px max(10px, env(safe-area-inset-bottom)); }
-  .we-player.we-phone .we-mtitle{ display: flex; flex-direction: column; gap: 2px; min-width: 0; grid-column: 1; grid-row: 1; padding-bottom: 6px; }
-  .we-player.we-phone .we-mtitle-sub{ font-size: 15px; font-weight: 600; color: rgba(255, 255, 255, .62); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .we-player.we-phone .we-mtitle-main{ font-size: 26px; font-weight: 700; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .we-player.we-phone .we-ctrls{ grid-column: 2; grid-row: 1; justify-self: end; display: flex !important; gap: 2px; padding-bottom: 4px; }
-  .we-player.we-phone .we-ctrls > span[style]{ display: none; }
-  .we-player.we-phone .we-grp{ display: contents; }
-  .we-player.we-phone .we-ctrls .we-lbl > span{ display: none; }
-  .we-player.we-phone .we-ctrls .we-btn{ background: transparent !important; width: 46px; min-width: 46px; height: 46px; padding: 0; border-radius: 50%; }
-  .we-player.we-phone .we-ctrls .we-lbl svg{ width: 26px; height: 26px; }
-  .we-player.we-phone .we-seekrow{ grid-column: 1 / -1; grid-row: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 0; margin: 0; }
-  .we-player.we-phone .we-seekrow .we-seek{ order: -1; flex: 0 0 100%; height: 28px; }
-  .we-player.we-phone .we-seek::before, .we-player.we-phone .we-seek-buf, .we-player.we-phone .we-seek-cur{ height: 7px; border-radius: 4px; }
-  .we-player.we-phone .we-seek-dot{ display: none; }
-  .we-player.we-phone .we-seekrow .we-time{ font-size: 15px; color: rgba(255, 255, 255, .6); min-width: 0; }
-  .we-player.we-phone .we-seekrow .we-time-r{ margin-left: auto; }
-  .we-player.we-phone .we-mlinks{ display: flex; grid-column: 1 / -1; grid-row: 3; gap: 32px; padding-top: 10px; }
-  .we-player.we-phone .we-mlink{ border: 0 !important; background: transparent !important; color: #fff !important; font-size: 17px; font-weight: 600; padding: 4px 0; box-shadow: none; }
-}
-
-/* ---- Z42 手机竖屏：和横屏同一风格（标题 → 一排图标 → 粗进度条 → 时间 → 文字链接） ---- */
+/* ---- Z43 手机播放器（方案 A）：底部一条深灰胶囊，常用按钮图标+文字；弹窗贴着对应按钮弹出 ---- */
+.we-player.we-phone .we-grp{ display: contents; }
+.we-player.we-phone .we-bottom{ padding: 56px 16px max(16px, calc(env(safe-area-inset-bottom) + 6px)); }
+.we-player.we-phone .we-seekrow{ display: flex; flex-wrap: wrap; align-items: center; gap: 0; margin: 0; }
+.we-player.we-phone .we-seekrow .we-seek{ order: -1; flex: 0 0 100%; height: 28px; }
+.we-player.we-phone .we-seek::before, .we-player.we-phone .we-seek-buf, .we-player.we-phone .we-seek-cur{ height: 6px; border-radius: 4px; }
+.we-player.we-phone .we-seek-dot{ display: none; }
+.we-player.we-phone .we-seekrow .we-time{ font-size: 14px; color: rgba(255, 255, 255, .65); min-width: 0; }
+.we-player.we-phone .we-ctrls{ position: relative; display: flex !important; align-items: center; justify-content: space-between; gap: 4px; padding: 4px; margin-top: 8px; border-radius: 22px; background: rgba(42, 42, 47, .9); }
+.we-player.we-phone .we-ctrls span[style]{ display: none; }
+.we-player.we-phone .we-ctrls .we-lbl{ flex: 1 1 0; min-width: 0; width: auto; height: 56px; padding: 0; gap: 3px; border-radius: 16px; background: transparent !important; font-size: 12px; }
+.we-player.we-phone .we-ctrls .we-lbl > span{ display: block !important; white-space: nowrap; }
+.we-player.we-phone .we-ctrls .we-lbl svg{ width: 23px; height: 23px; }
+.we-player.we-phone .we-ctrls .we-menu-wrap{ position: relative; flex: 1 1 0; min-width: 0; display: flex; }
+.we-player.we-phone .we-ctrls .we-menu-wrap > .we-btn{ flex: 1 1 auto; }
+/* 收进「更多」的按钮：按钮隐藏，但它的弹窗还在，贴着整条胶囊的右端弹出 */
+.we-player.we-phone .we-ctrls .we-inmore{ position: static; flex: 0 0 0; width: 0; min-width: 0; overflow: visible; }
+.we-player.we-phone .we-ctrls .we-inmore > .we-btn, .we-player.we-phone .we-ctrls .we-lbl.we-inmore{ display: none; }
 @media (orientation: portrait){
-  .we-player.we-phone .we-titlebox{ display: none; }
-  .we-player.we-phone .we-bottom{ display: flex; flex-direction: column; padding: 70px 20px max(24px, calc(env(safe-area-inset-bottom) + 10px)); }
-  .we-player.we-phone .we-mtitle{ order: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; padding-bottom: 8px; }
-  .we-player.we-phone .we-mtitle-sub{ font-size: 13px; font-weight: 600; color: rgba(255, 255, 255, .62); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .we-player.we-phone .we-mtitle-main{ font-size: 24px; font-weight: 700; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .we-player.we-phone .we-ctrls{ order: 2; display: flex !important; justify-content: space-between; align-items: center; gap: 0; margin: 0 -6px; }
-  .we-player.we-phone .we-ctrls > span[style]{ display: none; }
-  .we-player.we-phone .we-grp{ display: contents; }
-  .we-player.we-phone .we-ctrls > .we-menu-wrap{ flex: 1 1 0; min-width: 0; display: flex; justify-content: center; }
-  .we-player.we-phone .we-ctrls .we-btn{ flex: 1 1 0; min-width: 0; max-width: 48px; width: auto; height: 44px; padding: 0; background: transparent !important; border-radius: 50%; }
-  .we-player.we-phone .we-ctrls .we-lbl > span{ display: none; }
-  .we-player.we-phone .we-ctrls .we-lbl svg{ width: 25px; height: 25px; }
-  .we-player.we-phone .we-seekrow{ order: 3; display: flex; flex-wrap: wrap; align-items: center; gap: 0; margin: 0; }
-  .we-player.we-phone .we-seekrow .we-seek{ order: -1; flex: 0 0 100%; height: 28px; }
-  .we-player.we-phone .we-seek::before, .we-player.we-phone .we-seek-buf, .we-player.we-phone .we-seek-cur{ height: 6px; border-radius: 4px; }
-  .we-player.we-phone .we-seek-dot{ display: none; }
-  .we-player.we-phone .we-seekrow .we-time{ font-size: 14px; color: rgba(255, 255, 255, .6); min-width: 0; }
-  .we-player.we-phone .we-seekrow .we-time-r{ margin-left: auto; }
-  .we-player.we-phone .we-mlinks{ order: 4; display: flex; gap: 28px; padding-top: 6px; }
-  .we-player.we-phone .we-mlink{ border: 0 !important; background: transparent !important; color: #fff !important; font-size: 16px; font-weight: 600; padding: 4px 0; box-shadow: none; }
-  html.android .we-player.we-phone .we-menu{ bottom: 176px; }
+  .we-player.we-phone .we-ctrls .we-lbl.we-lop{ display: none; }
+  .we-player.we-phone .we-ctrls .we-menu-wrap.we-lop{ position: static; flex: 0 0 0; width: 0; min-width: 0; overflow: visible; }
+  .we-player.we-phone .we-ctrls .we-menu-wrap.we-lop > .we-btn{ display: none; }
 }
+@media (orientation: landscape){
+  .we-player.we-phone .we-more-lop{ display: none; }
+  .we-player.we-phone .we-bottom{ padding: 50px 28px max(12px, env(safe-area-inset-bottom)); }
+  .we-player.we-phone .we-ctrls{ position: absolute; right: 28px; bottom: max(10px, env(safe-area-inset-bottom)); margin: 0; justify-content: flex-end; gap: 2px; }
+  .we-player.we-phone .we-seekrow{ padding-bottom: 54px; }
+  .we-player.we-phone .we-seekrow .we-time-r{ margin-left: 12px; }
+  .we-player.we-phone .we-ctrls .we-lbl{ flex: none; width: 60px; height: 50px; }
+  .we-player.we-phone .we-ctrls .we-menu-wrap:not(.we-inmore){ flex: none; }
+  .we-player.we-phone .we-ctrls .we-menu-wrap > .we-btn{ flex: none; }
+}
+/* 弹窗：出现在对应按钮的正上方（竖屏：靠左的按钮左对齐、靠右的右对齐，其余居中；横屏：都右对齐）。覆盖旧的“固定在屏幕底部居中” */
+html .we-player.we-phone .we-menu, html .we-player.we-phone .we-menu.we-dm{
+  position: absolute !important; top: auto !important; bottom: calc(100% + 10px) !important; left: 50% !important; right: auto !important;
+  transform: translateX(-50%) !important; width: max-content !important; min-width: 150px; max-width: calc(100vw - 24px); max-height: 46vh; overflow-y: auto;
+}
+html .we-player.we-phone .we-menu-wrap.we-a-l > .we-menu{ left: 0 !important; transform: none !important; }
+html .we-player.we-phone .we-menu-wrap.we-a-r > .we-menu, html .we-player.we-phone .we-ctrls .we-inmore > .we-menu, html .we-player.we-phone .we-ctrls .we-lop > .we-menu{ left: auto !important; right: 0 !important; transform: none !important; }
+@media (orientation: landscape){
+  html .we-player.we-phone .we-ctrls .we-menu-wrap > .we-menu{ left: auto !important; right: 0 !important; transform: none !important; }
+  html .we-player.we-phone .we-menu{ max-height: 62vh; }
+}
+/* 一起看弹窗内容多：仍然居中显示（原样式） */
+html.android .we-player.we-phone .we-menu.we-menu-party, html.ios .we-player.we-phone .we-menu.we-menu-party{ position: fixed !important; left: 50% !important; right: auto !important; top: 50% !important; bottom: auto !important; transform: translate(-50%, -50%) !important; width: min(340px, calc(100vw - 32px)) !important; max-height: none !important; overflow: visible !important; }
+.we-player.we-phone .we-ctrls .we-menu-item{ font-size: 14px; padding: 10px 14px; }
