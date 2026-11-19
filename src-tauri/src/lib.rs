@@ -64,8 +64,16 @@ pub fn run() {
         // 明确设置窗口 / 任务栏图标（不依赖默认值，避免任务栏显示旧图标或默认图标）
         use tauri::Manager;
         if let Some(w) = app.get_webview_window("main") {
-            if let Ok(img) = tauri::image::Image::from_bytes(include_bytes!("../icons/icon.png")) {
-                let _ = w.set_icon(img);
+            if let Ok(img) = tauri::image::Image::from_bytes(include_bytes!("../icons/128x128@2x.png")) {
+                let _ = w.set_icon(img.clone());
+                // 窗口真正显示、状态恢复之后再设一次，避免 Alt+Tab / 任务栏拿到空白图标
+                let app2 = app.handle().clone();
+                std::thread::spawn(move || {
+                    for ms in [600u64, 2000] {
+                        std::thread::sleep(std::time::Duration::from_millis(ms));
+                        if let Some(w2) = app2.get_webview_window("main") { let _ = w2.set_icon(img.clone()); }
+                    }
+                });
             }
         }
         Ok(())

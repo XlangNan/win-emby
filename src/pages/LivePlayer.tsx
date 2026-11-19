@@ -95,10 +95,17 @@ export default function LivePlayer() {
         try { w.AndroidExo?.setVideoBox?.(topPx, hPx); } catch { /* ignore */ }
         return;
       }
-      const top = portrait ? sat / H : 0;
-      const bot = portrait ? Math.max(0, 1 - (sat + vidH) / H) : 0;
-      void s.set('video-margin-ratio-top', top).catch(() => undefined);
-      void s.set('video-margin-ratio-bottom', bot).catch(() => undefined);
+      const apply = (): void => {
+        const Hn = window.innerHeight || H;
+        const top = portrait ? sat / Hn : 0;
+        const bot = portrait ? Math.max(0, 1 - (sat + vidH) / Hn) : 0;
+        void s.set('video-margin-ratio-top', top).catch(() => undefined);
+        void s.set('video-margin-ratio-bottom', bot).catch(() => undefined);
+        void s.set('video-align-y', portrait ? -1 : 0).catch(() => undefined);   // 万一边距没生效，画面也贴在顶部
+      };
+      apply();
+      // 窗口从全屏缩回小窗时，系统会稍后才把窗口调到最终大小：隔一会儿再按真实高度算一次
+      [250, 700, 1500].forEach((ms) => window.setTimeout(apply, ms));
     });
   }, [portrait, sat, vidH, win.h]);
   // 手机：状态栏图标固定浅色（竖屏时状态栏压在黑色视频上方）；离开后按主题还原

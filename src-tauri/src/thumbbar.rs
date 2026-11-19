@@ -46,21 +46,35 @@ mod imp {
             let t = if x1 > x0 { (x - x0) / (x1 - x0) } else { (x0 - x) / (x0 - x1) };
             (y - 16.0).abs() <= 9.0 * (1.0 - t)
         };
+        let mut on_map = [false; 32 * 32];
         for yy in 0..32 {
             for xx in 0..32 {
                 let (x, y) = (xx as f32 + 0.5, yy as f32 + 0.5);
-                let on = match kind {
+                on_map[yy * 32 + xx] = match kind {
                     0 => (x >= 7.0 && x <= 10.0 && (y - 16.0).abs() <= 9.0) || tri(x, y, 24.0, 11.0),
                     1 => tri(x, y, 10.0, 25.0),
                     2 => ((x >= 9.0 && x <= 14.0) || (x >= 18.0 && x <= 23.0)) && (y - 16.0).abs() <= 9.0,
                     _ => (x >= 22.0 && x <= 25.0 && (y - 16.0).abs() <= 9.0) || tri(x, y, 8.0, 21.0),
                 };
-                if on { px[yy * 32 + xx] = 0xFFFF_FFFF; }
+            }
+        }
+        // 白色图标 + 深色描边：任务栏缩略图工具栏是浅色底时，纯白图标会看不见
+        for yy in 0..32i32 {
+            for xx in 0..32i32 {
+                let i = (yy * 32 + xx) as usize;
+                if on_map[i] { px[i] = 0xFFFF_FFFF; continue; }
+                let mut near = false;
+                for dy in -1..=1i32 { for dx in -1..=1i32 {
+                    let (nx, ny) = (xx + dx, yy + dy);
+                    if nx >= 0 && nx < 32 && ny >= 0 && ny < 32 && on_map[(ny * 32 + nx) as usize] { near = true; }
+                } }
+                if near { px[i] = 0xFF30_3038; }
             }
         }
         unsafe {
             let color = CreateBitmap(32, 32, 1, 32, Some(px.as_ptr() as *const core::ffi::c_void));
-            let mask = CreateBitmap(32, 32, 1, 1, None);
+            let zero = [0u8; 128];
+            let mask = CreateBitmap(32, 32, 1, 1, Some(zero.as_ptr() as *const core::ffi::c_void));
             let info = ICONINFO { fIcon: true.into(), xHotspot: 0, yHotspot: 0, hbmMask: mask, hbmColor: color };
             let icon = CreateIconIndirect(&info).ok();
             let _ = DeleteObject(color.into());
