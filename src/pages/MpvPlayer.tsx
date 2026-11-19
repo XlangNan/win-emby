@@ -948,8 +948,8 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     const t = e.touches[0];
     const dx = t.clientX - g.x, dy = t.clientY - g.y;
     if (!g.mode) {
-      if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy)) { g.mode = 'seek'; g.base = cur; }
-      else if (Math.abs(dy) > 14) {
+      if (Math.abs(dx) > 22 && Math.abs(dx) > Math.abs(dy) * 1.2) { g.mode = 'seek'; g.base = cur; }
+      else if (Math.abs(dy) > 22) {
         if (g.x < g.w / 2) { g.mode = 'bri'; g.base = androidBridge()?.getBrightness() ?? 0.5; }
         else { g.mode = 'vol'; g.base = (androidBridge()?.getSysVolume() ?? 0.5) * 100; }
       } else return;
@@ -976,7 +976,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     if (g.mode === 'seek') { seekTo(g.val); holdScrub(g.val); return; }
     if (g.mode) return;
     const now = Date.now();
-    if (now - lastTap.current < 300) {
+    if (now - lastTap.current < 260) {
       // 左右两侧连续点：第三下起每下继续 ±10 秒；中间区域双击后重新计时
       lastTap.current = g.x < g.w / 3 || g.x > (g.w * 2) / 3 ? now : 0;
       if (tapTimer.current) window.clearTimeout(tapTimer.current);
@@ -984,7 +984,8 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
     } else {
       lastTap.current = now;
       if (tapTimer.current) window.clearTimeout(tapTimer.current);
-      tapTimer.current = window.setTimeout(() => tapAct.current(g.x, g.w, false), 300);
+      if (!menu && !(uiShown || (paused && !padHide))) { poke(); return; }   // 控制栏隐藏时：第一下立刻显示，不等双击判定
+      tapTimer.current = window.setTimeout(() => tapAct.current(g.x, g.w, false), 220);
     }
   };
 

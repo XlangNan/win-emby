@@ -822,3 +822,8 @@ html .we-player.we-phone.mpv .we-dm .we-dm-row input[type='range']{ flex: 1 1 au
 html .we-player.we-phone.mpv .we-dm .we-menu-item{ font-size: 13px; padding: 8px 4px; }
 html .we-player.we-phone.mpv .we-dm .we-dm-chip{ flex: none; }
 html .we-player.we-phone.mpv .we-dmpick{ min-width: 0; max-width: 100%; width: min(300px, calc(100vw - 48px)); }
+/* Z50 手机：顶栏/底栏的空白区域（大片渐变和内边距）不拦截点击，点击穿透到画面层，才能稳定「点一下显示/隐藏」 */
+.we-player.we-phone .we-top, .we-player.we-phone .we-bottom, .we-player.we-phone .we-seekrow, .we-player.we-phone .we-mini{ pointer-events: none; }
+.we-player.we-phone .we-top :is(button, input, a, .we-menu),
+.we-player.we-phone .we-bottom :is(button, input, a, .we-menu, .we-seek, .we-ctrls, .we-time){ pointer-events: auto; }
+.we-player.we-phone.hide-ui .we-top *, .we-player.we-phone.hide-ui .we-bottom *{ pointer-events: none !important; }
