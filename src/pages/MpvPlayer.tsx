@@ -92,6 +92,28 @@ const subLabel = (s: MediaStream): string =>
   s.DisplayTitle || [s.Language, s.Codec?.toUpperCase()].filter(Boolean).join(' · ') || `字幕 ${s.Index}`;
 
 /** 「4K · 杜比视界」之类的画面标签 */
+/** 播放器图标：描边 + 一层淡淡的实心底色，比纯线条更有分量 */
+function Ico({ f, d, size = 22 }: { f?: string; d: string; size?: number }): React.ReactElement {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {f && <path d={f} fill="currentColor" fillOpacity=".22" stroke="none" />}
+      <path d={d} />
+    </svg>
+  );
+}
+const IC = {
+  next: { f: 'M6 5l10 7-10 7Z', d: 'M6 5l10 7-10 7Z M19 5v14' },
+  intro: { f: 'M3.5 5l7.5 7-7.5 7Z M12.5 5l7.5 7-7.5 7Z', d: 'M3.5 5l7.5 7-7.5 7Z M12.5 5l7.5 7-7.5 7Z' },
+  sleep: { f: 'M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z', d: 'M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z' },
+  party: { f: 'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z', d: 'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M3.5 19a5.5 5.5 0 0 1 11 0 M16 6.3a3 3 0 0 1 0 5.4 M17.5 14a5.5 5.5 0 0 1 3 5' },
+  rotate: { f: 'M8 3h8a1.5 1.5 0 0 1 1.5 1.5v15A1.5 1.5 0 0 1 16 21H8a1.5 1.5 0 0 1-1.5-1.5v-15A1.5 1.5 0 0 1 8 3Z', d: 'M8 3h8a1.5 1.5 0 0 1 1.5 1.5v15A1.5 1.5 0 0 1 16 21H8a1.5 1.5 0 0 1-1.5-1.5v-15A1.5 1.5 0 0 1 8 3Z M20.5 9.5a9 9 0 0 0-3-4 M3.5 14.5a9 9 0 0 0 3 4' },
+  eps: { f: 'M3 5.5A2.5 2.5 0 0 1 5.5 3h13A2.5 2.5 0 0 1 21 5.5v13a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 18.5Z', d: 'M3 5.5A2.5 2.5 0 0 1 5.5 3h13A2.5 2.5 0 0 1 21 5.5v13a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 18.5Z M8 8.5h8.5 M8 12h8.5 M8 15.5h5' },
+  speed: { f: 'M4.9 18.5A9 9 0 1 1 19.1 18.5Z', d: 'M4.9 18.5A9 9 0 1 1 19.1 18.5Z M12 14.5l4-4 M12 14.5h.01' },
+  audio: { f: 'M7 8h2v8H7Z M15 6h2v12h-2Z', d: 'M4 10.5v3 M8 7v10 M12 3.5v17 M16 6.5v11 M20 10v4' },
+  sub: { f: 'M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z', d: 'M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z M7 11.5h4 M13 11.5h4 M7 15h2.5 M12 15h5' },
+  danmu: { f: 'M4 5h16v11H11l-4 3.5V16H4Z', d: 'M4 5h16v11H11l-4 3.5V16H4Z M8 9h8 M8 12h5' },
+};
+
 function videoBadge(src?: MediaSource): string {
   const v = src?.MediaStreams?.find((s) => s.Type === 'Video');
   if (!v) return '';
@@ -444,6 +466,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const pendingSub = useRef<MediaStream | null>(null);
   const [drawer, setDrawer] = useState(false);
   const [padHide, setPadHide] = useState(false);   // 手机：暂停时用户点屏幕收起了控制条
+  const [spin, setSpin] = useState<{ d: '' | 'l' | 'r'; n: number }>({ d: '', n: 0 });   // 快进/快退按钮的转动动画
 
   const source = item?.MediaSources?.find((m) => m.Id === wantSrc) || item?.MediaSources?.[0];
   const streams = source?.MediaStreams || [];
@@ -1038,6 +1061,82 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const bufPct = total > 0 ? (buffered / total) * 100 : 0;
   const showUi = uiShown || (paused && !padHide) || drawer || !!menu || scrub !== null;
 
+  const sleepNode = isMobileApp ? (
+            <div className="we-menu-wrap">
+              <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'sleep' ? '' : 'sleep')}><Ico {...IC.sleep} /><span>{sleepEnd ? (item?.Type === 'Episode' ? '播完本集' : '播完退出') : sleepAt ? '定时中' : '定时'}</span></button>
+              {menu === 'sleep' && (
+                <div className="we-menu" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+                  <div className={`we-menu-item${!sleepAt && !sleepEnd ? ' active' : ''}`} onClick={() => { setSleepEnd(false); setSleepAt(0); setMenu(''); }}>不开启</div>
+                  <div className={`we-menu-item${sleepEnd ? ' active' : ''}`} onClick={() => { setSleepAt(0); setSleepEnd(true); setMenu(''); }}>{item?.Type === 'Episode' ? '播完本集' : '播完本部电影'}</div>
+                  {[15, 30, 45, 60, 90].map((m) => <div key={m} className="we-menu-item" onClick={() => setSleepMin(m)}>{m} 分钟后</div>)}
+                  <div className="we-menu-item" style={{ display: 'flex', gap: 6, alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+                    <input value={sleepCustom} onChange={(e) => setSleepCustom(e.target.value)} placeholder="分钟 或 23:30" inputMode="text" style={{ width: 104, height: 30, fontSize: 13 }} />
+                    <button type="button" className="we-btn" style={{ fontSize: 13 }} onClick={() => { const v = sleepCustom.trim(); if (/^\d+$/.test(v) && Number(v) > 0) setSleepMin(Number(v)); else setSleepClock(v); }}>确定</button>
+                  </div>
+                  {sleepAt > 0 && <div className="we-menu-item" style={{ opacity: .7 }}>将于 {new Date(sleepAt).toTimeString().slice(0, 5)} 关闭</div>}
+                </div>
+              )}
+            </div>
+  ) : null;
+  const nextNode = nextEp ? (
+            <button className="we-btn we-lbl" title="下一集（N）" onClick={goNext}>
+              <Ico {...IC.next} /><span>下一集</span>
+            </button>
+  ) : null;
+  const introNode = item?.Type === 'Episode' ? (
+            <div className="we-menu-wrap">
+              <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'intro' ? '' : 'intro')}><Ico {...IC.intro} /><span>片头</span></button>
+              {menu === 'intro' && (
+                <div className="we-menu" onClick={(e) => e.stopPropagation()}>
+                  <div className="we-menu-head">片头 / 片尾（整部剧通用，自动同步到 Emby）</div>
+                  <div className="we-menu-item" style={{ opacity: .75 }}>{intro ? `片头：${fmtDuration(intro.st)} – ${fmtDuration(intro.en)}` : '片头：没有数据'}{creditsAt != null ? `　片尾：${fmtDuration(creditsAt)}` : ''}</div>
+                  {introTip && <div className="we-menu-item" style={{ opacity: .85 }}>{introTip}</div>}
+                  <div className="we-menu-item" onClick={() => setManualS((m) => ({ ...m, st: posRef.current }))}>此刻 {fmtDuration(cur)} = 片头开始{manual?.st != null ? `（已选 ${fmtDuration(manual.st)}）` : ''}</div>
+                  <div className="we-menu-item" onClick={() => setManualS((m) => ({ ...m, en: posRef.current }))}>此刻 {fmtDuration(cur)} = 片头结束{manual?.en != null ? `（已选 ${fmtDuration(manual.en)}）` : ''}</div>
+                  <div className="we-menu-item" onClick={() => setManualS((m) => ({ ...m, tail: Math.max(0, Math.round(total - posRef.current)) }))}>此刻 {fmtDuration(cur)} = 片尾开始{manual?.tail != null ? `（距结尾 ${fmtDuration(manual.tail)}）` : ''}</div>
+                  <div className="we-menu-item" onClick={() => {
+                    const hasIntro = manual?.st != null || manual?.en != null;
+                    const st = manual?.st ?? intro?.st ?? 0, en = manual?.en ?? intro?.en;
+                    const tail = manual?.tail;
+                    if (!item?.SeriesId) return;
+                    if (hasIntro && (en == null || en <= st)) { setIntroTip('片头：请先选好开始和结束'); return; }
+                    if (!hasIntro && tail == null) { setIntroTip('请先选好片头或片尾'); return; }
+                    const old = getManual(item.SeriesId);
+                    const next = { st: hasIntro ? st : old?.st ?? 0, en: hasIntro ? (en as number) : old?.en ?? 0, tail: tail ?? old?.tail };
+                    setManual(item.SeriesId, next); setManualS(next);
+                    setIntroTip('已保存，正在同步到 Emby…');
+                    syncSeriesMarkers(item.SeriesId, { st: hasIntro ? st : undefined, en: hasIntro ? en : undefined, tail: tail ?? undefined })
+                      .then((n) => setIntroTip(`已同步到 Emby：${n} 集`))
+                      .catch((e: unknown) => setIntroTip(`已保存在本机；同步 Emby 失败：${e instanceof Error ? e.message : '未知错误'}`));
+                  }}>保存并同步到本剧所有集</div>
+                  <div className="we-menu-item" onClick={() => {
+                    if (!item?.SeriesId) return;
+                    setManual(item.SeriesId, null); setManualS(null); setIntroTip('已清除本机设置，正在清除 Emby 标记…');
+                    syncSeriesMarkers(item.SeriesId, { st: null, en: null, tail: null })
+                      .then(() => setIntroTip('已清除（本机 + Emby）'))
+                      .catch(() => setIntroTip('已清除本机设置（Emby 未同步）'));
+                  }}>清除本剧标记（含 Emby）</div>
+                </div>
+              )}
+            </div>
+  ) : null;
+  const partyNode = partyUrl() ? (
+            <div className="we-menu-wrap">
+              <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'party' ? '' : 'party')}><Ico {...IC.party} /><span>{party.inRoom ? '一起看 ●' : '一起看'}</span></button>
+              {menu === 'party' && (
+                <div className="we-menu we-menu-party" onClick={(e) => e.stopPropagation()}>
+                  <PartyPanel item={item} getPos={() => partyAd.current.pos()} started={startedRef.current} onClose={() => setMenu('')} onCreated={() => setMenu('')} />
+                </div>
+              )}
+            </div>
+  ) : null;
+  const rotateNode = (
+            <button className="we-btn we-lbl" title="旋转屏幕（横屏 / 竖屏）" onClick={() => void toggleFull()}>
+              <Ico {...IC.rotate} />
+              <span>{full ? '竖屏' : '横屏'}</span>
+            </button>
+  );
+
   return (
     <div className={`we-player mpv${isMobileApp ? ' we-phone' : ''}${showUi ? '' : ' hide-ui'}`} onMouseMove={poke} onClick={() => menu && setMenu('')}>
       {/* 透明点击层：mpv 画面在它下面的原生窗口里 */}
@@ -1109,18 +1208,18 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
 
       {/* 中间大按钮：后退 10 秒 / 播放暂停 / 快进 10 秒 */}
       {isMobileApp && (<div className="we-center" onClick={(e) => e.stopPropagation()}>
-        {isMobileApp && (<button className="we-cbtn" title="后退 10 秒（←）" aria-label="后退 10 秒" onClick={() => { seekBy(-10); poke(); }}>
-          <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4" /><text x="8.4" y="15.2" fontSize="6.6" fill="currentColor" stroke="none" fontWeight="700">10</text></svg>
+        {isMobileApp && (<button className="we-cbtn" title="后退 10 秒（←）" aria-label="后退 10 秒" onClick={() => { seekBy(-10); poke(); setSpin((v) => ({ d: 'l', n: v.n + 1 })); showHud('« 10 秒'); }}>
+          <svg key={spin.d === 'l' ? spin.n : 0} className={spin.d === 'l' ? 'we-spin-l' : ''} width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 1 0 2.6-5.9M4 4.5v4.5h4.5" /><text x="12" y="15.4" textAnchor="middle" fontSize="7.4" fontWeight="800" fill="currentColor" stroke="none">10</text></svg>
         </button>)}
         <button className="we-cbtn we-cplay" title="播放/暂停（空格）" aria-label={paused ? '播放' : '暂停'} onClick={toggle}>
           {paused ? (
-            <svg width="64" height="64" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" /></svg>
+            <svg width="64" height="64" viewBox="0 0 24 24"><path d="M8 4.8v14.4a1 1 0 0 0 1.5.86l11.2-7.2a1 1 0 0 0 0-1.72L9.5 3.94A1 1 0 0 0 8 4.8Z" fill="currentColor" /></svg>
           ) : (
-            <svg width="64" height="64" viewBox="0 0 24 24"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z" fill="currentColor" /></svg>
+            <svg width="64" height="64" viewBox="0 0 24 24"><rect x="5.5" y="4" width="4.6" height="16" rx="1.6" fill="currentColor" /><rect x="13.9" y="4" width="4.6" height="16" rx="1.6" fill="currentColor" /></svg>
           )}
         </button>
-        {isMobileApp && (<button className="we-cbtn" title="快进 10 秒（→）" aria-label="快进 10 秒" onClick={() => { seekBy(10); poke(); }}>
-          <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12a8 8 0 1 1-3-6.2M20 4v4h-4" /><text x="8.4" y="15.2" fontSize="6.6" fill="currentColor" stroke="none" fontWeight="700">10</text></svg>
+        {isMobileApp && (<button className="we-cbtn" title="快进 10 秒（→）" aria-label="快进 10 秒" onClick={() => { seekBy(10); poke(); setSpin((v) => ({ d: 'r', n: v.n + 1 })); showHud('10 秒 »'); }}>
+          <svg key={spin.d === 'r' ? spin.n : 0} className={spin.d === 'r' ? 'we-spin-r' : ''} width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4.5v4.5h-4.5" /><text x="12" y="15.4" textAnchor="middle" fontSize="7.4" fontWeight="800" fill="currentColor" stroke="none">10</text></svg>
         </button>)}
       </div>)}
 
@@ -1161,6 +1260,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
       )}
 
       <div className="we-bottom" onClick={(e) => e.stopPropagation()} onPointerEnter={(e) => { if (e.pointerType === 'mouse') hoverUi.current = true; }} onPointerLeave={(e) => { if (e.pointerType === 'mouse') { hoverUi.current = false; poke(); } }}>
+        {isMobileApp && <div className="we-mini">{nextNode}{introNode}{sleepNode}{partyNode}{rotateNode}</div>}
         <div className="we-seekrow">
           <span className="we-time we-time-l">{fmtDuration(shownCur)}</span>
           <div
@@ -1197,7 +1297,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           <div className="we-grp we-grp-l">
           {!isMobileApp && (
             <button className="we-btn" title="播放/暂停（空格）" aria-label={paused ? '播放' : '暂停'} onClick={() => { toggle(); poke(); }}>
-              {paused ? <svg width="26" height="26" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" /></svg> : <svg width="26" height="26" viewBox="0 0 24 24"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z" fill="currentColor" /></svg>}
+              {paused ? <svg width="26" height="26" viewBox="0 0 24 24"><path d="M8 4.8v14.4a1 1 0 0 0 1.5.86l11.2-7.2a1 1 0 0 0 0-1.72L9.5 3.94A1 1 0 0 0 8 4.8Z" fill="currentColor" /></svg> : <svg width="26" height="26" viewBox="0 0 24 24"><rect x="5.5" y="4" width="4.6" height="16" rx="1.6" fill="currentColor" /><rect x="13.9" y="4" width="4.6" height="16" rx="1.6" fill="currentColor" /></svg>}
             </button>
           )}
           <div className="we-volgrp" title="鼠标滚轮调节音量">
@@ -1213,40 +1313,19 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
 
           {!isMobileApp && (<>
         <button className="we-btn" title="后退 10 秒（←）" aria-label="后退 10 秒" onClick={() => { seekBy(-10); poke(); }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4" /><text x="8.4" y="15.2" fontSize="6.6" fill="currentColor" stroke="none" fontWeight="700">10</text></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 1 0 2.6-5.9M4 4.5v4.5h4.5" /><text x="12" y="15.4" textAnchor="middle" fontSize="7.4" fontWeight="800" fill="currentColor" stroke="none">10</text></svg>
         </button>
         <button className="we-btn" title="快进 10 秒（→）" aria-label="快进 10 秒" onClick={() => { seekBy(10); poke(); }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12a8 8 0 1 1-3-6.2M20 4v4h-4" /><text x="8.4" y="15.2" fontSize="6.6" fill="currentColor" stroke="none" fontWeight="700">10</text></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4.5v4.5h-4.5" /><text x="12" y="15.4" textAnchor="middle" fontSize="7.4" fontWeight="800" fill="currentColor" stroke="none">10</text></svg>
         </button>
           </>)}
           </div>
           <span style={{ flex: 1 }} />
-          {isMobileApp && (
-            <div className="we-menu-wrap we-inmore">
-              <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'sleep' ? '' : 'sleep')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z" /></svg><span>{sleepEnd ? (item?.Type === 'Episode' ? '播完本集' : '播完退出') : sleepAt ? '定时中' : '定时'}</span></button>
-              {menu === 'sleep' && (
-                <div className="we-menu" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-                  <div className={`we-menu-item${!sleepAt && !sleepEnd ? ' active' : ''}`} onClick={() => { setSleepEnd(false); setSleepAt(0); setMenu(''); }}>不开启</div>
-                  <div className={`we-menu-item${sleepEnd ? ' active' : ''}`} onClick={() => { setSleepAt(0); setSleepEnd(true); setMenu(''); }}>{item?.Type === 'Episode' ? '播完本集' : '播完本部电影'}</div>
-                  {[15, 30, 45, 60, 90].map((m) => <div key={m} className="we-menu-item" onClick={() => setSleepMin(m)}>{m} 分钟后</div>)}
-                  <div className="we-menu-item" style={{ display: 'flex', gap: 6, alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
-                    <input value={sleepCustom} onChange={(e) => setSleepCustom(e.target.value)} placeholder="分钟 或 23:30" inputMode="text" style={{ width: 104, height: 30, fontSize: 13 }} />
-                    <button type="button" className="we-btn" style={{ fontSize: 13 }} onClick={() => { const v = sleepCustom.trim(); if (/^\d+$/.test(v) && Number(v) > 0) setSleepMin(Number(v)); else setSleepClock(v); }}>确定</button>
-                  </div>
-                  {sleepAt > 0 && <div className="we-menu-item" style={{ opacity: .7 }}>将于 {new Date(sleepAt).toTimeString().slice(0, 5)} 关闭</div>}
-                </div>
-              )}
-            </div>
-          )}
           <div className="we-grp">
-          {nextEp && (
-            <button className="we-btn we-lbl we-lop" title="下一集（N）" onClick={goNext}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 5l9 7-9 7Z M18 5v14" /></svg><span>下一集</span>
-            </button>
-          )}
+          {!isMobileApp && nextNode}
           {episodes.length > 1 && (
             <div className="we-menu-wrap we-a-l">
-              <button className="we-btn we-lbl" title="选集" onClick={() => setMenu(menu === 'eps' ? '' : 'eps')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h10" /></svg><span>选集</span></button>
+              <button className="we-btn we-lbl" title="选集" onClick={() => setMenu(menu === 'eps' ? '' : 'eps')}><Ico {...IC.eps} /><span>选集</span></button>
               {menu === 'eps' && (
                 <div className="we-menu we-menu-eps">
                   <div className="we-menu-head">{item?.SeasonName || item?.SeriesName || '选集'}</div>
@@ -1265,47 +1344,11 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
             </div>
           )}
 
-          {item?.Type === 'Episode' && (
-            <div className="we-menu-wrap we-inmore">
-              <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'intro' ? '' : 'intro')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6l7 6-7 6Z M13 6l7 6-7 6Z" /></svg><span>片头</span></button>
-              {menu === 'intro' && (
-                <div className="we-menu" onClick={(e) => e.stopPropagation()}>
-                  <div className="we-menu-head">片头 / 片尾（整部剧通用，自动同步到 Emby）</div>
-                  <div className="we-menu-item" style={{ opacity: .75 }}>{intro ? `片头：${fmtDuration(intro.st)} – ${fmtDuration(intro.en)}` : '片头：没有数据'}{creditsAt != null ? `　片尾：${fmtDuration(creditsAt)}` : ''}</div>
-                  {introTip && <div className="we-menu-item" style={{ opacity: .85 }}>{introTip}</div>}
-                  <div className="we-menu-item" onClick={() => setManualS((m) => ({ ...m, st: posRef.current }))}>此刻 {fmtDuration(cur)} = 片头开始{manual?.st != null ? `（已选 ${fmtDuration(manual.st)}）` : ''}</div>
-                  <div className="we-menu-item" onClick={() => setManualS((m) => ({ ...m, en: posRef.current }))}>此刻 {fmtDuration(cur)} = 片头结束{manual?.en != null ? `（已选 ${fmtDuration(manual.en)}）` : ''}</div>
-                  <div className="we-menu-item" onClick={() => setManualS((m) => ({ ...m, tail: Math.max(0, Math.round(total - posRef.current)) }))}>此刻 {fmtDuration(cur)} = 片尾开始{manual?.tail != null ? `（距结尾 ${fmtDuration(manual.tail)}）` : ''}</div>
-                  <div className="we-menu-item" onClick={() => {
-                    const hasIntro = manual?.st != null || manual?.en != null;
-                    const st = manual?.st ?? intro?.st ?? 0, en = manual?.en ?? intro?.en;
-                    const tail = manual?.tail;
-                    if (!item?.SeriesId) return;
-                    if (hasIntro && (en == null || en <= st)) { setIntroTip('片头：请先选好开始和结束'); return; }
-                    if (!hasIntro && tail == null) { setIntroTip('请先选好片头或片尾'); return; }
-                    const old = getManual(item.SeriesId);
-                    const next = { st: hasIntro ? st : old?.st ?? 0, en: hasIntro ? (en as number) : old?.en ?? 0, tail: tail ?? old?.tail };
-                    setManual(item.SeriesId, next); setManualS(next);
-                    setIntroTip('已保存，正在同步到 Emby…');
-                    syncSeriesMarkers(item.SeriesId, { st: hasIntro ? st : undefined, en: hasIntro ? en : undefined, tail: tail ?? undefined })
-                      .then((n) => setIntroTip(`已同步到 Emby：${n} 集`))
-                      .catch((e: unknown) => setIntroTip(`已保存在本机；同步 Emby 失败：${e instanceof Error ? e.message : '未知错误'}`));
-                  }}>保存并同步到本剧所有集</div>
-                  <div className="we-menu-item" onClick={() => {
-                    if (!item?.SeriesId) return;
-                    setManual(item.SeriesId, null); setManualS(null); setIntroTip('已清除本机设置，正在清除 Emby 标记…');
-                    syncSeriesMarkers(item.SeriesId, { st: null, en: null, tail: null })
-                      .then(() => setIntroTip('已清除（本机 + Emby）'))
-                      .catch(() => setIntroTip('已清除本机设置（Emby 未同步）'));
-                  }}>清除本剧标记（含 Emby）</div>
-                </div>
-              )}
-            </div>
-          )}
+          {!isMobileApp && introNode}
           </div>
           <div className="we-grp">
-          <div className="we-menu-wrap we-lop">
-            <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'danmu' ? '' : 'danmu')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 5h16v11H11l-4 3.5V16H4Z M8 9h8 M8 12h5" /></svg><span>弹幕{dmCfg.on && dmList.length ? '' : dmCfg.on ? '' : '·关'}</span></button>
+          <div className="we-menu-wrap we-a-r">
+            <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'danmu' ? '' : 'danmu')}><Ico {...IC.danmu} /><span>弹幕{dmCfg.on && dmList.length ? '' : dmCfg.on ? '' : '·关'}</span></button>
             {menu === 'danmu' && (
               <div className="we-menu we-dm" style={{ minWidth: 220, padding: 10 }} onClick={(e) => e.stopPropagation()}>
                 {dmSel ? (
@@ -1324,18 +1367,9 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
               </div>
             )}
           </div>
-          {partyUrl() && (
-            <div className="we-menu-wrap we-inmore">
-              <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'party' ? '' : 'party')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M3.5 19a5.5 5.5 0 0 1 11 0 M16 6.3a3 3 0 0 1 0 5.4 M17.5 14a5.5 5.5 0 0 1 3 5" /></svg><span>{party.inRoom ? '一起看 ●' : '一起看'}</span></button>
-              {menu === 'party' && (
-                <div className="we-menu we-menu-party" onClick={(e) => e.stopPropagation()}>
-                  <PartyPanel item={item} getPos={() => partyAd.current.pos()} started={startedRef.current} onClose={() => setMenu('')} onCreated={() => setMenu('')} />
-                </div>
-              )}
-            </div>
-          )}
+          {!isMobileApp && partyNode}
           <div className="we-menu-wrap">
-            <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'speed' ? '' : 'speed')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><path d="M4.9 18.5A9 9 0 1 1 19.1 18.5 M12 14l3.5-3.5" /></svg><span>{shownRate === 1 ? '倍速' : `${shownRate}x`}</span></button>
+            <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'speed' ? '' : 'speed')}><Ico {...IC.speed} /><span>{shownRate === 1 ? '倍速' : `${shownRate}x`}</span></button>
             {menu === 'speed' && (
               <div className="we-menu">
                 {[0.5, 0.75, 1, 1.25, 1.5, 2, 3].map((r) => (
@@ -1365,7 +1399,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
 
           {audios.length > 0 && (
             <div className="we-menu-wrap">
-              <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'audio' ? '' : 'audio')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 10v4 M8 7v10 M12 4v16 M16 8v8 M20 11v2" /></svg><span>音轨</span></button>
+              <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'audio' ? '' : 'audio')}><Ico {...IC.audio} /><span>音轨</span></button>
               {menu === 'audio' && (
                 <div className="we-menu">
                   {audios.map((a, i) => (
@@ -1377,7 +1411,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           )}
 
           <div className="we-menu-wrap we-a-r">
-            <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'sub' || menu === 'substyle' ? '' : 'sub')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z M7 11h4 M13 11h4 M7 15h2 M12 15h5" /></svg><span>字幕{sid ? ' ●' : ''}</span></button>
+            <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'sub' || menu === 'substyle' ? '' : 'sub')}><Ico {...IC.sub} /><span>字幕{sid ? ' ●' : ''}</span></button>
             {menu === 'sub' && (
               <div className="we-menu">
                 <div className="we-menu-item" onClick={() => setMenu('substyle')}>字幕大小 / 位置 / 延迟 ›</div>
@@ -1406,29 +1440,9 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
             )}
           </div>
 
-          {isMobileApp && (
-            <div className="we-menu-wrap we-a-r we-more">
-              <button className="we-btn we-lbl" onClick={() => setMenu(menu === 'more' ? '' : 'more')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h.01M12 12h.01M19 12h.01" /></svg><span>更多</span></button>
-              {menu === 'more' && (
-                <div className="we-menu" onClick={(e) => e.stopPropagation()}>
-                  {nextEp && <div className="we-menu-item we-more-lop" onClick={() => { setMenu(''); goNext(); }}>下一集</div>}
-                  <div className="we-menu-item we-more-lop" onClick={() => setMenu('danmu')}>{dmCfg.on ? '弹幕：开' : '弹幕：关'}</div>
-                  {item?.Type === 'Episode' && <div className="we-menu-item" onClick={() => setMenu('intro')}>片头片尾</div>}
-                  <div className="we-menu-item" onClick={() => setMenu('sleep')}>{sleepEnd || sleepAt ? '定时停止：已开启' : '定时停止'}</div>
-                  {partyUrl() && <div className="we-menu-item" onClick={() => setMenu('party')}>{party.inRoom ? '一起看：房间中' : '一起看'}</div>}
-                  <div className="we-menu-item" onClick={() => { setMenu(''); void toggleFull(); }}>{full ? '切回竖屏' : '切到横屏'}</div>
-                </div>
-              )}
-            </div>
-          )}
           </div>
 
-          {isMobileApp ? (
-            <button className="we-btn we-lbl we-inmore" title="旋转屏幕（横屏 / 竖屏）" onClick={() => void toggleFull()}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="7" y="3" width="10" height="18" rx="2" transform={full ? 'rotate(90 12 12)' : undefined} /><path d="M20 8a9 9 0 0 0-3-3.5M4 16a9 9 0 0 0 3 3.5M20 4v4h-4M4 20v-4h4" /></svg>
-              <span>{full ? '竖屏' : '横屏'}</span>
-            </button>
-          ) : (
+          {!isMobileApp && (
             <button className="we-btn" title="全屏（F）" onClick={() => void toggleFull()}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               {full ? <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /> : <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />}
