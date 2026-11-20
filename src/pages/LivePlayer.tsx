@@ -86,7 +86,6 @@ export default function LivePlayer() {
     const dpr = window.devicePixelRatio || 1;
     const topPx = portrait ? Math.round(sat * dpr) : 0;
     const hPx = portrait ? Math.round(vidH * dpr) : 0;
-    const H = win.h || 1;
     void readyRef.current?.then((s) => {
       if (!s) return;
       if (isAndroid) {
@@ -95,19 +94,20 @@ export default function LivePlayer() {
         try { w.AndroidExo?.setVideoBox?.(topPx, hPx); } catch { /* ignore */ }
         return;
       }
-      const apply = (): void => {
-        const Hn = window.innerHeight || H;
-        const top = portrait ? sat / Hn : 0;
-        const bot = portrait ? Math.max(0, 1 - (sat + vidH) / Hn) : 0;
-        void s.set('video-margin-ratio-top', top).catch(() => undefined);
-        void s.set('video-margin-ratio-bottom', bot).catch(() => undefined);
-        void s.set('video-align-y', portrait ? -1 : 0).catch(() => undefined);   // 万一边距没生效，画面也贴在顶部
-      };
-      apply();
-      // 窗口从全屏缩回小窗时，系统会稍后才把窗口调到最终大小：隔一会儿再按真实高度算一次
-      [250, 700, 1500].forEach((ms) => window.setTimeout(apply, ms));
+      // 电脑 / iOS：gpu-next 上 video-margin-ratio 位置不对（画面会在整个窗口里居中），改用 zoom + pan（随便看看里验证过的做法）
+      const set = (n: string, v: number): void => { void s.set(n, v).catch(() => undefined); };
+      set('video-margin-ratio-left', 0); set('video-margin-ratio-right', 0); set('video-margin-ratio-top', 0); set('video-margin-ratio-bottom', 0);
+      set('video-align-x', 0); set('video-align-y', 0);
+      if (!portrait || !dim.w || !dim.h) { set('video-zoom', 0); set('video-pan-x', 0); set('video-pan-y', 0); return; }
+      const W = win.w || 1, H = win.h || 1;
+      const rw = win.w, rh = vidH, ry = sat;
+      const s0 = Math.min(W / dim.w, H / dim.h);                 // mpv 默认：适应整个窗口并居中
+      const s1 = Math.min(rw / dim.w, rh / dim.h);               // 想要：适应顶部 16:9 区域
+      set('video-zoom', Math.log2(s1 / s0));
+      set('video-pan-x', 0);
+      set('video-pan-y', (ry + rh / 2 - H / 2) / (dim.h * s1));
     });
-  }, [portrait, sat, vidH, win.h]);
+  }, [portrait, sat, vidH, win.w, win.h, dim.w, dim.h]);
   // 手机：状态栏图标固定浅色（竖屏时状态栏压在黑色视频上方）；离开后按主题还原
   useEffect(() => {
     if (!isAndroid) return;
