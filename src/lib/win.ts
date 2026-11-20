@@ -153,10 +153,5 @@ export async function winFitToScreen(): Promise<void> {
   } catch { /* ignore */ }
 }
 
-let fitT = 0;
-export function installWinFit(): void {
-  if (isMobileApp || !isTauri()) return;
-  const run = (): void => { window.clearTimeout(fitT); fitT = window.setTimeout(() => void winFitToScreen(), 450); };
-  window.addEventListener('resize', run);
-  run();
-}
+// 只在退出全屏后调用一次 winFitToScreen；不再监听 resize / 启动时自动跑，避免和系统反复拉扯窗口大小
+export function installWinFit(): void { /* 保留空函数，main.tsx 仍会调用 */ }
