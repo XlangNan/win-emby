@@ -92,6 +92,14 @@ export async function winSetFullscreen(on: boolean): Promise<void> {
           await w.setPosition(new m.PhysicalPosition(x, y));
         };
         await apply();
+        // 轻推一像素再还原，逼内嵌的 mpv 画面窗口按真实大小重新铺满（否则它可能还停留在全屏时的尺寸，画面会偏下）
+        const nudge = async (): Promise<void> => {
+          if (s.max || (await w.isFullscreen())) return;
+          const z = await w.innerSize();
+          await w.setSize(new m.PhysicalSize(z.width + 1, z.height));
+          await w.setSize(new m.PhysicalSize(z.width, z.height));
+        };
+        setTimeout(() => { void nudge().catch(() => undefined); }, 500);
         setTimeout(() => { void w.isFullscreen().then((f) => (f ? undefined : apply())).catch(() => undefined); }, 350);
       } catch {
         /* 还原失败就保持系统默认 */
