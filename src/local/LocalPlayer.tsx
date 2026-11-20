@@ -58,6 +58,10 @@ export default function LocalPlayer() {
   const [vol, setVol] = useState(isMobileApp ? 100 : Math.round(loadPlayPrefs().volume * 100));
   const [busy, setBusy] = useState(true);
   const [err, setErr] = useState('');
+  // 画面还没出来（或出错）时垫一层黑底：窗口是透明的，不垫的话会透出桌面 / 后面的窗口
+  const [started, setStarted] = useState(false);
+  useEffect(() => { if (!busy && !err) setStarted(true); }, [busy, err]);
+  const waitCls = started ? '' : ' we-wait';
   const [dark, setDark] = useState(false);
   const [sheet, setSheet] = useState(false);
   const [uiShown, setUiShown] = useState(true);
@@ -427,7 +431,7 @@ export default function LocalPlayer() {
   const showCtl = uiShown || paused || !!err;
 
   return (
-    <div className={`lc-player lc-${mode}${showCtl ? '' : ' hide-ui'}`} onMouseMove={isMobileApp ? undefined : poke}>
+    <div className={`lc-player lc-${mode}${waitCls}${showCtl ? '' : ' hide-ui'}`} onMouseMove={isMobileApp ? undefined : poke}>
       {/* 视频区：画面在原生层，这里只放控制层 */}
       <div className="lc-stage" style={stageStyle}
         onClick={(e) => {

@@ -827,3 +827,5 @@ html .we-player.we-phone.mpv .we-dmpick{ min-width: 0; max-width: 100%; width: m
 .we-player.we-phone .we-top :is(button, input, a, .we-menu),
 .we-player.we-phone .we-bottom :is(button, input, a, .we-menu, .we-seek, .we-ctrls, .we-time){ pointer-events: auto; }
 .we-player.we-phone.hide-ui .we-top *, .we-player.we-phone.hide-ui .we-bottom *{ pointer-events: none !important; }
+/* Z58 播放页：画面出来之前垫黑底（窗口透明，否则加载时会透出桌面） */
+.we-player.mpv.we-wait, .lc-player.we-wait{ background: #000 !important; }

@@ -46,6 +46,10 @@ export default function LivePlayer() {
   const [hw, setHw] = useState('');
   const [busy, setBusy] = useState(true);
   const [err, setErr] = useState('');
+  // 画面还没出来（或出错）时垫一层黑底：窗口是透明的，不垫的话会透出桌面 / 后面的窗口
+  const [started, setStarted] = useState(false);
+  useEffect(() => { if (!busy && !err) setStarted(true); }, [busy, err]);
+  const waitCls = started ? '' : ' we-wait';
   const [uiShown, setUiShown] = useState(true);
   const [list, setList] = useState(!isMobileApp);
   const [epgOpen, setEpgOpen] = useState(false);
@@ -356,7 +360,7 @@ export default function LivePlayer() {
     const pctNow = now ? Math.min(100, Math.max(0, ((Date.now() - now.s) / (now.e - now.s)) * 100)) : 0;
     const progs = ch ? progsOf(ch) : [];
     return (
-      <div ref={playerRef} className={`we-player mpv lv lv-pt${showUi ? '' : ' hide-ui'}`} style={{ ['--lv-sat' as string]: `${sat}px`, ['--lv-vh' as string]: `${vidH}px` }} onMouseMove={poke}>
+      <div ref={playerRef} className={`we-player mpv lv lv-pt${waitCls}${showUi ? '' : ' hide-ui'}`} style={{ ['--lv-sat' as string]: `${sat}px`, ['--lv-vh' as string]: `${vidH}px` }} onMouseMove={poke}>
         <div className="we-surface" onClick={() => { if (!isMobileApp) toggle(); }} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} />
         {hud && <div className="we-hud">{hud}</div>}
         {busy && !err && <div className="we-loading"><span className="spinner" aria-hidden="true" />正在连接…</div>}
@@ -422,7 +426,7 @@ export default function LivePlayer() {
   }
 
   return (
-    <div ref={playerRef} className={`we-player mpv lv lv-w${compact ? ' lv-compact' : ''}${list ? ' has-list' : ''}${epgOpen ? ' has-epg' : ''}${showUi ? '' : ' hide-ui'}`} onMouseMove={poke}>
+    <div ref={playerRef} className={`we-player mpv lv lv-w${waitCls}${compact ? ' lv-compact' : ''}${list ? ' has-list' : ''}${epgOpen ? ' has-epg' : ''}${showUi ? '' : ' hide-ui'}`} onMouseMove={poke}>
       <div className="we-surface" onClick={() => { if (!isMobileApp) toggle(); }} onDoubleClick={() => { if (!isMobileApp) void toggleFull(); }} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} />
       {hud && <div className="we-hud">{hud}</div>}
       {busy && !err && <div className="we-loading"><span className="spinner" aria-hidden="true" />正在连接…</div>}
