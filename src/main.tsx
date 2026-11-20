@@ -4,6 +4,7 @@ import { HashRouter } from 'react-router-dom';
 import App from './App';
 import { installDragRegion } from './lib/dragRegion';
 import { installKeyboardAware } from './lib/keyboard';
+import { installWinFit } from './lib/win';
 import { applyTheme, initTheme } from './lib/theme';
 import { isMobileApp } from './lib/platform';
 import { initFont } from './lib/font';
@@ -31,6 +32,7 @@ initFont();
 initMode();
 installDragRegion();
 if (isMobileApp) installKeyboardAware();
+installWinFit();
 startSync();
 
 createRoot(document.getElementById('root')!).render(

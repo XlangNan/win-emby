@@ -100,6 +100,7 @@ export async function winSetFullscreen(on: boolean): Promise<void> {
           await w.setSize(new m.PhysicalSize(z.width, z.height));
         };
         setTimeout(() => { void nudge().catch(() => undefined); }, 500);
+        setTimeout(() => { void winFitToScreen(); }, 900);
         setTimeout(() => { void w.isFullscreen().then((f) => (f ? undefined : apply())).catch(() => undefined); }, 350);
       } catch {
         /* 还原失败就保持系统默认 */
@@ -129,4 +130,33 @@ export async function winOnClose(before: () => Promise<void>): Promise<() => voi
     }
   });
   return un;
+}
+
+/** 窗口比屏幕可用区域（不含任务栏）还大时，缩回来：全屏切换后窗口偶尔会比屏幕高，下半截掉进任务栏 */
+export async function winFitToScreen(): Promise<void> {
+  if (isMobileApp || !isTauri()) return;
+  try {
+    const w = await cur();
+    if ((await w.isFullscreen()) || (await w.isMaximized())) return;
+    const dpr = window.devicePixelRatio || 1;
+    const s = window.screen as Screen & { availLeft?: number; availTop?: number };
+    const aw = Math.round(s.availWidth * dpr), ah = Math.round(s.availHeight * dpr);
+    const al = Math.round((s.availLeft ?? 0) * dpr), at = Math.round((s.availTop ?? 0) * dpr);
+    const z = await w.outerSize();
+    const p = await w.outerPosition();
+    if (z.width <= aw + 2 && z.height <= ah + 2 && p.y + z.height <= at + ah + 2) return;
+    const nw = Math.min(z.width, aw), nh = Math.min(z.height, ah);
+    const m = await import('@tauri-apps/api/dpi');
+    await w.setSize(new m.PhysicalSize(nw, nh));
+    const nx = Math.min(Math.max(p.x, al), al + aw - nw), ny = Math.min(Math.max(p.y, at), at + ah - nh);
+    await w.setPosition(new m.PhysicalPosition(nx, ny));
+  } catch { /* ignore */ }
+}
+
+let fitT = 0;
+export function installWinFit(): void {
+  if (isMobileApp || !isTauri()) return;
+  const run = (): void => { window.clearTimeout(fitT); fitT = window.setTimeout(() => void winFitToScreen(), 450); };
+  window.addEventListener('resize', run);
+  run();
 }
