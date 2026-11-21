@@ -120,6 +120,9 @@ export default function HomePage() {
     else nav(`/player/${it.Id}`);
   };
 
+  /** 每一行「查看全部」去哪：最近添加 → 对应媒体库；继续观看 → 观看历史；其余不显示 */
+  const allTo = (id: string): string => (id.startsWith('latest-') ? `/lib/${id.slice(7)}` : id === 'resume' ? '/history' : '');
+
   const sectionsView = (): React.ReactNode => {
     if (db) {
       const cur = sections[Math.min(wallSec, Math.max(0, sections.length - 1))];
@@ -142,10 +145,18 @@ export default function HomePage() {
     }
     return sections.map((s) => (
       <div key={s.id} className={nf ? 'nf-row' : ap ? 'ap-row' : undefined} style={nf || ap ? undefined : { marginBottom: 22 }}>
-        <h3 className={nf ? 'nf-row-title' : ap ? 'ap-row-title' : undefined} style={nf || ap ? undefined : { margin: '0 0 10px' }}>{s.title}</h3>
+        <div className="we-rowhead">
+          <h3 className={nf ? 'nf-row-title' : ap ? 'ap-row-title' : undefined} style={nf || ap ? undefined : { margin: '0 0 10px' }}>{s.title}</h3>
+          {allTo(s.id) && (
+            <button type="button" className="we-rowall" onClick={() => nav(allTo(s.id))}>
+              查看全部
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 3.5l4.5 4.5L6 12.5" /></svg>
+            </button>
+          )}
+        </div>
         <HScrollRow
           className={nf ? 'nf-row-scroll' : ap ? 'ap-row-scroll' : undefined}
-          style={nf || ap ? undefined : { display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6 }}
+          style={nf || ap ? undefined : { display: 'flex', gap: 12, overflowX: 'auto', padding: '14px 2px 34px', marginBottom: -16 }}
         >
           {s.items.map((it) => (
             <div key={it.Id} style={s.id === 'resume' ? { flex: '0 0 280px', minWidth: 0 } : nf ? undefined : { flex: ap ? '0 0 168px' : '0 0 132px', minWidth: 0 }}>
@@ -165,7 +176,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="content" ref={box} onScroll={(e) => { homeScroll = e.currentTarget.scrollTop; }}>
+    <div className="content home-fl" ref={box} onScroll={(e) => { homeScroll = e.currentTarget.scrollTop; }}>
       {isMobileApp && <div className="m-home-top" />}
       {isMobileApp && data && data.spot.length > 0 && <MobileHero items={data.spot} onOpen={open} onPlay={play} />}
       {!isMobileApp && data && data.spot.length > 0 && <HomeSpotlight items={data.spot} landscape={nf && !isMobileApp} onOpen={open} onPlay={play} />}

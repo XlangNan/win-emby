@@ -53,7 +53,7 @@ export default function MediaCard({
       }}
     >
       <div className="card">
-        <div style={{ position: 'relative' }}>
+        <div className="card-pic" style={{ position: 'relative' }}>
           {poster ? <img src={poster} loading="lazy" decoding="async" alt="" /> : <div className="no-cover">暂无封面</div>}
           {ap && (
             <span className="ap-card-play" aria-hidden="true">

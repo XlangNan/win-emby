@@ -970,3 +970,47 @@ button.nfd-all{ background: none !important; border: 0 !important; box-shadow: n
 @media (max-width: 900px) and (min-height: 501px){
   .we-player .we-top .we-btn.we-ibtn{ width: 36px; min-width: 36px; height: 36px; padding: 0; border-radius: 50%; }
 }
+
+/* 信息抽屉的关闭按钮：固定正圆（压过 .we-btn 的 34px 高 / 安卓 44px 最小宽 / 8px 圆角） */
+html .we-player .we-drawer .we-d-x{ box-sizing: border-box; position: absolute; right: 10px; top: 10px; width: 32px; height: 32px; min-width: 32px; min-height: 32px; max-width: 32px; padding: 0; margin: 0; border-radius: 50%; line-height: 0; background: rgba(0, 0, 0, .55) !important; color: #fff; }
+html .we-player .we-drawer .we-d-x svg{ display: block; flex: none; }
+@media (hover: hover) and (pointer: fine){ html .we-player .we-drawer .we-d-x:hover{ background: rgba(255, 255, 255, .26) !important; } }
+@media (max-height: 500px){ html .we-player .we-drawer .we-d-x{ width: 28px; height: 28px; min-width: 28px; min-height: 28px; max-width: 28px; right: 8px; top: 8px; } }
+
+/* ===== Z80 影视页：海报悬浮 + 每行「查看全部」 ===== */
+.we-rowhead{ display: flex; align-items: center; gap: 10px; margin: 0 0 12px; min-width: 0; }
+.we-rowhead > h3{ margin: 0 !important; min-width: 0; flex: 0 1 auto; }
+.we-rowall{ margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 2px; height: 32px; padding: 0 12px 0 14px; border: 0 !important; border-radius: 99px; background: rgba(255, 255, 255, .09) !important; color: rgba(255, 255, 255, .85) !important; font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer; box-shadow: none !important; transition: background .2s, transform .2s; }
+.we-rowall svg{ margin-right: -2px; transition: transform .2s; }
+@media (hover: hover) and (pointer: fine){ .we-rowall:hover{ background: rgba(255, 255, 255, .18) !important; } .we-rowall:hover svg{ transform: translateX(2px); } }
+.we-rowall:active{ transform: scale(.96); }
+:root[data-mode='light'] .we-rowall{ background: rgba(0, 0, 0, .06) !important; color: #3a3a42 !important; }
+@media (hover: hover) and (pointer: fine){ :root[data-mode='light'] .we-rowall:hover{ background: rgba(0, 0, 0, .12) !important; } }
+
+/* 悬浮：卡片去掉边框框，只让海报（.card-pic）抬起 + 分层阴影 + 高光 + 反光 */
+:root .home-fl .card-media .card{ border: 0; background: none; box-shadow: none; overflow: visible; transform: none; }
+:root .home-fl .card-media .card-pic{
+  border-radius: 12px; overflow: hidden; transform: translateY(-4px);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .22) inset, 0 0 0 1px rgba(255, 255, 255, .08), 0 14px 24px -6px rgba(0, 0, 0, .65), 0 30px 46px -14px rgba(0, 0, 0, .55);
+  transition: transform .28s var(--ease-spring, ease), box-shadow .28s ease;
+}
+:root .home-fl .card-media .card-pic::after{ content: ''; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(115deg, rgba(255, 255, 255, .2) 0, rgba(255, 255, 255, 0) 38%); pointer-events: none; }
+:root .home-fl .card-media img{ border-radius: 0; }
+:root .home-fl .card-media .meta{ padding: 10px 2px 0; transition: transform .28s var(--ease-spring, ease); }
+@media (hover: hover) and (pointer: fine){
+  :root .home-fl .card-media:hover .card{ transform: none; border: 0; box-shadow: none; }
+  :root .home-fl .card-media:hover .card-pic{
+    transform: translateY(-14px) scale(1.04);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, .3) inset, 0 0 0 1px rgba(255, 255, 255, .12), 0 26px 34px -8px rgba(0, 0, 0, .75), 0 48px 64px -18px rgba(0, 0, 0, .6), 0 0 40px rgba(120, 160, 255, .18);
+  }
+  :root .home-fl .card-media:hover .meta{ transform: translateY(-6px); }
+}
+:root .home-fl .card-media:active .card-pic{ transform: translateY(-2px) scale(.98); }
+:root[data-mode='light'] .home-fl .card-media .card-pic{ box-shadow: 0 1px 0 rgba(255, 255, 255, .7) inset, 0 12px 22px -8px rgba(30, 40, 70, .38), 0 26px 40px -16px rgba(30, 40, 70, .28); }
+@media (hover: hover) and (pointer: fine){ :root[data-mode='light'] .home-fl .card-media:hover .card-pic{ box-shadow: 0 1px 0 rgba(255, 255, 255, .8) inset, 0 24px 32px -8px rgba(30, 40, 70, .42), 0 44px 60px -18px rgba(30, 40, 70, .32); } }
+/* 阴影要有地方放：横滚行底部留白，右侧渐隐提示还能滑 */
+.home-fl .nf-row-scroll, .home-fl .ap-row-scroll{ padding-top: 14px !important; padding-bottom: 36px !important; margin-bottom: -18px; }
+@media (max-width: 760px){
+  .we-rowall{ height: 28px; padding: 0 10px 0 12px; font-size: 12px; }
+  :root .home-fl .card-media:active .card-pic{ transform: translateY(-1px) scale(.97); }
+}
