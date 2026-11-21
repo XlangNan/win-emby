@@ -5,6 +5,7 @@ import { personUrl } from '../emby/client';
 import MediaCard from '../components/MediaCard';
 import { emby } from '../emby/client';
 import type { EmbyItem } from '../emby/types';
+import { NotInLibrary } from '../pages/SearchPage';
 import { loadSearchHistory, pushSearchHistory } from '../lib/prefs';
 
 export default function MobileSearch() {
@@ -14,11 +15,13 @@ export default function MobileSearch() {
   const [ppl, setPpl] = useState<EmbyItem[]>([]);
   const nav = useNavigate();
   const [busy, setBusy] = useState(false);
+  const [term, setTerm] = useState(() => (sp.get('q') || '').trim());   // 防抖后的关键词：给「片库中未入库」用
   const [hist, setHist] = useState<string[]>(() => loadSearchHistory());
 
   useEffect(() => {
     const term = q.trim();
     if (!term) {
+      setTerm('');
       setItems([]);
       setPpl([]);
       return;
@@ -26,6 +29,7 @@ export default function MobileSearch() {
     let dead = false;
     setBusy(true);
     const t = setTimeout(() => {
+      setTerm(term);
       emby.searchPersons(term, 8).then((r) => !dead && setPpl(r)).catch(() => !dead && setPpl([]));
       emby
         .items({ search: term, types: 'Movie,Series,BoxSet', sortBy: 'SortName', start: 0, limit: 60 })
@@ -69,7 +73,7 @@ export default function MobileSearch() {
         ) : busy && items.length === 0 && ppl.length === 0 ? (
           <div className="empty"><span className="spinner" aria-hidden="true" />搜索中…</div>
         ) : items.length === 0 && ppl.length === 0 ? (
-          <div className="empty">没有匹配「{q.trim()}」的内容</div>
+          <div className="empty" style={{ padding: '18px 0 4px' }}>已入库里没有匹配「{q.trim()}」的内容</div>
         ) : (
           <>
             {ppl.length > 0 && (
@@ -88,6 +92,7 @@ export default function MobileSearch() {
             {items.length > 0 && <div className="grid">{items.map((it) => <MediaCard key={it.Id} it={it} />)}</div>}
           </>
         )}
+        {q.trim() && !busy && <div style={{ padding: '0 12px' }}><NotInLibrary q={term} /></div>}
       </div>
     </>
   );

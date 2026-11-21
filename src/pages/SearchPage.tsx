@@ -9,7 +9,7 @@ import { useStatus } from './DiscoverPage';
 import type { EmbyItem } from '../emby/types';
 
 /** 片库（TMDB）里搜到、但本地 Emby 还没有的作品：可以直接订阅 */
-function NotInLibrary({ q }: { q: string }) {
+export function NotInLibrary({ q }: { q: string }) {
   const nav = useNavigate();
   const status = useStatus();
   const [items, setItems] = useState<TmdbItem[] | null>(null);
