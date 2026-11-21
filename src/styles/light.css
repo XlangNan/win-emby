@@ -171,3 +171,44 @@
 /* 手机小播放条的「播放 / 暂停」按钮：深色下是白字，浅色下改成深字 */:root[data-mode='light'] .mu-mini.inline .mu-ib-main{ color: var(--text) !important; }
 @media (hover: hover) and (pointer: fine) { :root[data-mode='light'] .mu-mini.inline .mu-ib-main:hover{ background: transparent !important; } }
 
+
+/* Z63 影片详情页（.nfd）在浅色外观下跟随浅色：底色、文字、剧集列表、按钮都用浅色令牌。
+   电脑版顶部「大图 + 文字」那一块仍是深色岛（文字叠在图片上），底部渐变改成融进浅色底。 */
+:root[data-mode='light'][data-theme] .nfd{
+  color-scheme: light;
+  --surface-0: #f5f5f7; --surface-1: rgba(255,255,255,.86); --surface-2: rgba(255,255,255,.94); --surface-3: #ffffff;
+  --surface-glass: rgba(250,250,252,.92);
+  --accent-strong: #c40812; --accent-soft: rgba(229,9,20,.1); --on-accent: #ffffff;
+  --text: #1d1d1f; --text-dim: #5f5f66; --text-faint: #86868b;
+  --border: rgba(60,60,67,.2); --border-soft: rgba(60,60,67,.12); --hairline: rgba(60,60,67,.14);
+  --shadow: 0 1px 2px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.08);
+  background: #f5f5f7; color: #1d1d1f;
+}
+:root[data-mode='light'][data-theme] .nfd-shade{ background: linear-gradient(77deg, rgba(0,0,0,.8) 0%, rgba(0,0,0,.4) 38%, rgba(0,0,0,0) 70%), linear-gradient(0deg, #f5f5f7 0%, rgba(245,245,247,0) 34%), linear-gradient(180deg, rgba(0,0,0,.45), rgba(0,0,0,0) 22%); }
+/* 电脑：叠在图上的文字仍用白色 */
+:root[data-mode='light'][data-theme] .nfd-hero{ color: #fff; --text: #ffffff; --text-dim: #d2d2d2; --text-faint: #b3b3b3; }
+/* 下半部分 */
+:root[data-mode='light'][data-theme] .nfd-sections{ color: #1d1d1f; }
+:root[data-mode='light'][data-theme] .nfd-sec-head h2{ color: #1d1d1f; }
+:root[data-mode='light'][data-theme] .nfd-select{ background: #fff; color: #1d1d1f; border-color: #d2d2d7; }
+:root[data-mode='light'][data-theme] .nfd-eps{ border-top-color: rgba(60,60,67,.16); }
+:root[data-mode='light'][data-theme] .nfd-ep{ border-bottom-color: rgba(60,60,67,.14); }
+@media (hover: hover) and (pointer: fine) { :root[data-mode='light'][data-theme] .nfd-ep:hover{ background: rgba(0,0,0,.05); } }
+:root[data-mode='light'][data-theme] .nfd-ep.sel{ background: rgba(0,0,0,.08); }
+:root[data-mode='light'][data-theme] .nfd-ep-n, :root[data-mode='light'][data-theme] .nfd-ep-rt, :root[data-mode='light'][data-theme] .nfd-ep-ov{ color: #5f5f66; }
+:root[data-mode='light'][data-theme] .nfd-ep-thumb{ background: #e4e4e8; }
+:root[data-mode='light'][data-theme] .nfd-sections .muted, :root[data-mode='light'][data-theme] .nfd-sections .dd-cast-role{ color: #5f5f66; }
+/* 手机：大图在上，标题 / 简介 / 按钮在图下面的页面底色上，改深色字 */
+:root[data-mode='light'].android[data-shell] .nfd-hero, :root[data-mode='light'].ios[data-shell] .nfd-hero{ color: #1d1d1f; --text: #1d1d1f; --text-dim: #5f5f66; --text-faint: #86868b; }
+:root[data-mode='light'].android[data-shell] .nfd-shade, :root[data-mode='light'].ios[data-shell] .nfd-shade{ background: linear-gradient(0deg, #f5f5f7 0%, rgba(245,245,247,0) 45%), linear-gradient(180deg, rgba(0,0,0,.45), rgba(0,0,0,0) 28%); }
+:root[data-mode='light'].android[data-shell] .nfd-title, :root[data-mode='light'].ios[data-shell] .nfd-title{ color: #1d1d1f; text-shadow: none; }
+:root[data-mode='light'].android[data-shell] .nfd-title small, :root[data-mode='light'].android[data-shell] .nfd-title .nfd-orig{ color: #5f5f66; }
+:root[data-mode='light'].android[data-shell] .nfd-meta, :root[data-mode='light'].ios[data-shell] .nfd-meta{ color: #5f5f66; }
+:root[data-mode='light'].android[data-shell] .nfd-tagline, :root[data-mode='light'].ios[data-shell] .nfd-tagline{ color: #5f5f66; }
+:root[data-mode='light'].android[data-shell] .nfd-ov, :root[data-mode='light'].ios[data-shell] .nfd-ov{ color: #3a3a3f; text-shadow: none; }
+:root[data-mode='light'].android[data-shell] .nfd-side, :root[data-mode='light'].ios[data-shell] .nfd-side{ color: #5f5f66; text-shadow: none; }
+:root[data-mode='light'].android[data-shell] .nfd-side span, :root[data-mode='light'].ios[data-shell] .nfd-side span{ color: #86868b; }
+:root[data-mode='light'].android[data-shell] .nfd-age, :root[data-mode='light'].android[data-shell] .nfd-hd{ border-color: rgba(0,0,0,.35); }
+:root[data-mode='light'].android[data-shell] .nfd-play, :root[data-mode='light'].ios[data-shell] .nfd-play{ background: #1d1d1f !important; color: #fff !important; }
+:root[data-mode='light'].android[data-shell] .nfd-circle, :root[data-mode='light'].ios[data-shell] .nfd-circle{ color: #1d1d1f; border-color: rgba(0,0,0,.25); background: transparent; }
+:root[data-mode='light'].android[data-shell] .nfd-act-l, :root[data-mode='light'].ios[data-shell] .nfd-act-l{ color: #5f5f66; }

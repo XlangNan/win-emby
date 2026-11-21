@@ -12,6 +12,7 @@ import ScrollIndicator from './components/ScrollIndicator';
 import PartyBridge from './components/PartyBridge';
 import MediaPage from './pages/MediaPage';
 import PersonPage from './pages/PersonPage';
+import SimilarPage from './pages/SimilarPage';
 import DetailPage from './pages/DetailPage';
 import DiscoverDetail from './pages/DiscoverDetail';
 import DiscoverMore from './pages/DiscoverMore';
@@ -206,6 +207,7 @@ function AppShell() {
         <Route path="/lib/:id" element={<LibraryPage />} />
         <Route path="/detail/:id" element={<DetailPage />} />
         <Route path="/person/:id" element={<PersonPage />} />
+        <Route path="/similar/:id" element={<SimilarPage />} />
         <Route path="/search" element={isMobileApp ? <MobileSearch /> : <SearchPage />} />
         <Route path="/me" element={<MePage />} />
         <Route path="/favorites" element={<FavoritesPage />} />

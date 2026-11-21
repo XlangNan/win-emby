@@ -3,6 +3,7 @@ import PartyPanel from './PartyPanel';
 import { partyUrl } from '../lib/party';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import HScrollRow from './HScrollRow';
 import BackButton from './BackButton';
 import MediaCard from './MediaCard';
 import PlayOptions, { type PlayChoice } from './PlayOptions';
@@ -181,25 +182,30 @@ export default function NfDetail(p: NfDetailProps) {
 
         {p.similar.length > 0 && (
           <section className="nfd-sec">
-            <div className="nfd-sec-head"><h2>更多类似内容</h2></div>
-            <div className="nfd-sim">
-              {p.similar.slice(0, 12).map((s) => <MediaCard key={s.Id} it={s} />)}
+            <div className="nfd-sec-head">
+              <h2>更多类似内容</h2>
+              <button type="button" className="nfd-all" onClick={() => nav(`/similar/${it.Id}`)}>查看全部 ›</button>
             </div>
+            <HScrollRow className="nfd-simrow" style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6 }}>
+              {p.similar.slice(0, 20).map((s) => <div key={s.Id} className="nfd-simcell"><MediaCard it={s} /></div>)}
+            </HScrollRow>
           </section>
         )}
 
         <section className="nfd-sec">
           <div className="nfd-sec-head"><h2>关于 {it.Name}</h2></div>
           {actors.length > 0 && (
-            <div className="nfd-cast">
-              {actors.slice(0, 12).map((x) => (
-                <div key={`${x.Id}-${x.Role}`} className="we-cast we-cast-link" role="button" tabIndex={0} title={x.Role ? `${x.Name} 饰 ${x.Role}` : x.Name} onClick={() => nav(`/person/${x.Id}`)} onKeyDown={(e) => e.key === 'Enter' && nav(`/person/${x.Id}`)}>
-                  {personUrl(x) ? <img src={personUrl(x)} loading="lazy" alt="" /> : <div className="we-cast-ph">{x.Name.slice(0, 1)}</div>}
-                  <div className="we-cast-name">{x.Name}</div>
-                  {x.Role && <div className="muted we-cast-role">{x.Role}</div>}
+            <HScrollRow className="nfd-cast" style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 10 }}>
+              {actors.slice(0, 16).map((x) => (
+                <div key={`${x.Id}-${x.Role}`} className="dd-cast we-cast-link" role="button" tabIndex={0} title={x.Role ? `${x.Name} 饰 ${x.Role}` : x.Name} onClick={() => nav(`/person/${x.Id}`)} onKeyDown={(e) => e.key === 'Enter' && nav(`/person/${x.Id}`)}>
+                  <div className="dd-cast-img">
+                    {personUrl(x) ? <img className="mp-img" src={personUrl(x)} loading="lazy" alt="" /> : <div className="dd-cast-ph">{x.Name.slice(0, 1)}</div>}
+                  </div>
+                  <div className="dd-cast-name">{x.Name}</div>
+                  {x.Role && <div className="dd-cast-role">{x.Role}</div>}
                 </div>
               ))}
-            </div>
+            </HScrollRow>
           )}
           {(p.isSeries ? p.target : it) && <PlayOptions itemId={(p.isSeries ? p.target : it)!.Id} onChange={p.onChoice} />}
         </section>

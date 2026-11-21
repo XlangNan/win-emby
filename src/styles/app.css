@@ -876,3 +876,19 @@ html .we-sr-nl .we-sr-sub{ display: block; width: 100%; height: 32px; padding: 0
 html .we-sr-nl .we-sr-sub:disabled{ opacity: .55; }
 html .we-sr-nl .mp-title{ font-size: 13px; }
 .we-sr-nl .we-sr-h{ margin-bottom: 12px; }
+/* Z63 影片详情的演员：和片库详情同款卡片，横向滚动 */
+.nfd-cast{ flex-wrap: nowrap !important; margin-bottom: 8px; scrollbar-width: none; }
+.nfd-cast::-webkit-scrollbar{ display: none; }
+.nfd-cast .dd-cast{ cursor: pointer; }
+:root.android[data-shell] .nfd-cast .dd-cast, :root.ios[data-shell] .nfd-cast .dd-cast{ flex-basis: 88px; }
+:root.android[data-shell] .nfd-cast .dd-cast-img, :root.ios[data-shell] .nfd-cast .dd-cast-img{ width: 88px; }
+.dd-cast-img img{ width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Z64 详情「更多类似内容」：横向一排、不显示滚动条；标题右侧「查看全部」 */
+.nfd-simrow{ scrollbar-width: none; -ms-overflow-style: none; }
+.nfd-simrow::-webkit-scrollbar{ display: none; width: 0; height: 0; }
+.nfd-simcell{ flex: 0 0 150px; min-width: 0; }
+:root.android[data-shell] .nfd-simcell, :root.ios[data-shell] .nfd-simcell{ flex-basis: 108px; }
+:root.android[data-shell] .nfd-simrow .card-media .meta{ display: none; }
+button.nfd-all{ background: none !important; border: 0 !important; box-shadow: none !important; padding: 4px 2px; font-size: 13px; color: var(--text-dim); white-space: nowrap; flex: none; }
+@media (hover: hover) and (pointer: fine) { button.nfd-all:hover{ color: var(--accent); } }

@@ -72,7 +72,7 @@ export default function DetailPage() {
     () => (isBox ? emby.items({ parentId: id, types: 'Movie,Series', sortBy: 'ProductionYear,SortName', limit: 200 }).then((r) => r.Items) : Promise.resolve([] as EmbyItem[])),
     [id, isBox],
   );
-  const similar = useAsync(() => (it && !isBox ? emby.similar(id).catch(() => [] as EmbyItem[]) : Promise.resolve([] as EmbyItem[])), [id, it?.Id]);
+  const similar = useAsync(() => (it && !isBox ? emby.similar(id, 20).catch(() => [] as EmbyItem[]) : Promise.resolve([] as EmbyItem[])), [id, it?.Id]);
 
   const seasons = useMemo(() => groupSeasons(eps.data || []), [eps.data]);
   const resumeEp = useMemo(() => pickResume(eps.data || []), [eps.data]);
