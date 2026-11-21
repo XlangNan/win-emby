@@ -1,5 +1,6 @@
 // 随便看看：连接群晖 → 首页（播放列表 / 继续播放 / 全部视频）。点视频进入播放页（/local/play）。
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import Cover from './Cover';
 import {
@@ -95,7 +96,7 @@ function Picker({ all, init, onSave, onClose, onDelete }: { all: LocalVideo[]; i
   const rows = k ? all.filter((v) => v.title.toLowerCase().includes(k) || v.list.toLowerCase().includes(k)) : all;
   const toggle = (p: string): void => setPaths((a) => (a.includes(p) ? a.filter((x) => x !== p) : [...a, p]));
   const ok = name.trim().length > 0 && paths.length > 0;
-  return (
+  return createPortal(
     <div className="lc-pk-bg" onClick={onClose}>
       <div className="lc-pk" onClick={(e) => e.stopPropagation()}>
         <div className="lc-pk-h">
@@ -126,7 +127,8 @@ function Picker({ all, init, onSave, onClose, onDelete }: { all: LocalVideo[]; i
           <button className="lc-pri" disabled={!ok} onClick={() => onSave(name.trim(), paths)}>{ok ? `保存（${paths.length} 个）` : name.trim() ? '先选几个视频' : '先起个名字'}</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

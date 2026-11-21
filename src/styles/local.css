@@ -171,7 +171,7 @@
 
 /* Z75 自建播放列表 */
 .lc-new{ background: var(--surface-3, #26262b); color: var(--text-dim, #9a9aa2); font-size: 38px; font-weight: 300; border: 1.5px dashed var(--border, #444) !important; box-sizing: border-box; }
-.lc-pk-bg{ position: fixed; inset: 0; z-index: 80; background: rgba(0, 0, 0, .55); display: flex; align-items: center; justify-content: center; }
+.lc-pk-bg{ position: fixed; inset: 0; z-index: 100000; background: rgba(0, 0, 0, .55); display: flex; align-items: center; justify-content: center; }
 .lc-pk{ width: min(720px, 100%); height: min(760px, 90vh); display: flex; flex-direction: column; background: var(--surface-1, #1b1b1e); color: var(--text, #f2f2f3); border-radius: 18px; padding: 14px 14px 12px; box-sizing: border-box; box-shadow: 0 20px 60px rgba(0, 0, 0, .5); }
 .lc-pk-h{ display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
 .lc-pk input{ border: 0 !important; outline: none; border-radius: 99px; background: var(--surface-3, #26262b) !important; color: inherit; height: 38px; padding: 0 16px; box-sizing: border-box; box-shadow: none !important; }
@@ -197,4 +197,4 @@
 .lc-pk-x span{ display: block; margin-top: 2px; font-size: 12px; color: var(--text-dim, #9a9aa2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lc-pk-f{ display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
 .lc-pk-f .lc-pri{ height: 40px; padding: 0 22px; }
-@media (max-width: 760px){ .lc-pk-bg{ align-items: flex-end; } .lc-pk{ width: 100%; height: 92vh; border-radius: 18px 18px 0 0; padding-bottom: calc(12px + env(safe-area-inset-bottom)); } .lc-pk-th{ width: 84px; } }
+@media (max-width: 760px){ .lc-pk-bg{ align-items: flex-end; } .lc-pk{ width: 100%; height: 92vh; max-height: calc(100vh - 40px); border-radius: 18px 18px 0 0; padding-bottom: calc(12px + env(safe-area-inset-bottom)); } .lc-pk-th{ width: 84px; } }
