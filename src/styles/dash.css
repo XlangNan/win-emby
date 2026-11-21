@@ -121,7 +121,33 @@
 .dh-pic .ed-cv{ width: 100%; aspect-ratio: 1.15 / 1; border-radius: 9px; }
 .dh-pic .t{ margin-top: 7px; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dh-pic .s{ font-size: 11.5px; color: var(--dh-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-@media (max-width: 1100px){ .dh-stats{ grid-template-columns: repeat(2, minmax(0, 1fr)); } .dh-row{ grid-template-columns: 1fr; } .dh-tiles{ grid-template-columns: repeat(2, minmax(0, 1fr)); } .dh-cols{ grid-template-columns: 1fr; } .dh-col{ border-left: 0; padding: 0 0 16px; } }
+/* 版面随宽度自动换列：窗口变窄时仍保持电脑版卡片排版，不变成手机样式 */
+.dh-stats{ grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.dh-row{ grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); }
+.dh-tiles{ grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 14px 12px; }
+.dh-cols{ grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); row-gap: 18px; }
+.dh-pics{ grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 14px 12px; }
+.dh-page{ padding-left: 0; }
+@media (max-width: 900px){ :root[data-shell] .content.dh-page{ padding: 0 14px 80px; } .dh-row{ grid-template-columns: minmax(0, 1fr); } .dh-date b{ font-size: 32px; } }
+.dh-weekc{ margin-bottom: 14px; }
+.dh-wk{ display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; align-items: end; height: 150px; }
+.dh-wk > div{ display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
+.dh-wk u{ text-decoration: none; font-size: 11px; color: var(--dh-dim); height: 16px; }
+.dh-wk .col{ flex: 1; width: 100%; max-width: 54px; display: flex; flex-direction: column-reverse; justify-content: flex-start; gap: 2px; min-height: 0; }
+.dh-wk .col b{ display: block; width: 100%; border-radius: 4px; background: var(--c); min-height: 3px; }
+.dh-wk em{ margin-top: 6px; font-style: normal; font-size: 12px; color: var(--dh-dim); }
+.dh-wk .today em{ color: var(--accent); font-weight: 700; }
+.dh-lg{ display: flex; gap: 16px; margin-top: 10px; font-size: 12px; color: var(--dh-dim); }
+.dh-lg span::before{ content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 3px; background: var(--c); margin-right: 6px; }
+/* Z69 整理：统计卡固定 4 列 / 2 列；接着来固定 4 列；最近入库每栏一行 3 张；副标题可换行 */
+.dh-stats{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.dh-stat .s{ white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.dh-tiles{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.dh-cols{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.dh-pics{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 1100px){ .dh-stats{ grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 980px){ .dh-cols{ grid-template-columns: minmax(0, 1fr); } .dh-col{ border-left: 0; padding: 0; } }
+@media (max-width: 560px){ .dh-tiles{ grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 /* 浅色：白卡 + 淡阴影，统计卡用淡彩色底 */
 :root[data-mode='light'] .dh-page{ --dh-card: #ffffff; --dh-line: rgba(60,60,67,.12); --dh-dim: #6a6a70; }
 :root[data-mode='light'] .dh-card, :root[data-mode='light'] .dh-stat{ box-shadow: 0 1px 3px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.05); }

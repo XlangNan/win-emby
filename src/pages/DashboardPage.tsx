@@ -136,7 +136,9 @@ export default function DashboardPage() {
   const bad = states.filter(([, on, err]) => !on || err).map(([n, on]) => `${n}${on ? ' 读取失败' : ' 未连接'}`);
   const status = bad.length ? bad.join('，') : 'Emby、Navidrome、Audiobookshelf 均已连接';
 
-  const resumeAll = [v?.resume[0], ...(b?.resume.slice(0, 2) || []), ...(v?.resume.slice(1, 3) || [])].filter((x): x is Entry => !!x).slice(0, 4);
+  const peak = Math.max(1, ...week.map((d) => d.v + d.m + d.a));
+  const bh = (x: number): number => (x > 0 ? Math.max(3, Math.round((x / peak) * 100)) : 0);
+  const resumeAll = [v?.resume[0], ...(b?.resume.slice(0, 2) || []), ...(v?.resume.slice(1, 3) || [])].filter((x): x is Entry => !!x).slice(0, 8);
   const stat = (cls: 'v' | 't' | 'm' | 'a', to: string, k: string, n: string, unit: string, sub: React.ReactNode) => (
     <div className={`dh-stat ${cls}`} role="button" tabIndex={0} onClick={() => go(to)} onKeyDown={(ev) => ev.key === 'Enter' && go(to)}>
       <i className="ic">{IC[cls]}</i>
@@ -165,7 +167,7 @@ export default function DashboardPage() {
             <div key={g.key} className="dh-day">
               <div className="dh-dl"><b>{g.label}</b><span>周{WEEK[g.date.getDay()]}{g.items.length ? `，共 ${fmtCn(sum(g.items))}` : ''}</span></div>
               {g.items.length ? (
-                <div className="dh-list">{g.items.slice(0, 3).map((e) => <FRow key={e.id} e={e} go={go} />)}</div>
+                <div className="dh-list">{g.items.slice(0, 5).map((e) => <FRow key={e.id} e={e} go={go} />)}</div>
               ) : (
                 <div className="dh-none"><i /><div><b>暂无记录</b><span>{g.key === todayK ? '今天还没有看过、听过东西' : '昨天没有记录'}</span></div></div>
               )}
@@ -181,12 +183,33 @@ export default function DashboardPage() {
         </section>
       </div>
 
+      <section className="dh-card dh-weekc">
+        <div className="dh-h"><h2>本周</h2><span>{weekTotal > 0 ? `共 ${fmtCn(weekTotal)}` : '这一周还没有看过、听过东西'}</span></div>
+        <div className="dh-wk">
+          {week.map((d) => {
+            const tot = d.v + d.m + d.a;
+            return (
+              <div key={d.key} className={d.today ? 'today' : ''} title={`影视 ${fmtCn(d.v)}，音乐 ${fmtCn(d.m)}，有声书 ${fmtCn(d.a)}`}>
+                <u>{tot > 0 ? `${(tot / 3600).toFixed(1)}h` : ''}</u>
+                <div className="col">
+                  {d.a > 0 ? <b className="a" style={{ height: `${bh(d.a)}%` }} /> : null}
+                  {d.v > 0 ? <b className="v" style={{ height: `${bh(d.v)}%` }} /> : null}
+                  {d.m > 0 ? <b className="m" style={{ height: `${bh(d.m)}%` }} /> : null}
+                </div>
+                <em>{d.label}</em>
+              </div>
+            );
+          })}
+        </div>
+        <div className="dh-lg"><span className="v">影视</span><span className="m">音乐</span><span className="a">有声书</span></div>
+      </section>
+
       <section className="dh-card dh-new">
         <div className="dh-h"><h2>最近入库</h2></div>
         <div className="dh-cols">
-          <div className="dh-col v"><div className="dh-ch"><b>影视</b><span role="button" tabIndex={0} onClick={() => go('/movies')}>查看全部 ›</span></div>{v?.recent.length ? <div className="dh-pics">{v.recent.slice(0, 2).map((e) => <Pic key={e.id} e={e} go={go} kind="v" />)}</div> : <div className="ed-ss">暂无</div>}</div>
-          <div className="dh-col m"><div className="dh-ch"><b>音乐</b><span role="button" tabIndex={0} onClick={() => go('/music')}>查看全部 ›</span></div>{m?.recent.length ? <div className="dh-pics">{m.recent.slice(0, 2).map((e) => <Pic key={e.id} e={e} go={go} kind="m" />)}</div> : <div className="ed-ss">{hasNd ? '暂无' : '未连接'}</div>}</div>
-          <div className="dh-col a"><div className="dh-ch"><b>有声书</b><span role="button" tabIndex={0} onClick={() => go('/audiobooks')}>查看全部 ›</span></div>{b?.recent.length ? <div className="dh-pics">{b.recent.slice(0, 2).map((e) => <Pic key={e.id} e={e} go={go} kind="a" />)}</div> : <div className="ed-ss">{hasAbs ? '暂无' : '未连接'}</div>}</div>
+          <div className="dh-col v"><div className="dh-ch"><b>影视</b><span role="button" tabIndex={0} onClick={() => go('/movies')}>查看全部 ›</span></div>{v?.recent.length ? <div className="dh-pics">{v.recent.slice(0, 3).map((e) => <Pic key={e.id} e={e} go={go} kind="v" />)}</div> : <div className="ed-ss">暂无</div>}</div>
+          <div className="dh-col m"><div className="dh-ch"><b>音乐</b><span role="button" tabIndex={0} onClick={() => go('/music')}>查看全部 ›</span></div>{m?.recent.length ? <div className="dh-pics">{m.recent.slice(0, 3).map((e) => <Pic key={e.id} e={e} go={go} kind="m" />)}</div> : <div className="ed-ss">{hasNd ? '暂无' : '未连接'}</div>}</div>
+          <div className="dh-col a"><div className="dh-ch"><b>有声书</b><span role="button" tabIndex={0} onClick={() => go('/audiobooks')}>查看全部 ›</span></div>{b?.recent.length ? <div className="dh-pics">{b.recent.slice(0, 3).map((e) => <Pic key={e.id} e={e} go={go} kind="a" />)}</div> : <div className="ed-ss">{hasAbs ? '暂无' : '未连接'}</div>}</div>
         </div>
       </section>
     </div>
