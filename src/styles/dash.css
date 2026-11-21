@@ -60,3 +60,70 @@
 .ed-new .ed-mini:first-of-type{ border-top: 0; }
 .ed-new .ed-mini .ed-cv{ width: 44px; }
 .ed-new .ed-mini .ed-cv.p{ width: 34px; }
+
+/* ================= Z67 电脑版首页：卡片式仪表盘（深色黑金 / 浅色白卡） ================= */
+.dh-page{ --dh-card: var(--surface-1, #121214); --dh-line: var(--hairline, rgba(255,255,255,.1)); --dh-dim: var(--text-faint, #9a968c); }
+:root[data-shell] .content.dh-page{ padding: 0 28px 80px; max-width: 1480px; margin: 0 auto; }
+.dh-mast{ display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding: 26px 0 18px; }
+.dh-date b{ font-family: var(--ed-serif); font-size: 40px; font-weight: 600; letter-spacing: -.01em; line-height: 1; }
+.dh-date span{ margin-left: 14px; font-size: 16px; color: var(--dh-dim); }
+.dh-hi{ text-align: right; font-size: 14px; }
+.dh-hi small{ display: block; margin-top: 5px; font-size: 12px; color: var(--dh-dim); }
+.dh-stats{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px; }
+.dh-stat{ display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 14px; cursor: pointer; border: 1px solid color-mix(in srgb, var(--c) 38%, transparent); background: linear-gradient(135deg, color-mix(in srgb, var(--c) 16%, var(--dh-card)), var(--dh-card) 72%); min-width: 0; transition: transform .15s ease; }
+@media (hover: hover) and (pointer: fine) { .dh-stat:hover{ transform: translateY(-2px); } }
+.dh-stat .ic{ flex: none; width: 48px; height: 48px; border-radius: 13px; display: flex; align-items: center; justify-content: center; color: var(--c); background: color-mix(in srgb, var(--c) 18%, transparent); }
+.dh-stat .tx{ min-width: 0; }
+.dh-stat .k{ font-size: 12.5px; color: var(--dh-dim); }
+.dh-stat .n{ font-family: var(--ed-serif); font-size: 36px; line-height: 1.15; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dh-stat .n small{ font-family: inherit; font-size: 14px; margin-left: 4px; color: var(--dh-dim); }
+.dh-stat .s{ font-size: 12px; color: var(--dh-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dh-stat .s b{ color: var(--c); font-weight: 600; }
+.dh-row{ display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr); gap: 14px; margin-bottom: 14px; }
+.dh-card{ background: var(--dh-card); border: 1px solid var(--dh-line); border-radius: 14px; padding: 16px 20px 18px; min-width: 0; }
+.dh-h{ display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.dh-h h2{ margin: 0; font-size: 17px; font-weight: 700; }
+.dh-h span{ font-size: 12px; color: var(--dh-dim); }
+.dh-day + .dh-day{ border-top: 1px solid var(--dh-line); margin-top: 8px; padding-top: 8px; }
+.dh-dl{ display: flex; align-items: baseline; gap: 10px; margin: 6px 0; }
+.dh-dl b{ font-size: 15px; }
+.dh-dl span{ font-size: 12px; color: var(--dh-dim); }
+.dh-none{ display: flex; align-items: center; gap: 14px; padding: 8px 0 10px; }
+.dh-none i{ flex: none; width: 42px; height: 42px; border-radius: 50%; border: 1.5px dashed var(--dh-line); }
+.dh-none b{ display: block; font-size: 14px; font-weight: 600; }
+.dh-none span{ font-size: 12px; color: var(--dh-dim); }
+.dh-list{ display: flex; flex-direction: column; gap: 8px; }
+.dh-fr{ display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 4px 6px; margin: 0 -6px; border-radius: 10px; }
+@media (hover: hover) and (pointer: fine) { .dh-fr:hover{ background: color-mix(in srgb, var(--c, #888) 10%, transparent); } }
+.dh-fr .ed-cv{ width: 42px; border-radius: 8px; }
+.dh-fr .x{ flex: 1; min-width: 0; }
+.dh-fr .t{ font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dh-fr .s{ font-size: 12px; color: var(--dh-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dh-fr em{ flex: none; font-style: normal; font-size: 12px; color: var(--dh-dim); }
+.dh-tiles{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.dh-tile{ cursor: pointer; min-width: 0; }
+.dh-tile .ed-cv{ width: 100%; aspect-ratio: 4 / 3; border-radius: 9px; }
+.dh-tile .t{ margin-top: 8px; font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dh-tile .k{ font-size: 12px; color: var(--dh-dim); }
+.dh-tile .bar{ height: 4px; border-radius: 2px; background: var(--dh-line); margin: 7px 0 5px; overflow: hidden; }
+.dh-tile .bar i{ display: block; height: 100%; background: var(--c); border-radius: 2px; }
+.dh-tile .n{ font-size: 11.5px; color: var(--dh-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dh-cols{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.dh-col{ padding: 0 18px; border-left: 1px solid var(--dh-line); min-width: 0; }
+.dh-col:first-child{ border-left: 0; padding-left: 0; }
+.dh-col:last-child{ padding-right: 0; }
+.dh-ch{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.dh-ch b{ font-size: 14px; color: var(--c); }
+.dh-ch span{ font-size: 12px; color: var(--dh-dim); cursor: pointer; }
+@media (hover: hover) and (pointer: fine) { .dh-ch span:hover{ color: var(--accent); } }
+.dh-pics{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.dh-pic{ cursor: pointer; min-width: 0; }
+.dh-pic .ed-cv{ width: 100%; aspect-ratio: 1.15 / 1; border-radius: 9px; }
+.dh-pic .t{ margin-top: 7px; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dh-pic .s{ font-size: 11.5px; color: var(--dh-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 1100px){ .dh-stats{ grid-template-columns: repeat(2, minmax(0, 1fr)); } .dh-row{ grid-template-columns: 1fr; } .dh-tiles{ grid-template-columns: repeat(2, minmax(0, 1fr)); } .dh-cols{ grid-template-columns: 1fr; } .dh-col{ border-left: 0; padding: 0 0 16px; } }
+/* 浅色：白卡 + 淡阴影，统计卡用淡彩色底 */
+:root[data-mode='light'] .dh-page{ --dh-card: #ffffff; --dh-line: rgba(60,60,67,.12); --dh-dim: #6a6a70; }
+:root[data-mode='light'] .dh-card, :root[data-mode='light'] .dh-stat{ box-shadow: 0 1px 3px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.05); }
+:root[data-mode='light'] .dh-stat{ background: #fff; }
+:root[data-mode='light'] .dh-stat .ic{ border-radius: 50%; background: color-mix(in srgb, var(--c) 14%, #fff); }

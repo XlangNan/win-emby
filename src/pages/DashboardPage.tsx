@@ -60,6 +60,47 @@ function Mini({ e, go, p }: { e: Entry; go: (to: string) => void; p?: boolean })
   );
 }
 
+const IC = {
+  v: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4" /></svg>,
+  t: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="12" rx="2" /><path d="M8 3l4 4 4-4" /></svg>,
+  m: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V6l11-2v12" /><circle cx="6.5" cy="18" r="2.5" /><circle cx="17.5" cy="16" r="2.5" /></svg>,
+  a: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 6c-2-1.6-5-2-8-1.5v13c3-.5 6-.1 8 1.5 2-1.6 5-2 8-1.5v-13C17 4 14 4.4 12 6zM12 6v13" /></svg>,
+};
+
+function Tile({ e, go }: { e: Entry; go: (to: string) => void }) {
+  const kind = e.to.startsWith('/audiobooks') ? 'a' : 'v';
+  return (
+    <div className={`dh-tile ${kind}`} role="button" tabIndex={0} onClick={() => go(e.to)} onKeyDown={(ev) => ev.key === 'Enter' && go(e.to)}>
+      <Cv src={e.img} title={e.title} />
+      <div className="t">{e.title}</div>
+      <div className="k">{KIND[kind]}</div>
+      <div className="bar"><i style={{ width: `${Math.max(0, Math.min(100, e.pct))}%` }} /></div>
+      <div className="n">{e.note}</div>
+    </div>
+  );
+}
+
+function Pic({ e, go, kind }: { e: Entry; go: (to: string) => void; kind: 'v' | 'm' | 'a' }) {
+  return (
+    <div className={`dh-pic ${kind}`} role="button" tabIndex={0} onClick={() => go(e.to)} onKeyDown={(ev) => ev.key === 'Enter' && go(e.to)}>
+      <Cv src={e.img} title={e.title} />
+      <div className="t">{e.title}</div>
+      <div className="s">{e.sub}</div>
+    </div>
+  );
+}
+
+function FRow({ e, go }: { e: Entry; go: (to: string) => void }) {
+  const kind = e.kind || 'v';
+  return (
+    <div className={`dh-fr ${kind}`} role="button" tabIndex={0} onClick={() => go(e.to)} onKeyDown={(ev) => ev.key === 'Enter' && go(e.to)}>
+      <Cv src={e.img} title={e.title} />
+      <div className="x"><div className="t">{e.title}</div><div className="s">{KIND[kind]} · {e.sub}{e.note ? ` · ${e.note}` : ''}</div></div>
+      <em>{e.when}</em>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const nav = useNavigate();
   const go = (to: string): void => nav(to);
@@ -90,82 +131,63 @@ export default function DashboardPage() {
 
   const week = useMemo(() => lastDays().map((d) => ({ ...d, v: v?.week[d.key] || 0, m: local.days[d.key] || 0, a: b?.days[d.key] || 0 })), [v, b, local]);
   const weekTotal = week.reduce((s, d) => s + d.v + d.m + d.a, 0);
-  const peak = Math.max(1, ...week.map((d) => d.v + d.m + d.a));
-  const bh = (x: number): number => (x > 0 ? Math.max(4, Math.round((x / peak) * 100)) : 0);
 
-  const first = v?.resume[0];
-  const resume = [...(b?.resume.slice(0, 2) || []), ...(v?.resume.slice(1, 3) || [])].slice(0, 3);
   const states = [['Emby', !!getSession(), video.err], ['Navidrome', hasNd, music.err], ['Audiobookshelf', hasAbs, books.err]] as const;
   const bad = states.filter(([, on, err]) => !on || err).map(([n, on]) => `${n}${on ? ' 读取失败' : ' 未连接'}`);
   const status = bad.length ? bad.join('，') : 'Emby、Navidrome、Audiobookshelf 均已连接';
 
+  const resumeAll = [v?.resume[0], ...(b?.resume.slice(0, 2) || []), ...(v?.resume.slice(1, 3) || [])].filter((x): x is Entry => !!x).slice(0, 4);
+  const stat = (cls: 'v' | 't' | 'm' | 'a', to: string, k: string, n: string, unit: string, sub: React.ReactNode) => (
+    <div className={`dh-stat ${cls}`} role="button" tabIndex={0} onClick={() => go(to)} onKeyDown={(ev) => ev.key === 'Enter' && go(to)}>
+      <i className="ic">{IC[cls]}</i>
+      <div className="tx"><div className="k">{k}</div><div className="n">{n}<small>{unit}</small></div><div className="s">{sub}</div></div>
+    </div>
+  );
+
   return (
-    <div className="content ed-page">
-      <header className="ed-mast">
-        <div className="ed-date"><b>{now.getMonth() + 1}月{now.getDate()}日</b><span>星期{WEEK[now.getDay()]}</span></div>
-        <div className="ed-hi">{hello}，{getSession()?.userName || ''}<small>{status}</small></div>
+    <div className="content ed-page dh-page">
+      <header className="dh-mast">
+        <div className="dh-date"><b>{now.getMonth() + 1}月{now.getDate()}日</b><span>星期{WEEK[now.getDay()]}</span></div>
+        <div className="dh-hi">{hello}，{getSession()?.userName || ''}<small>{status}</small></div>
       </header>
 
-      <section className="ed-count">
-        <div className="ed-n v" role="button" tabIndex={0} onClick={() => go('/movies')}><div className="k">电影</div><div className="n">{v ? fmt(v.movies) : '—'}<small>部</small></div><div className="s">{v ? (v.newMovies ? <>昨天新增 <b>{v.newMovies}</b> 部</> : '昨天没有新增') : video.err ? '读取失败' : '读取中…'}</div></div>
-        <div className="ed-n t" role="button" tabIndex={0} onClick={() => go('/movies')}><div className="k">剧集</div><div className="n">{v ? fmt(v.series) : '—'}<small>部</small></div><div className="s">{v ? <>共 {fmt(v.episodes)} 集{v.newEpisodes ? <>，昨天新增 <b>{v.newEpisodes}</b> 集</> : null}</> : video.err ? '读取失败' : '读取中…'}</div></div>
-        <div className="ed-n m" role="button" tabIndex={0} onClick={() => go('/music')}><div className="k">歌曲</div><div className="n">{m && m.songs ? fmt(m.songs) : '—'}<small>首</small></div><div className="s">{m ? `${fmt(m.albums)} 张专辑，${fmt(m.artists)} 位艺术家` : !hasNd ? '未连接' : music.err ? '读取失败' : '读取中…'}</div></div>
-        <div className="ed-n a" role="button" tabIndex={0} onClick={() => go('/audiobooks')}><div className="k">有声书</div><div className="n">{b ? fmt(b.books) : '—'}<small>本</small></div><div className="s">{b ? `约 ${fmt(b.hours)} 小时${b.listening ? `，正在听 ${b.listening} 本` : ''}` : !hasAbs ? '未连接' : books.err ? '读取失败' : '读取中…'}</div></div>
+      <section className="dh-stats">
+        {stat('v', '/movies', '电影', v ? fmt(v.movies) : '—', '部', v ? (v.newMovies ? <>昨天新增 <b>{v.newMovies}</b> 部</> : '昨天没有新增') : video.err ? '读取失败' : '读取中…')}
+        {stat('t', '/movies', '剧集', v ? fmt(v.series) : '—', '部', v ? <>共 {fmt(v.episodes)} 集{v.newEpisodes ? <>，昨天新增 <b>{v.newEpisodes}</b> 集</> : null}</> : video.err ? '读取失败' : '读取中…')}
+        {stat('m', '/music', '歌曲', m && m.songs ? fmt(m.songs) : '—', '首', m ? `${fmt(m.albums)} 张专辑，${fmt(m.artists)} 位艺术家` : !hasNd ? '未连接' : music.err ? '读取失败' : '读取中…')}
+        {stat('a', '/audiobooks', '有声书', b ? fmt(b.books) : '—', '本', b ? `约 ${fmt(b.hours)} 小时${b.listening ? `，正在听 ${b.listening} 本` : ''}` : !hasAbs ? '未连接' : books.err ? '读取失败' : '读取中…')}
       </section>
 
-      <div className="ed-body">
-        <div className="ed-log">
-          <div className="ed-h"><h2>你的足迹</h2><span>影视、音乐、有声书按时间排在一起</span></div>
+      <div className="dh-row">
+        <section className="dh-card dh-log">
+          <div className="dh-h"><h2>你的足迹</h2><span>{weekTotal > 0 ? `本周共 ${fmtCn(weekTotal)}` : ''}</span></div>
           {groups.map((g) => (
-            <div key={g.key}>
-              <div className="ed-day"><b>{g.label}</b>周{WEEK[g.date.getDay()]}{g.items.length ? `，共 ${fmtCn(sum(g.items))}` : ''}</div>
-              {g.items.length ? g.items.slice(0, 8).map((e) => <Ev key={e.id} e={e} go={go} />) : <div className="ed-empty">{g.key === todayK ? '今天还没有看过、听过东西' : '昨天没有记录'}</div>}
+            <div key={g.key} className="dh-day">
+              <div className="dh-dl"><b>{g.label}</b><span>周{WEEK[g.date.getDay()]}{g.items.length ? `，共 ${fmtCn(sum(g.items))}` : ''}</span></div>
+              {g.items.length ? (
+                <div className="dh-list">{g.items.slice(0, 3).map((e) => <FRow key={e.id} e={e} go={go} />)}</div>
+              ) : (
+                <div className="dh-none"><i /><div><b>暂无记录</b><span>{g.key === todayK ? '今天还没有看过、听过东西' : '昨天没有记录'}</span></div></div>
+              )}
             </div>
           ))}
-        </div>
-        <aside className="ed-side">
-          <section>
-            <div className="ed-h"><h2>接着来</h2></div>
-            {first ? (
-              <div className="ed-big v" role="button" tabIndex={0} onClick={() => go(first.to)} onKeyDown={(ev) => ev.key === 'Enter' && go(first.to)}>
-                <Cv src={first.img} title={first.title} cls="w" />
-                <div className="bar"><i style={{ width: `${first.pct}%` }} /></div>
-                <div className="ed-kind">影视</div><div className="ed-tt">{first.title}</div><div className="ed-ss">{first.note}</div>
-              </div>
-            ) : null}
-            {resume.map((e) => (
-              <div key={e.id} className={`ed-mini ${e.to.startsWith('/audiobooks') ? 'a' : 'v'}`} role="button" tabIndex={0} onClick={() => go(e.to)} onKeyDown={(ev) => ev.key === 'Enter' && go(e.to)}>
-                <Cv src={e.img} title={e.title} />
-                <div className="x"><div className="ed-kind">{e.to.startsWith('/audiobooks') ? '有声书' : '影视'}</div><div className="ed-tt">{e.title}</div><div className="ed-ss">{e.note}</div></div>
-              </div>
-            ))}
-            {!first && !resume.length ? <div className="ed-ss" style={{ marginTop: 14 }}>没有看到一半、听到一半的内容</div> : null}
-          </section>
-          <section>
-            <div className="ed-h"><h2>本周</h2><span>{weekTotal > 0 ? `共 ${fmtCn(weekTotal)}` : ''}</span></div>
-            <div className="ed-wk">
-              {week.map((d) => {
-                const tot = d.v + d.m + d.a;
-                return (
-                  <div key={d.key} className={d.today ? 'today' : ''} title={`影视 ${fmtCn(d.v)}，音乐 ${fmtCn(d.m)}，有声书 ${fmtCn(d.a)}`}>
-                    <u>{tot > 0 ? (tot / 3600).toFixed(1) : ''}</u>
-                    {d.a > 0 ? <b className="a" style={{ height: bh(d.a) }} /> : null}
-                    {d.v > 0 ? <b className="v" style={{ height: bh(d.v) }} /> : null}
-                    {d.m > 0 ? <b className="m" style={{ height: bh(d.m) }} /> : null}
-                    <em>{d.label}</em>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="ed-lg"><span className="v">影视</span><span className="m">音乐</span><span className="a">有声书</span></div>
-          </section>
-        </aside>
+        </section>
+
+        <section className="dh-card dh-next">
+          <div className="dh-h"><h2>接着来</h2></div>
+          {resumeAll.length ? (
+            <div className="dh-tiles">{resumeAll.map((e) => <Tile key={e.id} e={e} go={go} />)}</div>
+          ) : <div className="dh-none"><i /><div><b>暂无</b><span>没有看到一半、听到一半的内容</span></div></div>}
+        </section>
       </div>
 
-      <section className="ed-new">
-        <div className="v"><h3>影视</h3>{v?.recent.length ? v.recent.slice(0, 4).map((e) => <Mini key={e.id} e={e} go={go} p />) : <div className="ed-ss">暂无</div>}</div>
-        <div className="m"><h3>音乐</h3>{m?.recent.length ? m.recent.slice(0, 4).map((e) => <Mini key={e.id} e={e} go={go} />) : <div className="ed-ss">{hasNd ? '暂无' : '未连接'}</div>}</div>
-        <div className="a"><h3>有声书</h3>{b?.recent.length ? b.recent.slice(0, 4).map((e) => <Mini key={e.id} e={e} go={go} />) : <div className="ed-ss">{hasAbs ? '暂无' : '未连接'}</div>}</div>
+      <section className="dh-card dh-new">
+        <div className="dh-h"><h2>最近入库</h2></div>
+        <div className="dh-cols">
+          <div className="dh-col v"><div className="dh-ch"><b>影视</b><span role="button" tabIndex={0} onClick={() => go('/movies')}>查看全部 ›</span></div>{v?.recent.length ? <div className="dh-pics">{v.recent.slice(0, 2).map((e) => <Pic key={e.id} e={e} go={go} kind="v" />)}</div> : <div className="ed-ss">暂无</div>}</div>
+          <div className="dh-col m"><div className="dh-ch"><b>音乐</b><span role="button" tabIndex={0} onClick={() => go('/music')}>查看全部 ›</span></div>{m?.recent.length ? <div className="dh-pics">{m.recent.slice(0, 2).map((e) => <Pic key={e.id} e={e} go={go} kind="m" />)}</div> : <div className="ed-ss">{hasNd ? '暂无' : '未连接'}</div>}</div>
+          <div className="dh-col a"><div className="dh-ch"><b>有声书</b><span role="button" tabIndex={0} onClick={() => go('/audiobooks')}>查看全部 ›</span></div>{b?.recent.length ? <div className="dh-pics">{b.recent.slice(0, 2).map((e) => <Pic key={e.id} e={e} go={go} kind="a" />)}</div> : <div className="ed-ss">{hasAbs ? '暂无' : '未连接'}</div>}</div>
+        </div>
       </section>
     </div>
   );
