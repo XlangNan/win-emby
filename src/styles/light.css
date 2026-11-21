@@ -212,3 +212,21 @@
 :root[data-mode='light'].android[data-shell] .nfd-play, :root[data-mode='light'].ios[data-shell] .nfd-play{ background: #1d1d1f !important; color: #fff !important; }
 :root[data-mode='light'].android[data-shell] .nfd-circle, :root[data-mode='light'].ios[data-shell] .nfd-circle{ color: #1d1d1f; border-color: rgba(0,0,0,.25); background: transparent; }
 :root[data-mode='light'].android[data-shell] .nfd-act-l, :root[data-mode='light'].ios[data-shell] .nfd-act-l{ color: #5f5f66; }
+
+/* Z65 浅色影片详情：修手机上看不清的文字和选项（这些在 mobile.css 里写死了白字 / 深灰底） */
+:root[data-mode='light'][data-theme] .nfd .back-btn{ background: rgba(255,255,255,.88) !important; color: #1d1d1f !important; border: 1px solid rgba(0,0,0,.08) !important; box-shadow: 0 2px 8px rgba(0,0,0,.18); }
+:root[data-mode='light'][data-theme] .nfd .back-btn svg{ stroke: currentColor; }
+:root[data-mode='light'][data-theme] .nfd .m-pk-item > span{ color: #5f5f66 !important; }
+:root[data-mode='light'][data-theme] .nfd .m-pk-item > select{
+  background-color: #fff !important; color: #1d1d1f !important; border: 1px solid #d2d2d7 !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231d1d1f' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+}
+:root[data-mode='light'][data-theme] .nfd :is(select, input[type='text'], input[type='number']){ background-color: #fff; color: #1d1d1f; border-color: #d2d2d7; }
+:root[data-mode='light'].android[data-shell] .nfd .nfd-circle:not(.done), :root[data-mode='light'].ios[data-shell] .nfd .nfd-circle:not(.done){ background: rgba(0,0,0,.07) !important; color: #1d1d1f !important; border: none !important; }
+:root[data-mode='light'].android[data-shell] .nfd .nfd-circle.on:not(.done){ background: rgba(0,0,0,.14) !important; }
+:root[data-mode='light'].android[data-shell] .nfd .nfd-act-l:not([style]), :root[data-mode='light'].ios[data-shell] .nfd .nfd-act-l:not([style]){ color: #4a4a50 !important; }
+:root[data-mode='light'][data-theme] .nfd .m-fileinfo{ background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+:root[data-mode='light'][data-theme] .nfd .m-fileinfo summary{ color: #1d1d1f; }
+:root[data-mode='light'][data-theme] .nfd .m-fileinfo summary::after{ color: #86868b; }
+:root[data-mode='light'][data-theme] .nfd :is(.we-fi-k, .we-fi-line, .muted){ color: #5f5f66; }
+:root[data-mode='light'][data-theme] .nfd .nfd-more, :root[data-mode='light'][data-theme] .nfd .nfd-more button{ color: #fff; }
