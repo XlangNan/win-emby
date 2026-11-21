@@ -1,6 +1,6 @@
 // 播放页右侧信息抽屉：简介 / 演职员 / 选集（Emby 风格：深色平面板 + 下划线标签 + 竖版长方形演员卡）
 import { useState } from 'react';
-import { backdropUrl, personUrl, thumbUrl } from '../emby/client';
+import { backdropUrl, personUrl, posterUrl, thumbUrl } from '../emby/client';
 import { fmtRuntime } from '../emby/format';
 import type { EmbyItem } from '../emby/types';
 
@@ -32,7 +32,8 @@ export default function PlayerDrawer({
   const isEp = item?.Type === 'Episode';
   const title = (isEp ? item?.SeriesName : item?.Name) || '';
   const sub = isEp && item ? `第 ${item.ParentIndexNumber ?? 1} 季 第 ${item.IndexNumber ?? 1} 集 · ${item.Name}` : tab === 'eps' ? `共 ${episodes.length} 集` : '';
-  const hero = item ? backdropUrl(item, 900) || thumbUrl(item, 900) : '';
+  const hero = item ? backdropUrl(item, 600) || thumbUrl(item, 600) : '';
+  const poster = item ? posterUrl(item, 240) : '';
   const chips = [item?.ProductionYear ? String(item.ProductionYear) : '', item?.OfficialRating || '', fmtRuntime(item?.RunTimeTicks), ...(item?.Genres || []).slice(0, 3)].filter(Boolean);
   const personCard = (p: (typeof cast)[number], i: number) => (
     <div key={`${p.Id}-${i}`} className="we-d-person" title={p.Role ? `${p.Name} 饰 ${p.Role}` : p.Name}>
@@ -45,13 +46,16 @@ export default function PlayerDrawer({
   return (
     <aside className="we-drawer" onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
       <div className="we-d-hero">
-        {hero && <img src={hero} alt="" draggable={false} />}
+        {hero && <img className="we-d-bg" src={hero} alt="" draggable={false} />}
         <button className="we-btn we-d-x" title="关闭（I）" aria-label="关闭" onClick={onClose}>
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" /></svg>
         </button>
-        <div className="we-d-ht">
-          <h3>{title}</h3>
-          {sub && <p>{sub}</p>}
+        <div className="we-d-hrow">
+          {poster && <img className="we-d-poster" src={poster} alt="" draggable={false} />}
+          <div className="we-d-ht">
+            <h3>{title}</h3>
+            {sub && <p>{sub}</p>}
+          </div>
         </div>
       </div>
       <div className="we-d-tabs" role="tablist">

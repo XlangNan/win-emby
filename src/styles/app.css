@@ -873,13 +873,16 @@ button.nfd-all{ background: none !important; border: 0 !important; box-shadow: n
   background: rgba(16, 16, 16, .93); border: 0; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   box-shadow: 0 18px 50px rgba(0, 0, 0, .6), inset 0 0 0 1px rgba(255, 255, 255, .08);
 }
-.we-d-hero{ position: relative; height: 140px; flex: none; background: linear-gradient(135deg, #3d3552, #8a5a3a); overflow: hidden; }
-.we-d-hero img{ position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.we-d-hero::after{ content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(16, 16, 16, 1) 0, rgba(16, 16, 16, .45) 55%, rgba(16, 16, 16, .1)); }
-.we-player .we-d-x{ position: absolute; right: 10px; top: 10px; z-index: 2; width: 32px; height: 32px; min-width: 32px; padding: 0; border-radius: 50%; background: rgba(0, 0, 0, .5) !important; display: inline-flex; align-items: center; justify-content: center; }
-.we-d-ht{ position: absolute; left: 18px; right: 18px; bottom: 10px; z-index: 1; }
-.we-d-ht h3{ margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; color: #fff; text-shadow: 0 2px 12px rgba(0, 0, 0, .7); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.we-d-ht p{ margin: 3px 0 0; font-size: 12.5px; color: rgba(255, 255, 255, .78); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.we-d-hero{ position: relative; flex: none; background: #2a2a30; overflow: hidden; padding: 16px 18px 14px; }
+/* 背景：剧照放大虚化当底色（不会被裁得难看），前景是完整的竖版海报 */
+.we-d-bg{ position: absolute; inset: -20px; width: calc(100% + 40px); height: calc(100% + 40px); object-fit: cover; filter: blur(18px) saturate(1.2) brightness(.62); transform: scale(1.05); }
+.we-d-hero::after{ content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(16, 16, 16, 1) 0, rgba(16, 16, 16, .35) 70%, rgba(16, 16, 16, .1)); }
+.we-player .we-d-x{ position: absolute; right: 10px; top: 10px; z-index: 3; width: 30px; height: 30px; min-width: 30px; padding: 0; border-radius: 50%; background: rgba(0, 0, 0, .5) !important; display: inline-flex; align-items: center; justify-content: center; }
+.we-d-hrow{ position: relative; z-index: 2; display: flex; align-items: flex-end; gap: 14px; padding-right: 30px; }
+.we-d-poster{ flex: none; width: 76px; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 6px; box-shadow: 0 8px 22px rgba(0, 0, 0, .6); background: rgba(255, 255, 255, .1); }
+.we-d-ht{ min-width: 0; flex: 1; padding-bottom: 2px; }
+.we-d-ht h3{ margin: 0; font-size: 19px; font-weight: 700; line-height: 1.25; color: #fff; text-shadow: 0 2px 12px rgba(0, 0, 0, .7); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.we-d-ht p{ margin: 4px 0 0; font-size: 12.5px; color: rgba(255, 255, 255, .8); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .we-d-tabs{ display: flex; gap: 22px; margin: 2px 18px 0; border-bottom: 1px solid rgba(255, 255, 255, .1); flex: none; }
 .we-player .we-d-tabs button{ background: none !important; border: 0; border-bottom: 2px solid transparent; border-radius: 0; margin-bottom: -1px; padding: 0; height: 40px; font-size: 14px; color: rgba(255, 255, 255, .6); box-shadow: none; text-shadow: none; }
 .we-player .we-d-tabs button.active{ color: #fff; font-weight: 650; border-bottom-color: var(--accent); }
@@ -927,8 +930,7 @@ button.nfd-all{ background: none !important; border: 0 !important; box-shadow: n
 /* 窄窗口（电脑）：抽屉变成底部面板；顶部只留 3 个标签，按钮缩成图标 */
 @media (max-width: 900px) and (min-height: 501px){
   .we-player .we-drawer{ left: 10px; right: 10px; top: auto; bottom: 10px; width: auto; max-width: none; height: 62%; }
-  .we-d-hero{ height: 84px; }
-  .we-d-ht h3{ font-size: 18px; }
+  .we-d-poster{ width: 60px; }
   .we-chips .we-chip:nth-child(n+4){ display: none; }
   .we-ibtn .we-ico{ display: block; }
   .we-ibtn .we-lbl{ display: none; }
@@ -938,11 +940,12 @@ button.nfd-all{ background: none !important; border: 0 !important; box-shadow: n
 /* 手机横屏：抽屉靠右，矮头图；不显示「当前片源」（顶部标签里已有） */
 @media (max-height: 500px){
   .we-player .we-drawer{ top: 8px; bottom: 8px; right: max(8px, env(safe-area-inset-right)); width: min(340px, 52vw); }
-  .we-d-hero{ height: 70px; }
-  .we-d-ht{ bottom: 7px; }
-  .we-d-ht h3{ font-size: 16px; -webkit-line-clamp: 1; }
-  .we-d-ht p{ font-size: 11px; }
-  .we-player .we-d-x{ width: 28px; height: 28px; min-width: 28px; right: 8px; top: 8px; }
+  .we-d-hero{ padding: 10px 12px 8px; }
+  .we-d-poster{ width: 44px; border-radius: 4px; }
+  .we-d-hrow{ gap: 10px; }
+  .we-d-ht h3{ font-size: 15px; -webkit-line-clamp: 1; }
+  .we-d-ht p{ font-size: 11px; -webkit-line-clamp: 1; }
+  .we-player .we-d-x{ width: 26px; height: 26px; min-width: 26px; right: 8px; top: 8px; }
   .we-d-tabs{ margin: 0 14px; gap: 20px; }
   .we-player .we-d-tabs button{ height: 34px; font-size: 13px; }
   .we-d-body{ padding: 10px 14px 12px; }
@@ -959,4 +962,11 @@ button.nfd-all{ background: none !important; border: 0 !important; box-shadow: n
   .we-d-chip, .we-chip{ height: 17px; font-size: 9.5px; padding: 0 6px; }
   .we-chips .we-chip:nth-child(n+5){ display: none; }
   .we-player .we-top .we-vlc{ display: none; }
+}
+
+/* 「信息」按钮：固定高度、居中，不被顶栏拉伸 */
+.we-player .we-top .we-btn.we-ibtn{ align-self: center; flex: none; height: 36px; padding: 0 14px; border-radius: 99px; }
+.we-player .we-top .we-btn.we-ibtn.on{ background: rgba(255, 255, 255, .2) !important; color: #fff !important; }
+@media (max-width: 900px) and (min-height: 501px){
+  .we-player .we-top .we-btn.we-ibtn{ width: 36px; min-width: 36px; height: 36px; padding: 0; border-radius: 50%; }
 }

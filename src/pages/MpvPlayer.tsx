@@ -488,7 +488,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const mbpsTag = vbr > 0 ? `${(vbr / 1e6).toFixed(1)} Mbps` : '';
   const engTag = isExo ? 'ExoPlayer' : `MPV${hw && hw !== 'no' ? ` · ${hw}` : ''}`;
   const chipList: { t: string; hi?: boolean }[] = [
-    ...(resTag ? [{ t: resTag, hi: true }] : []), ...(badge ? [{ t: badge }] : []), ...(vstream?.Codec ? [{ t: vstream.Codec.toUpperCase() }] : []),
+    ...(badge ? [{ t: badge, hi: true }] : resTag ? [{ t: resTag, hi: true }] : []), ...(vstream?.Codec ? [{ t: vstream.Codec.toUpperCase() }] : []),
     ...(sizeTag ? [{ t: sizeTag }] : []), ...(fpsTag ? [{ t: fpsTag }] : []), ...(mbpsTag ? [{ t: mbpsTag }] : []), { t: engTag },
   ];
   const techList: { v: string; k: string }[] = [

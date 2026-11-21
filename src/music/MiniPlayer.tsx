@@ -76,7 +76,8 @@ export default function MiniPlayer({ inline }: { inline?: boolean }) {
   const pct = m.dur > 0 ? Math.min(100, (m.pos / m.dur) * 100) : 0;
   if (inline) {
     return (
-      <div className={`mu-mini mu-scope inline${out}`} onTouchStart={(e) => { skip.current = !!(e.target as HTMLElement).closest('.mu-sl'); sy.current = e.touches[0].clientY; sx.current = e.touches[0].clientX; }} onTouchEnd={(e) => {
+      <div className={`mu-mini mu-scope inline${out}`} onTouchStart={(e) => { skip.current = !!(e.target as HTMLElement).closest('.mu-sl, .mu-queue, .mu-pop-mask');   // 进度条 / 播放队列里的滑动，不当作切歌 / 展开手势
+ sy.current = e.touches[0].clientY; sx.current = e.touches[0].clientX; }} onTouchEnd={(e) => {
         if (skip.current) return;   // 在进度条上拖动不当作切歌 / 展开手势
         const dx = e.changedTouches[0].clientX - sx.current, dy = sy.current - e.changedTouches[0].clientY;
         if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) { if (dx < 0) next(); else prev(); }   // 左右滑：切歌
