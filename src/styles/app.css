@@ -124,33 +124,6 @@ html.mpv-on, html.mpv-on body, html.mpv-on #root{ background: transparent !impor
   backdrop-filter: blur(16px); box-shadow: 0 12px 40px rgba(0, 0, 0, .55);
 }
 .we-player.hide-ui .we-drawer{ opacity: 0; pointer-events: none; }
-.we-drawer-head{ display: flex; align-items: center; justify-content: space-between; padding: 8px 8px 0 12px; border-bottom: 1px solid rgba(255, 255, 255, .08); }
-.we-drawer-tabs{ display: flex; gap: 4px; }
-.we-drawer-tabs button{
-  background: none; border: none; border-bottom: 2px solid transparent; border-radius: 0; color: rgba(255, 255, 255, .7);
-  padding: 8px 10px; box-shadow: none;
-}
-@media (hover: hover) and (pointer: fine) { .we-drawer-tabs button:hover{ color: #fff; box-shadow: none; border-color: transparent; } }
-.we-drawer-tabs button.active{ color: #fff; border-bottom-color: var(--accent); }
-.we-drawer-body{ flex: 1; overflow: auto; padding: 14px; }
-.we-d-muted{ color: rgba(255, 255, 255, .6); font-size: 12px; margin-bottom: 4px; }
-.we-d-ov{ font-size: 13px; line-height: 1.7; color: rgba(255, 255, 255, .88); white-space: pre-wrap; }
-.we-d-cast{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 8px; }
-.we-d-person{ text-align: center; min-width: 0; }
-.we-d-person img, .we-d-ph{
-  width: 64px; height: 64px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto 6px; background: rgba(255, 255, 255, .1);
-}
-.we-d-ph{ display: flex; align-items: center; justify-content: center; font-size: 20px; color: rgba(255, 255, 255, .6); }
-.we-d-pname{ font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.we-d-prole{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; }
-.we-d-eps{ display: flex; flex-direction: column; gap: 6px; }
-.we-d-ep{ display: flex; gap: 10px; padding: 6px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; }
-@media (hover: hover) and (pointer: fine) { .we-d-ep:hover{ background: rgba(255, 255, 255, .08); } }
-.we-d-ep.active{ border-color: var(--accent); background: rgba(255, 255, 255, .06); }
-.we-d-ep-thumb{ flex: none; width: 96px; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden; background: rgba(255, 255, 255, .08); }
-.we-d-ep-thumb img{ width: 100%; height: 100%; object-fit: cover; display: block; }
-.we-d-ep-info{ min-width: 0; flex: 1; display: flex; flex-direction: column; justify-content: center; }
-.we-d-ep-title{ font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* ================= 横版海报 / 右键菜单 ================= */.card-media.we-land .card img, .card-media.we-land .card .no-cover{ aspect-ratio: 16/9; width: 100%; height: auto; object-fit: cover; }
 .we-ctx{
   position: fixed; z-index: 9999; min-width: 190px; padding: 6px; border-radius: 10px;
@@ -162,7 +135,7 @@ html.mpv-on, html.mpv-on body, html.mpv-on #root{ background: transparent !impor
 /* ================= 播放器：固定配色（不随皮肤变，四套皮肤下都清楚） ================= */.we-player{ --text: #fff; --text-dim: rgba(255, 255, 255, .78); color: #fff; color-scheme: dark; }
 .we-player button{ text-shadow: 0 1px 3px rgba(0, 0, 0, .8); }
 .we-player .we-btn, .we-player .we-time, .we-player .we-title, .we-player .we-badge, .we-player .we-menu-item,
-.we-player .we-volnum, .we-player .we-drawer-tabs button.active{ color: #fff !important; }
+.we-player .we-volnum{ color: #fff !important; }
 .we-player .we-btn{ background: transparent; border: none; }
 @media (hover: hover) and (pointer: fine) { .we-player .we-btn:hover{ background: rgba(255, 255, 255, .22) !important; } }
 .we-player .we-menu-item.active{ color: var(--accent) !important; font-weight: 600; }
@@ -892,3 +865,98 @@ html .we-sr-nl .mp-title{ font-size: 13px; }
 :root.android[data-shell] .nfd-simrow .card-media .meta{ display: none; }
 button.nfd-all{ background: none !important; border: 0 !important; box-shadow: none !important; padding: 4px 2px; font-size: 13px; color: var(--text-dim); white-space: nowrap; flex: none; }
 @media (hover: hover) and (pointer: fine) { button.nfd-all:hover{ color: var(--accent); } }
+
+/* ===== Z77 播放页「信息」重做：Emby 风格（强调色跟随主题 --accent） ===== */
+.we-player .we-drawer{
+  position: absolute; top: 64px; right: 12px; bottom: 100px; left: auto; width: 380px; max-width: calc(100% - 24px); z-index: 9;
+  display: flex; flex-direction: column; border-radius: 10px; overflow: hidden;
+  background: rgba(16, 16, 16, .93); border: 0; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .6), inset 0 0 0 1px rgba(255, 255, 255, .08);
+}
+.we-d-hero{ position: relative; height: 140px; flex: none; background: linear-gradient(135deg, #3d3552, #8a5a3a); overflow: hidden; }
+.we-d-hero img{ position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.we-d-hero::after{ content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(16, 16, 16, 1) 0, rgba(16, 16, 16, .45) 55%, rgba(16, 16, 16, .1)); }
+.we-player .we-d-x{ position: absolute; right: 10px; top: 10px; z-index: 2; width: 32px; height: 32px; min-width: 32px; padding: 0; border-radius: 50%; background: rgba(0, 0, 0, .5) !important; display: inline-flex; align-items: center; justify-content: center; }
+.we-d-ht{ position: absolute; left: 18px; right: 18px; bottom: 10px; z-index: 1; }
+.we-d-ht h3{ margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; color: #fff; text-shadow: 0 2px 12px rgba(0, 0, 0, .7); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.we-d-ht p{ margin: 3px 0 0; font-size: 12.5px; color: rgba(255, 255, 255, .78); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.we-d-tabs{ display: flex; gap: 22px; margin: 2px 18px 0; border-bottom: 1px solid rgba(255, 255, 255, .1); flex: none; }
+.we-player .we-d-tabs button{ background: none !important; border: 0; border-bottom: 2px solid transparent; border-radius: 0; margin-bottom: -1px; padding: 0; height: 40px; font-size: 14px; color: rgba(255, 255, 255, .6); box-shadow: none; text-shadow: none; }
+.we-player .we-d-tabs button.active{ color: #fff; font-weight: 650; border-bottom-color: var(--accent); }
+.we-d-body{ flex: 1; min-height: 0; overflow-y: auto; padding: 14px 18px 18px; }
+.we-d-meta{ display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+.we-d-star{ color: #ffc857; font-weight: 700; font-size: 14px; margin-right: 3px; }
+.we-d-chip{ height: 20px; padding: 0 8px; border-radius: 3px; background: rgba(255, 255, 255, .13); font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; white-space: nowrap; }
+.we-d-ov{ margin: 12px 0 0; font-size: 13.5px; line-height: 1.75; color: rgba(255, 255, 255, .84); white-space: pre-wrap; }
+.we-d-sec{ margin: 16px 0 8px; font-size: 12.5px; font-weight: 650; color: rgba(255, 255, 255, .55); }
+.we-d-tech{ display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 1px; border-radius: 6px; overflow: hidden; background: rgba(255, 255, 255, .08); }
+.we-d-tech div{ background: rgba(255, 255, 255, .05); padding: 9px 4px; text-align: center; min-width: 0; }
+.we-d-tech b{ display: block; font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.we-d-tech span{ display: block; margin-top: 2px; font-size: 10.5px; color: rgba(255, 255, 255, .5); white-space: nowrap; }
+.we-d-castrow{ display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
+.we-d-castrow::-webkit-scrollbar{ display: none; }
+.we-d-cast{ display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 16px 12px; }
+.we-d-person{ width: 88px; flex: none; min-width: 0; }
+.we-d-cast .we-d-person{ width: auto; }
+.we-d-pimg{ width: 100%; aspect-ratio: 3 / 4; border-radius: 8px; overflow: hidden; background: rgba(255, 255, 255, .09); box-shadow: 0 6px 16px rgba(0, 0, 0, .45); display: flex; align-items: center; justify-content: center; font-size: 26px; color: rgba(255, 255, 255, .5); }
+.we-d-pimg img{ width: 100%; height: 100%; object-fit: cover; display: block; }
+.we-d-pname{ margin-top: 7px; font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.we-d-prole{ margin-top: 1px; font-size: 11px; color: rgba(255, 255, 255, .55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.we-d-empty{ padding: 30px 0; text-align: center; font-size: 13px; color: rgba(255, 255, 255, .55); }
+.we-d-eps{ display: flex; flex-direction: column; gap: 4px; }
+.we-d-ep{ display: flex; gap: 11px; padding: 7px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; }
+@media (hover: hover) and (pointer: fine){ .we-d-ep:hover{ background: rgba(255, 255, 255, .08); } }
+.we-d-ep.active{ border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.we-d-ep-thumb{ position: relative; flex: none; width: 116px; aspect-ratio: 16 / 9; border-radius: 5px; overflow: hidden; background: rgba(255, 255, 255, .09); }
+.we-d-ep-thumb img{ width: 100%; height: 100%; object-fit: cover; display: block; }
+.we-d-ep-thumb em{ position: absolute; left: 5px; top: 5px; font-style: normal; font-size: 10px; font-weight: 700; background: rgba(0, 0, 0, .62); padding: 1px 6px; border-radius: 4px; }
+.we-d-ep-thumb u{ position: absolute; left: 0; bottom: 0; height: 3px; background: var(--accent); }
+.we-d-ep-info{ min-width: 0; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.we-d-ep-title{ font-size: 13px; font-weight: 600; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.we-d-ep-sub{ margin-top: 3px; font-size: 11px; color: rgba(255, 255, 255, .5); }
+.we-d-ep-sub.now{ color: var(--accent); font-weight: 650; }
+
+/* 顶部标签行 */
+.we-chips{ display: flex; gap: 6px; margin-top: 5px; overflow: hidden; flex-wrap: nowrap; }
+.we-chip{ flex: none; height: 20px; padding: 0 8px; border-radius: 3px; background: rgba(255, 255, 255, .14); font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; white-space: nowrap; text-shadow: none; }
+.we-chip.hi{ background: var(--accent); color: var(--on-accent, #fff); }
+.we-player .we-top .we-btn.we-ibtn{ display: inline-flex; align-items: center; gap: 6px; }
+.we-player .we-top .we-btn.we-ibtn.on{ background: var(--accent) !important; color: var(--on-accent, #fff) !important; }
+.we-ibtn .we-ico{ flex: none; display: none; }
+
+/* 窄窗口（电脑）：抽屉变成底部面板；顶部只留 3 个标签，按钮缩成图标 */
+@media (max-width: 900px) and (min-height: 501px){
+  .we-player .we-drawer{ left: 10px; right: 10px; top: auto; bottom: 10px; width: auto; max-width: none; height: 62%; }
+  .we-d-hero{ height: 84px; }
+  .we-d-ht h3{ font-size: 18px; }
+  .we-chips .we-chip:nth-child(n+4){ display: none; }
+  .we-ibtn .we-ico{ display: block; }
+  .we-ibtn .we-lbl{ display: none; }
+  .we-player .we-top .we-btn.we-ibtn{ width: 36px; min-width: 36px; padding: 0; justify-content: center; }
+  .we-player .we-top .we-vlc{ display: none; }
+}
+/* 手机横屏：抽屉靠右，矮头图；不显示「当前片源」（顶部标签里已有） */
+@media (max-height: 500px){
+  .we-player .we-drawer{ top: 8px; bottom: 8px; right: max(8px, env(safe-area-inset-right)); width: min(340px, 52vw); }
+  .we-d-hero{ height: 70px; }
+  .we-d-ht{ bottom: 7px; }
+  .we-d-ht h3{ font-size: 16px; -webkit-line-clamp: 1; }
+  .we-d-ht p{ font-size: 11px; }
+  .we-player .we-d-x{ width: 28px; height: 28px; min-width: 28px; right: 8px; top: 8px; }
+  .we-d-tabs{ margin: 0 14px; gap: 20px; }
+  .we-player .we-d-tabs button{ height: 34px; font-size: 13px; }
+  .we-d-body{ padding: 10px 14px 12px; }
+  .we-d-ov{ font-size: 12px; line-height: 1.6; margin-top: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .we-d-techbox{ display: none; }
+  .we-d-sec{ margin: 10px 0 6px; }
+  .we-d-person{ width: 62px; }
+  .we-d-castrow{ gap: 9px; }
+  .we-d-pname{ font-size: 11px; margin-top: 4px; }
+  .we-d-prole{ font-size: 9.5px; }
+  .we-d-cast{ grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); }
+  .we-d-ep{ padding: 5px; }
+  .we-d-ep-thumb{ width: 104px; }
+  .we-d-chip, .we-chip{ height: 17px; font-size: 9.5px; padding: 0 6px; }
+  .we-chips .we-chip:nth-child(n+5){ display: none; }
+  .we-player .we-top .we-vlc{ display: none; }
+}

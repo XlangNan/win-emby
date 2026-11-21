@@ -481,6 +481,20 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
   const vstream = streams.find((x) => x.Type === 'Video');
   const srcFps = vstream?.RealFrameRate || vstream?.AverageFrameRate || 0;
   const fpsShow = fps || srcFps;
+  // 顶部标签 + 信息抽屉里的「当前片源」共用
+  const resTag = vstream?.Width && vstream?.Height ? (vstream.Width >= 3000 || vstream.Height >= 2000 ? '4K' : vstream.Width >= 1800 || vstream.Height >= 1000 ? '1080p' : vstream.Width >= 1200 || vstream.Height >= 700 ? '720p' : 'SD') : '';
+  const sizeTag = vstream?.Width && vstream?.Height ? `${vstream.Width}×${vstream.Height}` : '';
+  const fpsTag = fpsShow > 0 ? `${Number(fpsShow.toFixed(3))} fps` : '';
+  const mbpsTag = vbr > 0 ? `${(vbr / 1e6).toFixed(1)} Mbps` : '';
+  const engTag = isExo ? 'ExoPlayer' : `MPV${hw && hw !== 'no' ? ` · ${hw}` : ''}`;
+  const chipList: { t: string; hi?: boolean }[] = [
+    ...(resTag ? [{ t: resTag, hi: true }] : []), ...(badge ? [{ t: badge }] : []), ...(vstream?.Codec ? [{ t: vstream.Codec.toUpperCase() }] : []),
+    ...(sizeTag ? [{ t: sizeTag }] : []), ...(fpsTag ? [{ t: fpsTag }] : []), ...(mbpsTag ? [{ t: mbpsTag }] : []), { t: engTag },
+  ];
+  const techList: { v: string; k: string }[] = [
+    ...(resTag ? [{ v: resTag, k: sizeTag }] : []), ...(vstream?.Codec ? [{ v: vstream.Codec.toUpperCase(), k: vstream.BitDepth ? `${vstream.BitDepth}-bit` : '编码' }] : []),
+    ...(fpsShow > 0 ? [{ v: String(Number(fpsShow.toFixed(3))), k: 'fps' }] : []), ...(vbr > 0 ? [{ v: (vbr / 1e6).toFixed(1), k: 'Mbps' }] : []),
+  ];
   const intro = useMemo(() => {
     const mm = getManual(item?.SeriesId);
     if (mm && mm.en > mm.st) return mm; // 手动设置优先
@@ -1192,9 +1206,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         </button>
         <div className="we-titlebox">
           <div className="we-title" title={title}>{title}</div>
-          <div className="we-subline">
-            {[vstream?.Width && vstream?.Height ? `${vstream.Width}×${vstream.Height}` : '', badge, vstream?.Codec?.toUpperCase(), fpsShow > 0 ? `${Number(fpsShow.toFixed(3))} fps` : '', vbr > 0 ? `${(vbr / 1e6).toFixed(1)} Mbps` : '', (isExo ? 'ExoPlayer' : `MPV${hw && hw !== 'no' ? ` · ${hw}` : ''}`)].filter(Boolean).join('  ·  ')}
-          </div>
+          <div className="we-chips">{chipList.map((c, n) => <span key={n} className={`we-chip${c.hi ? ' hi' : ''}`}>{c.t}</span>)}</div>
         </div>
         {party.inRoom && (
           <button className="we-btn we-txt we-syncbtn" title="同步到房间现在的进度" onClick={(e) => { e.stopPropagation(); party.resync(); poke(); }}>
@@ -1212,12 +1224,13 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
           </button>
         )}
         {!isMobileApp && (
-          <button className="we-btn we-txt" title="用本机 VLC 播放当前片源" onClick={(e) => { e.stopPropagation(); void toVlc(); poke(); }}>
+          <button className="we-btn we-txt we-vlc" title="用本机 VLC 播放当前片源" onClick={(e) => { e.stopPropagation(); void toVlc(); poke(); }}>
             VLC
           </button>
         )}
-        <button className="we-btn we-txt" title="简介 / 演职员 / 选集（I）" onClick={(e) => { e.stopPropagation(); setDrawer((v) => !v); }}>
-          {drawer ? '收起' : '信息'}
+        <button className={`we-btn we-txt we-ibtn${drawer ? ' on' : ''}`} title="简介 / 演职员 / 选集（I）" aria-label="信息" onClick={(e) => { e.stopPropagation(); setDrawer((v) => !v); }}>
+          <svg className="we-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 11v6" /><circle cx="12" cy="7.6" r=".6" fill="currentColor" /></svg>
+          <span className="we-lbl">{drawer ? '收起' : '信息'}</span>
         </button>
         {!full && !isMobileApp && (
           <div className="we-winbtns">
@@ -1255,6 +1268,7 @@ export default function MpvPlayer({ id, onFail }: { id: string; onFail: (msg: st
         <PlayerDrawer
           item={item}
           episodes={episodes}
+          tech={techList}
           currentId={id}
           onClose={() => setDrawer(false)}
           onPickEpisode={(e) => { if (party.switchTo(e)) nav(`/player/${e.Id}`, { replace: true }); }}
