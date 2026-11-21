@@ -230,3 +230,5 @@
 :root[data-mode='light'][data-theme] .nfd .m-fileinfo summary::after{ color: #86868b; }
 :root[data-mode='light'][data-theme] .nfd :is(.we-fi-k, .we-fi-line, .muted){ color: #5f5f66; }
 :root[data-mode='light'][data-theme] .nfd .nfd-more, :root[data-mode='light'][data-theme] .nfd .nfd-more button{ color: #fff; }
+/* Z66 音轨 / 字幕下拉：箭头图标只画一次，不平铺 */
+:root[data-mode='light'][data-theme] .nfd .m-pk-item > select{ background-repeat: no-repeat !important; background-position: right 10px center !important; background-size: 12px 12px !important; }
