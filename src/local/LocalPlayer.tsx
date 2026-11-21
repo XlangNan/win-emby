@@ -63,6 +63,46 @@ export default function LocalPlayer() {
   useEffect(() => { if (!busy && !err) setStarted(true); }, [busy, err]);
   const waitCls = started ? '' : ' we-wait';
   const [dark, setDark] = useState(false);
+  // 手机：上下滑调亮度（左半）/ 音量（右半）
+  const [hud, setHud] = useState('');
+  const hudTimer = useRef<number | null>(null);
+  const showHud = (t: string): void => {
+    setHud(t);
+    if (hudTimer.current) window.clearTimeout(hudTimer.current);
+    hudTimer.current = window.setTimeout(() => setHud(''), 900);
+  };
+  const tg = useRef<{ x: number; y: number; w: number; h: number; mode: '' | 'vol' | 'bri'; base: number } | null>(null);
+  const onTouchStart = (e: React.TouchEvent): void => {
+    if (!isMobileApp || (e.target as HTMLElement).closest('button,.lc-bar,.lc-top')) { tg.current = null; return; }
+    const t = e.touches[0];
+    const r = e.currentTarget.getBoundingClientRect();
+    tg.current = { x: t.clientX - r.left, y: t.clientY, w: r.width, h: r.height, mode: '', base: 0 };
+  };
+  const onTouchMove = (e: React.TouchEvent): void => {
+    const g = tg.current;
+    if (!g) return;
+    const dy = e.touches[0].clientY - g.y, dx = e.touches[0].clientX - (g.x);
+    if (!g.mode) {
+      if (Math.abs(dy) <= 14 || Math.abs(dy) < Math.abs(e.touches[0].clientX - e.currentTarget.getBoundingClientRect().left - g.x) * 1.2) return;
+      if (g.x < g.w / 2) { g.mode = 'bri'; g.base = androidBridge()?.getBrightness() ?? 0.5; }
+      else { g.mode = 'vol'; g.base = (androidBridge()?.getSysVolume() ?? 0.5) * 100; }
+    }
+    void dx;
+    if (g.mode === 'vol') {
+      const v = Math.max(0, Math.min(100, g.base - (dy / g.h) * 130));
+      androidBridge()?.setSysVolume(v / 100);
+      showHud(`音量 ${Math.round(v)}%`);
+    } else {
+      const v = Math.max(0.02, Math.min(1, g.base - (dy / g.h) * 1.3));
+      androidBridge()?.setBrightness(v);
+      showHud(`亮度 ${Math.round(v * 100)}%`);
+    }
+  };
+  const onTouchEnd = (e: React.TouchEvent): void => {
+    const g = tg.current;
+    tg.current = null;
+    if (g?.mode) e.preventDefault(); // 滑动过：不要再触发合成点击（否则会弹出 / 隐藏控制条）
+  };
   const [sheet, setSheet] = useState(false);
   const [uiShown, setUiShown] = useState(true);
   const [full, setFull] = useState(false);
@@ -443,7 +483,9 @@ export default function LocalPlayer() {
           lastTap.current = now;
           if (uiShown) setUiShown(false); else poke();
         }}
+        onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
         onDoubleClick={() => { if (!isMobileApp) void toggleFull(); }}>
+        {hud && <div className="we-hud">{hud}</div>}
         {prefs.warm && <div className="lc-warm" />}
         {busy && !err && <div className="lc-center-msg"><span className="spinner" aria-hidden="true" />正在读取…</div>}
         {err && <div className="lc-center-msg lc-err">{err}<div><button onClick={() => setReload(reload + 1)}>重试</button></div></div>}
