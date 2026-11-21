@@ -53,6 +53,7 @@ export default function DiscoverDetail() {
     }
   };
   const [season, setSeason] = useState(1);
+  const [ovOpen, setOvOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
@@ -103,12 +104,16 @@ export default function DiscoverDetail() {
                 <div className="mp-hero-poster"><TmdbImg path={it.poster} size="w500" className="mp-img" /></div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <h2 className="mp-hero-title">{it.title}<span className={`mp-type inline ${media}`}>{media === 'movie' ? '电影' : '电视剧'}</span></h2>
-                  <div className="mp-meta">{meta}</div>
-                  <div className="mp-chips">{it.genres.map((g) => <span key={g} className="mp-chip">{g}</span>)}</div>
-                  {it.tagline && <div className="mp-tag">{it.tagline}</div>}
-                  <div className="mp-ov">{it.overview || '暂无简介'}</div>
+                  <div className="dd-facts">
+                    {it.rating > 0 && <span className="dd-score"><b>{it.rating.toFixed(1)}</b><i>TMDB</i></span>}
+                    {[it.year, it.runtime ? `${it.runtime} 分钟` : '', media === 'tv' && it.seasons.length ? `共 ${it.seasons.length} 季` : ''].filter(Boolean).map((t) => <span key={t} className="dd-fact">{t}</span>)}
+                  </div>
+                  {it.genres.length > 0 && <div className="mp-chips">{it.genres.map((g) => <span key={g} className="mp-chip">{g}</span>)}</div>}
+                  {it.tagline && <div className="mp-tag">“{it.tagline}”</div>}
+                  <div className={`mp-ov${ovOpen ? ' open' : ''}`}>{it.overview || '暂无简介'}</div>
+                  {(it.overview || '').length > 90 && <button className="dd-more" onClick={() => setOvOpen((v) => !v)}>{ovOpen ? '收起' : '展开全文'}</button>}
 
-                  <div className="row" style={{ marginTop: 16, gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div className="dd-actions">
                     {embyId.data && <button className="primary" onClick={() => nav(`/detail/${embyId.data}`)}>▶ 已入库，去播放</button>}
                     {media === 'tv' && it.seasons.length > 0 && (
                       <select value={season} onChange={(e) => setSeason(Number(e.target.value))} aria-label="季">
@@ -163,8 +168,8 @@ export default function DiscoverDetail() {
                       </>
                     )}
                   </div>
-                  {msg && <div className="muted" style={{ marginTop: 8 }}>{msg}</div>}
-                  {err && <div className="err" style={{ marginTop: 8 }}>{err}</div>}
+                  {msg && <div className="dd-msg ok">{msg}</div>}
+                  {err && <div className="dd-msg bad">{err}</div>}
                 </div>
               </div>
             </div>
@@ -173,12 +178,14 @@ export default function DiscoverDetail() {
               {it.cast.length > 0 && (
                 <section className="mp-sec">
                   <div className="mp-sec-head"><span className="mp-bar" /><h3>演员</h3></div>
-                  <HScrollRow style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 8 }}>
+                  <HScrollRow style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 10 }}>
                     {it.cast.map((p) => (
-                      <div key={p.id} className="we-cast" title={p.character ? `${p.name} 饰 ${p.character}` : p.name}>
-                        {p.profile ? <TmdbImg path={p.profile} size="w185" style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', margin: '0 auto 6px' }} /> : <div className="we-cast-ph">{p.name.slice(0, 1)}</div>}
-                        <div className="we-cast-name">{p.name}</div>
-                        {p.character && <div className="muted we-cast-role">{p.character}</div>}
+                      <div key={p.id} className="dd-cast" title={p.character ? `${p.name} 饰 ${p.character}` : p.name}>
+                        <div className="dd-cast-img">
+                          {p.profile ? <TmdbImg path={p.profile} size="w185" className="mp-img" /> : <div className="dd-cast-ph">{p.name.slice(0, 1)}</div>}
+                        </div>
+                        <div className="dd-cast-name">{p.name}</div>
+                        {p.character && <div className="dd-cast-role">{p.character}</div>}
                       </div>
                     ))}
                   </HScrollRow>

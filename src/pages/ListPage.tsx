@@ -14,6 +14,7 @@ export default function ListPage({
   deps,
   onOpen,
   header,
+  footer,
 }: {
   title: string;
   load: (start: number, limit: number) => Promise<ItemsResult>;
@@ -21,6 +22,7 @@ export default function ListPage({
   deps: unknown[];
   onOpen?: (it: EmbyItem) => void;
   header?: React.ReactNode;
+  footer?: React.ReactNode;
 }) {
   const [items, setItems] = useState<EmbyItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -80,6 +82,7 @@ export default function ListPage({
             )}
           </>
         )}
+        {footer}
       </div>
     </>
   );
