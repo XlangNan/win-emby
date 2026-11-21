@@ -345,3 +345,14 @@ export function dsmCover(path: string): Promise<string> {
 
 /** 刷新时清掉封面缓存（包括取失败的），让它重新去取 */
 export function clearCovers(): void { coverCache.clear(); thumbMiss = 0; coverStat.ok = 0; coverStat.fail = 0; coverStat.why = ''; }
+
+// ───────── 自建播放列表（本机保存，按视频路径记） ─────────
+export interface MyList { id: string; name: string; paths: string[] }
+const PL_KEY = 'wemby-local-mylists';
+export function readMyLists(): MyList[] {
+  try { const a = JSON.parse(localStorage.getItem(PL_KEY) || '[]') as MyList[]; return Array.isArray(a) ? a : []; } catch { return []; }
+}
+export function writeMyLists(a: MyList[]): void {
+  try { localStorage.setItem(PL_KEY, JSON.stringify(a)); } catch { /* ignore */ }
+  window.dispatchEvent(new Event('wemby-mylists'));
+}

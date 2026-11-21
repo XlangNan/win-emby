@@ -3,8 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Cover from './Cover';
 import {
-  clearCovers, clearDsm, coverStat, dsmBrowse, dsmConfigured, fmtClock, fmtSize, loadDsm, loadLibrary, readPos, saveDsm, setPlayQueue, useDsmKey,
-  type DsmConfig, type DsmEntry, type LocalLibrary, type LocalVideo,
+  clearCovers, clearDsm, coverStat, dsmBrowse, dsmConfigured, fmtClock, fmtSize, loadDsm, loadLibrary, readMyLists, readPos, saveDsm, writeMyLists, setPlayQueue, useDsmKey,
+  type DsmConfig, type DsmEntry, type LocalLibrary, type LocalVideo, type MyList,
 } from './dsm';
 
 // ───────── 连接 + 选文件夹 ─────────
@@ -86,6 +86,50 @@ function Connect({ onDone, pick }: { onDone?: () => void; pick?: boolean }) {
   );
 }
 
+// ───────── 自建播放列表：挑视频 ─────────
+function Picker({ all, init, onSave, onClose, onDelete }: { all: LocalVideo[]; init: MyList | null; onSave: (name: string, paths: string[]) => void; onClose: () => void; onDelete?: () => void }) {
+  const [name, setName] = useState(init?.name || '');
+  const [paths, setPaths] = useState<string[]>(init ? init.paths.filter((p) => all.some((v) => v.path === p)) : []);
+  const [q, setQ] = useState('');
+  const k = q.trim().toLowerCase();
+  const rows = k ? all.filter((v) => v.title.toLowerCase().includes(k) || v.list.toLowerCase().includes(k)) : all;
+  const toggle = (p: string): void => setPaths((a) => (a.includes(p) ? a.filter((x) => x !== p) : [...a, p]));
+  const ok = name.trim().length > 0 && paths.length > 0;
+  return (
+    <div className="lc-pk-bg" onClick={onClose}>
+      <div className="lc-pk" onClick={(e) => e.stopPropagation()}>
+        <div className="lc-pk-h">
+          <input className="lc-pk-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="给列表起个名字" maxLength={30} />
+          <button onClick={onClose}>取消</button>
+        </div>
+        <input className="lc-pk-q" value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索视频或文件夹" />
+        <div className="lc-pk-bar">
+          <span>已选 {paths.length} 个，按点选的先后顺序播放</span>
+          {rows.length > 0 && <button onClick={() => setPaths((a) => Array.from(new Set([...a, ...rows.map((v) => v.path)])))}>全选当前{k ? '结果' : ''}</button>}
+          {paths.length > 0 && <button onClick={() => setPaths([])}>清空</button>}
+        </div>
+        <div className="lc-pk-list">
+          {rows.map((v) => {
+            const n = paths.indexOf(v.path);
+            return (
+              <div key={v.path} className={`lc-pk-r${n >= 0 ? ' on' : ''}`} role="button" tabIndex={0} onClick={() => toggle(v.path)} onKeyDown={(e) => e.key === 'Enter' && toggle(v.path)}>
+                <i className="lc-pk-ck">{n >= 0 ? n + 1 : ''}</i>
+                <Cover className="lc-pk-th" path={v.path} title={v.title} plain />
+                <div className="lc-pk-x"><b>{v.title}</b><span>{[v.list !== '未分组' ? v.list : '', fmtSize(v.size)].filter(Boolean).join('　·　')}</span></div>
+              </div>
+            );
+          })}
+          {rows.length === 0 && <div className="lc-empty">没有匹配的视频</div>}
+        </div>
+        <div className="lc-pk-f">
+          {onDelete && <button className="lc-danger" onClick={onDelete}>删除列表</button>}
+          <button className="lc-pri" disabled={!ok} onClick={() => onSave(name.trim(), paths)}>{ok ? `保存（${paths.length} 个）` : name.trim() ? '先选几个视频' : '先起个名字'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ───────── 首页 ─────────
 export default function LocalPage() {
   const key = useDsmKey();
@@ -97,6 +141,18 @@ export default function LocalPage() {
   const [sel, setSel] = useState('');
   const [q, setQ] = useState('');
   const [chipsOpen, setChipsOpen] = useState(false);
+  const [mine, setMine] = useState<MyList[]>(readMyLists);
+  const [pk, setPk] = useState<null | 'new' | string>(null);
+  useEffect(() => {
+    const f = (): void => setMine(readMyLists());
+    window.addEventListener('wemby-mylists', f);
+    return () => window.removeEventListener('wemby-mylists', f);
+  }, []);
+  const myItems = (m: MyList): LocalVideo[] => {
+    const by = new Map((lib?.all ?? []).map((v) => [v.path, v] as const));
+    return m.paths.map((p) => by.get(p)).filter((v): v is LocalVideo => !!v);
+  };
+  const curMine = sel.startsWith('my:') ? mine.find((m) => m.id === sel.slice(3)) : undefined;
   const configured = dsmConfigured();
   const [, bump] = useState(0);
   useEffect(() => {
@@ -119,10 +175,10 @@ export default function LocalPage() {
   const pos = useMemo(readPos, [lib]);
   const shown: LocalVideo[] = useMemo(() => {
     if (!lib) return [];
-    const base = sel ? lib.lists.find((l) => l.name === sel)?.items ?? [] : lib.all;
+    const base = curMine ? myItems(curMine) : sel ? lib.lists.find((l) => l.name === sel)?.items ?? [] : lib.all;
     const k = q.trim().toLowerCase();
     return k ? base.filter((v) => v.title.toLowerCase().includes(k)) : base;
-  }, [lib, sel, q]);
+  }, [lib, sel, q, curMine, mine]);
   const resume = useMemo(() => {
     if (!lib || sel || q.trim()) return [];
     return lib.all.filter((v) => pos[v.path] && pos[v.path].t > 30).sort((a, b) => pos[b.path].at - pos[a.path].at).slice(0, 8);
@@ -131,6 +187,22 @@ export default function LocalPage() {
   const play = (items: LocalVideo[], i: number, title: string): void => {
     setPlayQueue(items, i, title);
     nav('/local/play');
+  };
+  const saveMine = (name: string, paths: string[]): void => {
+    const cur = pk && pk !== 'new' ? mine.find((m) => m.id === pk) : undefined;
+    if (cur) writeMyLists(mine.map((m) => (m.id === cur.id ? { ...m, name, paths } : m)));
+    else {
+      const id = Date.now().toString(36);
+      writeMyLists([...mine, { id, name, paths }]);
+      setSel(`my:${id}`);
+    }
+    setPk(null);
+  };
+  const delMine = (): void => {
+    if (!pk || pk === 'new' || !confirm('删除这个播放列表？里面的视频不会被删。')) return;
+    writeMyLists(mine.filter((m) => m.id !== pk));
+    if (sel === `my:${pk}`) setSel('');
+    setPk(null);
   };
   const shuffle = (items: LocalVideo[]): LocalVideo[] => {
     const a = items.slice();
@@ -177,10 +249,34 @@ export default function LocalPage() {
           <div className={`lc-chipbar${chipsOpen ? ' open' : ''}`}>
             <div className="lc-chips">
               <button className={!sel ? 'on' : ''} onClick={() => setSel('')}>全部 {lib.all.length}</button>
+              {mine.map((m) => <button key={m.id} className={sel === `my:${m.id}` ? 'on' : ''} onClick={() => setSel(`my:${m.id}`)}>★ {m.name}</button>)}
               {lib.lists.map((l) => <button key={l.name} className={sel === l.name ? 'on' : ''} onClick={() => setSel(l.name)}>{l.name}</button>)}
             </div>
-            {lib.lists.length > 1 && <button className="lc-more" onClick={() => setChipsOpen(!chipsOpen)}>{chipsOpen ? '收起' : '展开'}</button>}
+            {(lib.lists.length + mine.length) > 1 && <button className="lc-more" onClick={() => setChipsOpen(!chipsOpen)}>{chipsOpen ? '收起' : '展开'}</button>}
           </div>
+
+          {!sel && !q.trim() && (
+            <>
+              <h2 className="lc-sec">我的列表</h2>
+              <div className="lc-hrow">
+                <div className="lc-pl lc-pl-new" role="button" tabIndex={0} onClick={() => setPk('new')} onKeyDown={(e) => e.key === 'Enter' && setPk('new')}>
+                  <div className="lc-th lc-new"><span>＋</span></div>
+                  <div className="lc-t">新建播放列表</div>
+                  <div className="lc-m">自己挑视频</div>
+                </div>
+                {mine.map((m) => {
+                  const it = myItems(m);
+                  return (
+                    <div key={m.id} className="lc-pl" role="button" tabIndex={0} onClick={() => setSel(`my:${m.id}`)} onKeyDown={(e) => e.key === 'Enter' && setSel(`my:${m.id}`)}>
+                      <Cover className="lc-th" path={it[0]?.path ?? ''} title={m.name}><span className="lc-cnt">≡<br />{it.length}</span></Cover>
+                      <div className="lc-t">{m.name}</div>
+                      <div className="lc-m">{it.length} 个视频</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
 
           {!sel && !q.trim() && lib.lists.length > 1 && (
             <>
@@ -208,21 +304,22 @@ export default function LocalPage() {
             </>
           )}
 
-          <h2 className="lc-sec">{sel ? sel : q.trim() ? '搜索结果' : '全部视频'}</h2>
-          {sel && shown.length > 0 && (
+          <h2 className="lc-sec">{curMine ? `★ ${curMine.name}` : sel ? sel : q.trim() ? '搜索结果' : '全部视频'}</h2>
+          {sel && (shown.length > 0 || curMine) && (
             <div className="lc-acts">
-              <button className="lc-pri" onClick={() => play(shown, 0, sel)}>播放全部</button>
-              <button onClick={() => play(shuffle(shown), 0, sel)}>随机播放</button>
+              <button className="lc-pri" disabled={!shown.length} onClick={() => play(shown, 0, curMine ? curMine.name : sel)}>播放全部</button>
+              <button disabled={!shown.length} onClick={() => play(shuffle(shown), 0, curMine ? curMine.name : sel)}>随机播放</button>
+              {curMine && <button onClick={() => setPk(curMine.id)}>编辑列表</button>}
             </div>
           )}
-          {shown.length === 0 ? <div className="lc-empty">没有匹配的视频</div> : (
+          {shown.length === 0 ? <div className="lc-empty">{curMine ? '这个列表里的视频都找不到了，点「编辑列表」重新选' : '没有匹配的视频'}</div> : (
             <div className="lc-grid">
-              {shown.map((v, i) => <Card key={v.path} v={v} i={i} items={shown} title={sel || '全部视频'} />)}
+              {shown.map((v, i) => <Card key={v.path} v={v} i={i} items={shown} title={curMine ? curMine.name : sel || '全部视频'} />)}
             </div>
           )}
         </>
       )}
+      {pk && lib && <Picker key={pk} all={lib.all} init={pk === 'new' ? null : mine.find((m) => m.id === pk) ?? null} onSave={saveMine} onClose={() => setPk(null)} onDelete={pk === 'new' ? undefined : delMine} />}
     </div>
   );
 }
-

@@ -168,3 +168,33 @@
   :root:root .lc-chips button{ max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .lc-chipbar .lc-more{ display: block; flex: none; height: 34px; padding: 0 14px; font-size: 13px; white-space: nowrap; }
 }
+
+/* Z75 自建播放列表 */
+.lc-new{ background: var(--surface-3, #26262b); color: var(--text-dim, #9a9aa2); font-size: 38px; font-weight: 300; border: 1.5px dashed var(--border, #444) !important; box-sizing: border-box; }
+.lc-pk-bg{ position: fixed; inset: 0; z-index: 80; background: rgba(0, 0, 0, .55); display: flex; align-items: center; justify-content: center; }
+.lc-pk{ width: min(720px, 100%); height: min(760px, 90vh); display: flex; flex-direction: column; background: var(--surface-1, #1b1b1e); color: var(--text, #f2f2f3); border-radius: 18px; padding: 14px 14px 12px; box-sizing: border-box; box-shadow: 0 20px 60px rgba(0, 0, 0, .5); }
+.lc-pk-h{ display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.lc-pk input{ border: 0 !important; outline: none; border-radius: 99px; background: var(--surface-3, #26262b) !important; color: inherit; height: 38px; padding: 0 16px; box-sizing: border-box; box-shadow: none !important; }
+.lc-pk-name{ flex: 1; min-width: 0; font-weight: 600; }
+.lc-pk-q{ width: 100%; }
+.lc-pk button{ border: 0 !important; box-shadow: none !important; border-radius: 99px; background: var(--surface-3, #26262b) !important; color: inherit; height: 34px; padding: 0 14px; font-size: 13px; white-space: nowrap; flex: none; }
+:root:root .lc-pk .lc-pri{ background: var(--accent, #f0414b) !important; color: #fff !important; }
+.lc-pk .lc-pri:disabled{ opacity: .45; }
+.lc-pk .lc-danger{ color: #f0414b !important; }
+.lc-pk-bar{ display: flex; align-items: center; gap: 8px; margin: 10px 0 6px; font-size: 12px; color: var(--text-dim, #9a9aa2); }
+.lc-pk-bar span{ flex: 1; min-width: 0; }
+.lc-pk-bar button{ height: 28px; font-size: 12px; padding: 0 11px; }
+.lc-pk-list{ flex: 1; min-height: 0; overflow-y: auto; }
+.lc-pk-r{ display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 12px; cursor: pointer; }
+.lc-pk-r.on{ background: rgba(240, 65, 75, .14); }
+@media (hover: hover) and (pointer: fine){ .lc-pk-r:hover{ background: var(--surface-3, #26262b); } }
+.lc-pk-ck{ flex: none; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--text-faint, #777); box-sizing: border-box; display: grid; place-items: center; font-style: normal; font-size: 12px; font-weight: 700; color: #fff; }
+.lc-pk-r.on .lc-pk-ck{ background: var(--accent, #f0414b); border-color: var(--accent, #f0414b); }
+.lc-pk-th{ flex: none; width: 96px; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 4px; box-sizing: border-box; }
+.lc-pk-th span{ color: rgba(255, 255, 255, .86); font-size: 11px; text-align: center; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.lc-pk-x{ min-width: 0; flex: 1; }
+.lc-pk-x b{ display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 14px; font-weight: 600; line-height: 1.35; }
+.lc-pk-x span{ display: block; margin-top: 2px; font-size: 12px; color: var(--text-dim, #9a9aa2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lc-pk-f{ display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.lc-pk-f .lc-pri{ height: 40px; padding: 0 22px; }
+@media (max-width: 760px){ .lc-pk-bg{ align-items: flex-end; } .lc-pk{ width: 100%; height: 92vh; border-radius: 18px 18px 0 0; padding-bottom: calc(12px + env(safe-area-inset-bottom)); } .lc-pk-th{ width: 84px; } }
