@@ -870,3 +870,9 @@ button.dd-more{ background: none !important; border: 0 !important; box-shadow: n
   .dd-actions{ padding: 10px; }
   .dd-cast{ flex-basis: 88px; } .dd-cast-img{ width: 88px; }
 }
+/* Z62 搜索里「片库中未入库」：手机固定 3 列（别被全局 4 列挤窄）；订阅按钮不换行、更精致 */
+@media (max-width: 760px){ html .we-sr-nl .mp-grid{ grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 14px 10px !important; padding: 0 !important; } }
+html .we-sr-nl .we-sr-sub{ display: block; width: 100%; height: 32px; padding: 0 !important; margin-top: 8px; font-size: 13px !important; line-height: 32px; white-space: nowrap !important; border-radius: 8px !important; box-shadow: none !important; font-weight: 600; }
+html .we-sr-nl .we-sr-sub:disabled{ opacity: .55; }
+html .we-sr-nl .mp-title{ font-size: 13px; }
+.we-sr-nl .we-sr-h{ margin-bottom: 12px; }

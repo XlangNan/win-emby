@@ -65,7 +65,7 @@ export function NotInLibrary({ q }: { q: string }) {
                   <div className="mp-title">{x.title}</div>
                   <div className="mp-sub">{x.year}</div>
                   <button className={`we-sr-sub${sb ? '' : ' primary'}`} disabled={sb || busyKey === k} onClick={(e) => { e.stopPropagation(); void subscribe(x); }}>
-                    {sb ? '已订阅' : busyKey === k ? '提交中…' : mpReady() ? '＋ 订阅' : '去订阅'}
+                    {sb ? '已订阅' : busyKey === k ? '提交中' : mpReady() ? '订阅' : '去订阅'}
                   </button>
                 </div>
               );
