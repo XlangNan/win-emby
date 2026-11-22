@@ -21,6 +21,8 @@ export interface AndroidBridge {
   getSysVolume(): number;
   setSysVolume(v: number): void;
   exit(): void;
+  /** 原生定时停止：到点前 60 秒音量渐弱，然后暂停并关闭软件；0 = 取消。仅安卓 mpv 桥实现 */
+  setSleep?(endAtMs: number): void;
   getInsetTop?(): number;
   getInsetBottom?(): number;
   setEdgeBottom?(on: boolean): void;

@@ -326,6 +326,42 @@ class MpvBridge(private val act: Activity, private val web: WebView) : MPVLib.Ev
         return (ins?.bottom ?: 0) / act.resources.displayMetrics.density
     }
 
+    // ───────── 原生定时停止（网页被系统挂起时也能准点） ─────────
+    private val sleepH = android.os.Handler(android.os.Looper.getMainLooper())
+    private var sleepEnd = 0L
+    private var sleepBase = -1.0
+    private val sleepTick = object : Runnable {
+        override fun run() {
+            if (sleepEnd <= 0L) return
+            val left = (sleepEnd - System.currentTimeMillis()) / 1000.0
+            try {
+                if (left <= 0) {
+                    sleepEnd = 0L
+                    if (alive) m.setPropertyBoolean("pause", true)
+                    act.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    act.finishAndRemoveTask()
+                    return
+                }
+                if (left <= 60 && alive) {
+                    if (sleepBase < 0) sleepBase = m.getPropertyDouble("volume") ?: 100.0
+                    m.command(arrayOf("set", "volume", (sleepBase * left / 60.0).toInt().toString()))
+                }
+            } catch (_: Throwable) {}
+            sleepH.postDelayed(this, 1000)
+        }
+    }
+
+    @JavascriptInterface
+    fun setSleep(endAtMs: Long) {
+        act.runOnUiThread {
+            sleepH.removeCallbacks(sleepTick)
+            if (sleepBase >= 0 && alive) { try { m.command(arrayOf("set", "volume", sleepBase.toInt().toString())) } catch (_: Throwable) {} }
+            sleepBase = -1.0
+            sleepEnd = endAtMs
+            if (endAtMs > 0L) sleepH.post(sleepTick)
+        }
+    }
+
     @JavascriptInterface
     fun exit() {
         act.runOnUiThread { act.finish() }

@@ -156,7 +156,7 @@ export default function HomePage() {
         </div>
         <HScrollRow
           className={nf ? 'nf-row-scroll' : ap ? 'ap-row-scroll' : undefined}
-          style={nf || ap ? undefined : { display: 'flex', gap: 12, overflowX: 'auto', padding: '14px 2px 34px', marginBottom: -16 }}
+          style={nf || ap ? undefined : { display: 'flex', gap: 12, overflowX: 'auto', padding: '12px 16px 28px', margin: '0 -16px -14px' }}
         >
           {s.items.map((it) => (
             <div key={it.Id} style={s.id === 'resume' ? { flex: '0 0 280px', minWidth: 0 } : nf ? undefined : { flex: ap ? '0 0 168px' : '0 0 132px', minWidth: 0 }}>

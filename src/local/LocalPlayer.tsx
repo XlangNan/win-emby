@@ -183,6 +183,16 @@ export default function LocalPlayer() {
 
   // ───────── 播放器 ─────────
   const onEndedRef = useRef<() => void>(() => undefined);
+  // 「播完」判定：既听 mpv 的 eof-reached，也看「进度到了片尾 + 暂停」——有的机型 / 片源 eof 事件发不出来，就卡在片尾不动
+  const endedFor = useRef('');
+  const endFb = useRef<number | null>(null);
+  const fireEnd = (): void => {
+    const path = orderRef.current[idxRef.current]?.path ?? '';
+    if (!path || endedFor.current === path) return;
+    endedFor.current = path;
+    onEndedRef.current();
+  };
+  const nearEnd = (): boolean => durRef.current > 5 && posRef.current >= durRef.current - 0.8;
   useEffect(() => {
     if (!q0 || !q0.items.length) { nav('/local', { replace: true }); return; }
     let dead = false;
@@ -194,10 +204,12 @@ export default function LocalPlayer() {
       forceMpv: true,
       onProp: (n, d) => {
         switch (n) {
-          case 'pause': setPaused(!!d); break;
+          case 'pause': setPaused(!!d); if (d === true && nearEnd()) fireEnd(); break;
           case 'time-pos':
             if (typeof d === 'number') {
               posRef.current = d;
+              if (endFb.current) { window.clearTimeout(endFb.current); endFb.current = null; }
+              if (nearEnd()) endFb.current = window.setTimeout(fireEnd, 1500);
               setPos(d);
               setBusy(false);
               setErr('');
@@ -208,7 +220,7 @@ export default function LocalPlayer() {
           case 'width': setDims((x) => ({ ...x, w: typeof d === 'number' ? d : 0 })); break;
           case 'height': setDims((x) => ({ ...x, h: typeof d === 'number' ? d : 0 })); break;
           case 'volume': if (typeof d === 'number' && !fadingRef.current) { volRef.current = d; setVol(d); } break;
-          case 'eof-reached': if (d === true) onEndedRef.current(); break;
+          case 'eof-reached': if (d === true) fireEnd(); break;
           default: break;
         }
       },
@@ -254,7 +266,7 @@ export default function LocalPlayer() {
     const keep = reload > 0 ? Math.floor(posRef.current) : 0;
     setBusy(true);
     setErr('');
-    if (reload === 0) { setPos(0); setDur(0); posRef.current = 0; durRef.current = 0; }
+    if (reload === 0) { setPos(0); setDur(0); posRef.current = 0; durRef.current = 0; endedFor.current = ''; }
     void readyRef.current?.then(async (s) => {
       if (!s || dead) return;
       try {
@@ -290,6 +302,9 @@ export default function LocalPlayer() {
     play((idxRef.current + d + n) % n);
   }, [play]);
 
+  // 定时到了：手机上直接关掉软件（退出后系统按自己的息屏时间自动锁屏）
+  const closeApp = (): void => { window.setTimeout(() => { try { androidBridge()?.exit(); } catch { /* ignore */ } }, 600); };
+
   onEndedRef.current = (): void => {
     const c = orderRef.current[idxRef.current];
     if (c) writePos(c.path, 0, 1);
@@ -298,6 +313,7 @@ export default function LocalPlayer() {
       void sessRef.current?.set('pause', true);
       stopOthers();
       setDark(false);
+      closeApp();
       return;
     }
     const n = orderRef.current.length;
@@ -331,6 +347,12 @@ export default function LocalPlayer() {
     savePrefs({ ...prefs, shuffle: !prefs.shuffle });
   };
 
+  // 定时停止同步给安卓原生层：网页被系统挂起（息屏 / 切后台）时原生层也能准点渐弱 → 暂停 → 关软件
+  useEffect(() => {
+    try { androidBridge()?.setSleep?.(timer && timer.kind === 'time' ? timer.endAt : 0); } catch { /* ignore */ }
+  }, [timer]);
+  useEffect(() => () => { try { androidBridge()?.setSleep?.(0); } catch { /* ignore */ } }, []);
+
   // ───────── 定时停止 ─────────
   useEffect(() => {
     const t = window.setInterval(() => {
@@ -351,6 +373,7 @@ export default function LocalPlayer() {
         void sessRef.current?.set('pause', true).then(() => sessRef.current?.set('volume', fadeBase.current || 100));
         stopOthers();
         setDark(false);
+        closeApp();
       }
     }, 1000);
     return () => window.clearInterval(t);
