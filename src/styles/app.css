@@ -1024,3 +1024,9 @@ html .we-player .we-drawer .we-d-x svg{ display: block; flex: none; }
 .grid.grid-land{ grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 26px 20px; }
 .grid.grid-land .card-media .card img, .grid.grid-land .card-media .card .no-cover{ aspect-ratio: 16 / 9; }
 @media (max-width: 760px){ .grid.grid-land{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 12px; } }
+/* 列表页里的悬浮海报：第一行上面留出空间，抬起 / 悬停放大时不会被顶栏或内容区上沿切掉 */
+.content.home-fl > .grid.grid-land{ padding-top: 16px; }
+/* 横屏海报网格：压过手机 / 平板「一行 3 / 6 个」的全局规则。手机竖屏一行 2 张，更宽就自动多放 */
+:root.android[data-shell] .grid.grid-land{ grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 20px 12px; padding: 16px 12px 0; }
+@media (min-width: 600px){ :root.android[data-shell] .grid.grid-land{ grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important; } }
+:root.tablet[data-shell] .grid.grid-land{ grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important; gap: 24px 16px; padding: 16px 22px 0; }
