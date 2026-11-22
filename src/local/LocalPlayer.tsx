@@ -185,6 +185,8 @@ export default function LocalPlayer() {
   const onEndedRef = useRef<() => void>(() => undefined);
   // 「播完」判定：既听 mpv 的 eof-reached，也看「进度到了片尾 + 暂停」——有的机型 / 片源 eof 事件发不出来，就卡在片尾不动
   const endedFor = useRef('');
+  // 切到下一个视频后的几秒里，如果被播放内核「播完暂停」的状态带成了暂停，就自动恢复播放（用户自己点的暂停不受影响）
+  const autoPlayUntil = useRef(0);
   const endFb = useRef<number | null>(null);
   const fireEnd = (): void => {
     const path = orderRef.current[idxRef.current]?.path ?? '';
@@ -204,7 +206,11 @@ export default function LocalPlayer() {
       forceMpv: true,
       onProp: (n, d) => {
         switch (n) {
-          case 'pause': setPaused(!!d); if (d === true && nearEnd()) fireEnd(); break;
+          case 'pause':
+            setPaused(!!d);
+            if (d === true && nearEnd()) fireEnd();
+            else if (d === true && Date.now() < autoPlayUntil.current) void sessRef.current?.set('pause', false).catch(() => undefined);
+            break;
           case 'time-pos':
             if (typeof d === 'number') {
               posRef.current = d;
@@ -274,9 +280,11 @@ export default function LocalPlayer() {
         const start = reload > 0 ? keep : saved && saved.t > 30 && (!saved.d || saved.t < saved.d - 30) ? saved.t : 0;
         const url = await dsmPlayUrl(cur.path, reload > 0);
         if (dead) return;
-        await s.loadfile(url, start > 1 ? { start: String(Math.floor(start)) } : undefined);
+        autoPlayUntil.current = Date.now() + 8000;
+        await s.loadfile(url, start > 1 ? { start: String(Math.floor(start)), pause: 'no' } : { pause: 'no' });
         if (dead) return;
         await s.set('pause', false).catch(() => undefined);
+        window.setTimeout(() => { void s.set('pause', false).catch(() => undefined); }, 600);
         await s.set('loop-file', prefsRef.current.loop === 'one' ? 'inf' : 'no').catch(() => undefined);
         failTimer.current = window.setTimeout(() => {
           if (reload === 0) setReload(1); // 第一次 25 秒没出画面：重新登录群晖再试一次
@@ -387,7 +395,7 @@ export default function LocalPlayer() {
   }, []);
 
   // ───────── 控制 ─────────
-  const toggle = useCallback(() => { void sessRef.current?.cmd('cycle', ['pause']); }, []);
+  const toggle = useCallback(() => { autoPlayUntil.current = 0; void sessRef.current?.cmd('cycle', ['pause']); }, []);
   const seekTo = useCallback((sec: number) => { void sessRef.current?.cmd('seek', [String(Math.max(0, sec)), 'absolute']); }, []);
   const toggleFull = useCallback(async () => {
     const next = !(await winIsFullscreen());
