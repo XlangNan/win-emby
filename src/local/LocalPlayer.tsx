@@ -515,7 +515,7 @@ export default function LocalPlayer() {
           if (uiShown) setUiShown(false); else poke();
         }}
         onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
-        onDoubleClick={() => { if (!isMobileApp) void toggleFull(); }}>
+        onDoubleClick={(e) => { if (!isMobileApp && !(e.target as HTMLElement).closest('button,.lc-bar,.lc-top')) void toggleFull(); }}>
         {hud && <div className="we-hud">{hud}</div>}
         {prefs.warm && <div className="lc-warm" />}
         {busy && !err && <div className="lc-center-msg"><span className="spinner" aria-hidden="true" />正在读取…</div>}

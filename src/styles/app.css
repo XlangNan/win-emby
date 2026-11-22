@@ -1030,3 +1030,8 @@ html .we-player .we-drawer .we-d-x svg{ display: block; flex: none; }
 :root.android[data-shell] .grid.grid-land{ grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 20px 12px; padding: 16px 12px 0; }
 @media (min-width: 600px){ :root.android[data-shell] .grid.grid-land{ grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important; } }
 :root.tablet[data-shell] .grid.grid-land{ grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important; gap: 24px 16px; padding: 16px 22px 0; }
+
+/* Z90：详情页返回按钮容器本身不占高度（此前 padding 把头图顶下 12px，露出一条底色）；按钮改绝对定位悬浮 */
+.nfd-back, :root.android[data-shell] .nfd-back{ padding: 0 !important; height: 0 !important; box-sizing: border-box; overflow: visible; }
+.nfd-back .back-btn{ position: absolute; top: 12px; left: 16px; }
+:root.android[data-shell] .nfd-back .back-btn{ top: calc(var(--sat, 0px) + 8px); left: 8px; }

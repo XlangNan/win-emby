@@ -83,9 +83,14 @@ export async function winSetFullscreen(on: boolean): Promise<void> {
             const mon = (await import('@tauri-apps/api/window')).currentMonitor ? await (await import('@tauri-apps/api/window')).currentMonitor() : null;
             const wa = (mon as unknown as { workArea?: { position: { x: number; y: number }; size: { width: number; height: number } } } | null)?.workArea;
             if (wa) {
-              ww = Math.min(ww, wa.size.width); hh = Math.min(hh, wa.size.height);
-              x = Math.min(Math.max(x, wa.position.x), wa.position.x + wa.size.width - ww);
-              y = Math.min(Math.max(y, wa.position.y), wa.position.y + wa.size.height - hh);
+              // Windows 窗口左/右/下各有约 8px 不可见边框（贴边半屏时 x 会是 -7、宽度多 14），留 24px 容差，别把它「纠正」掉，否则左边会多出一条
+              const T = 24;
+              if (ww > wa.size.width + T) ww = wa.size.width;
+              if (hh > wa.size.height + T) hh = wa.size.height;
+              if (x < wa.position.x - T) x = wa.position.x;
+              if (x + ww > wa.position.x + wa.size.width + T) x = wa.position.x + wa.size.width - ww;
+              if (y < wa.position.y - T) y = wa.position.y;
+              if (y + hh > wa.position.y + wa.size.height + T) y = wa.position.y + wa.size.height - hh;
             }
           } catch { /* 没有工作区信息就按原值 */ }
           await w.setSize(new m.PhysicalSize(ww, hh));
@@ -144,7 +149,8 @@ export async function winFitToScreen(): Promise<void> {
     const al = Math.round((s.availLeft ?? 0) * dpr), at = Math.round((s.availTop ?? 0) * dpr);
     const z = await w.outerSize();
     const p = await w.outerPosition();
-    if (z.width <= aw + 2 && z.height <= ah + 2 && p.y + z.height <= at + ah + 2) return;
+    const T = 24 * dpr; // 不可见边框容差（贴边半屏时窗口外框比可用区略大）
+    if (z.width <= aw + T && z.height <= ah + T && p.y + z.height <= at + ah + T && p.x >= al - T) return;
     const nw = Math.min(z.width, aw), nh = Math.min(z.height, ah);
     const m = await import('@tauri-apps/api/dpi');
     await w.setSize(new m.PhysicalSize(nw, nh));
