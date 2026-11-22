@@ -12,7 +12,7 @@ type IcoKey = keyof typeof ICON;
 interface Item { to: string; label: string; ico: IcoKey; end?: boolean; also?: string[] }
 
 const MAIN: Item[] = [
-  { to: '/', label: '影视', ico: 'film', end: true, also: ['/lib', '/search', '/detail', '/person', '/similar'] },
+  { to: '/', label: '影视', ico: 'film', end: true, also: ['/lib', '/search', '/detail', '/person', '/similar', '/resume'] },
   { to: '/media', label: '媒体库', ico: 'media' },
   { to: '/discover', label: '片库', ico: 'disc' },
   { to: '/live', label: '直播', ico: 'live' },

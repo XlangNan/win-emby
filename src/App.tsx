@@ -13,6 +13,7 @@ import PartyBridge from './components/PartyBridge';
 import MediaPage from './pages/MediaPage';
 import PersonPage from './pages/PersonPage';
 import SimilarPage from './pages/SimilarPage';
+import ResumePage from './pages/ResumePage';
 import DetailPage from './pages/DetailPage';
 import DiscoverDetail from './pages/DiscoverDetail';
 import DiscoverMore from './pages/DiscoverMore';
@@ -211,6 +212,7 @@ function AppShell() {
         <Route path="/search" element={isMobileApp ? <MobileSearch /> : <SearchPage />} />
         <Route path="/me" element={<MePage />} />
         <Route path="/favorites" element={<FavoritesPage />} />
+        <Route path="/resume" element={<ResumePage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/live" element={<LivePage />} />
         <Route path="/music" element={<MusicPage />} />

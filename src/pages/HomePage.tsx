@@ -121,7 +121,7 @@ export default function HomePage() {
   };
 
   /** 每一行「查看全部」去哪：最近添加 → 对应媒体库；继续观看 → 观看历史；其余不显示 */
-  const allTo = (id: string): string => (id.startsWith('latest-') ? `/lib/${id.slice(7)}` : id === 'resume' ? '/history' : '');
+  const allTo = (id: string): string => (id.startsWith('latest-') ? `/lib/${id.slice(7)}` : id === 'resume' ? '/resume' : '');
 
   const sectionsView = (): React.ReactNode => {
     if (db) {

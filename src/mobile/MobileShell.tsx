@@ -90,7 +90,7 @@ export function Ico({ k }: { k: keyof typeof ICON }) {
 }
 
 const TABS: { to: string; label: string; ico: keyof typeof ICON; end?: boolean; also?: string[] }[] = [
-  { to: '/', label: '影视', ico: 'film', end: true, also: ['/media', '/lib', '/discover', '/search', '/similar'] },
+  { to: '/', label: '影视', ico: 'film', end: true, also: ['/media', '/lib', '/discover', '/search', '/similar', '/resume'] },
   { to: '/live', label: '直播', ico: 'live' },
   { to: '/music', label: '音乐', ico: 'music' },
   { to: '/audiobooks', label: '听书', ico: 'book' },

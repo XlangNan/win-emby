@@ -15,6 +15,8 @@ export default function ListPage({
   onOpen,
   header,
   footer,
+  landscape,
+  inResume,
 }: {
   title: string;
   load: (start: number, limit: number) => Promise<ItemsResult>;
@@ -23,6 +25,10 @@ export default function ListPage({
   onOpen?: (it: EmbyItem) => void;
   header?: React.ReactNode;
   footer?: React.ReactNode;
+  /** 横屏海报（16:9 剧照 + 进度条）；继续观看用 */
+  landscape?: boolean;
+  /** 卡片菜单里提供「从继续观看移除」，移除后重新加载 */
+  inResume?: boolean;
 }) {
   const [items, setItems] = useState<EmbyItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -60,7 +66,7 @@ export default function ListPage({
         <h3 style={{ margin: 0 }}>{title}</h3>
         <span className="muted" style={{ fontSize: 12 }}>{total ? `${total} 项` : ''}</span>
       </div>
-      <div className="content">
+      <div className={`content${landscape ? ' home-fl' : ''}`}>
         {header}
         {err ? (
           <div className="err">{err}<button style={{ marginLeft: 10 }} onClick={() => fetchPage(0, true)}>重试</button></div>
@@ -70,8 +76,8 @@ export default function ListPage({
           <div className="empty">{empty}</div>
         ) : (
           <>
-            <div className="grid">
-              {items.map((it) => <MediaCard key={it.Id} it={it} onOpen={onOpen} />)}
+            <div className={`grid${landscape ? ' grid-land' : ''}`}>
+              {items.map((it) => <MediaCard key={it.Id} it={it} onOpen={onOpen} landscape={landscape} inResume={inResume} onChanged={inResume ? () => fetchPage(0, true) : undefined} />)}
             </div>
             {items.length < total && (
               <div className="row" style={{ justifyContent: 'center', marginTop: 16 }}>

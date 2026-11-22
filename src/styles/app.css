@@ -1012,3 +1012,15 @@ html .we-player .we-drawer .we-d-x svg{ display: block; flex: none; }
   .we-rowall{ height: 28px; padding: 0 10px 0 12px; font-size: 12px; }
   :root .home-fl .card-media:active .card-pic{ transform: translateY(-1px) scale(.97); }
 }
+
+/* 手机：行标题、「查看全部」、海报都和顶部轮播卡片一样，距屏幕左右各 12px（不贴边） */
+@media (max-width: 760px){
+  :root.android[data-shell] .home-fl .we-rowhead, :root[data-shell].android .home-fl .we-rowhead{ padding: 0 12px; }
+  :root.android[data-shell] .home-fl .we-rowhead > h3{ padding: 0 !important; }
+  :root.android[data-shell] .home-fl .nf-row-scroll, :root.android[data-shell] .home-fl .ap-row-scroll{ padding: 12px 12px 28px !important; margin: 0 0 -14px !important; scroll-padding-left: 12px; }
+}
+
+/* 继续观看 · 查看全部：横屏海报网格 */
+.grid.grid-land{ grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 26px 20px; }
+.grid.grid-land .card-media .card img, .grid.grid-land .card-media .card .no-cover{ aspect-ratio: 16 / 9; }
+@media (max-width: 760px){ .grid.grid-land{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 12px; } }
