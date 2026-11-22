@@ -1,5 +1,6 @@
 // 播放页右侧信息抽屉：简介 / 演职员 / 选集（Emby 风格：深色平面板 + 下划线标签 + 竖版长方形演员卡）
 import { useState } from 'react';
+import HScrollRow from './HScrollRow';
 import { backdropUrl, personUrl, posterUrl, thumbUrl } from '../emby/client';
 import { fmtRuntime } from '../emby/format';
 import type { EmbyItem } from '../emby/types';
@@ -81,7 +82,7 @@ export default function PlayerDrawer({
             {cast.length > 0 && (
               <>
                 <div className="we-d-sec">演员</div>
-                <div className="we-d-castrow">{cast.slice(0, 12).map(personCard)}</div>
+                <HScrollRow className="we-d-castrow" drag>{cast.slice(0, 12).map(personCard)}</HScrollRow>
               </>
             )}
           </>

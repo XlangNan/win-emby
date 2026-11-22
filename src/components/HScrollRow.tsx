@@ -15,9 +15,11 @@ export interface HScrollRowProps {
   children: ReactNode;
   /** 滚轮灵敏度（deltaY → scrollLeft 的倍率） */
   step?: number;
+  /** 鼠标按住左右拖动（电脑端）；拖动后不会触发里面的点击 */
+  drag?: boolean;
 }
 
-export default function HScrollRow({ className, style, children, step = 1 }: HScrollRowProps) {
+export default function HScrollRow({ className, style, children, step = 1, drag }: HScrollRowProps) {
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -37,6 +39,29 @@ export default function HScrollRow({ className, style, children, step = 1 }: HSc
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
   }, [step]);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !drag) return;
+    let down = false, moved = false, sx = 0, sl = 0;
+    const md = (e: MouseEvent): void => { if (e.button !== 0) return; down = true; moved = false; sx = e.clientX; sl = el.scrollLeft; };
+    const mm = (e: MouseEvent): void => {
+      if (!down) return;
+      const dx = e.clientX - sx;
+      if (!moved && Math.abs(dx) < 4) return;
+      moved = true;
+      el.style.cursor = 'grabbing';
+      el.scrollLeft = sl - dx;
+      e.preventDefault();
+    };
+    const up = (): void => { down = false; el.style.cursor = ''; };
+    const click = (e: MouseEvent): void => { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } };
+    el.addEventListener('mousedown', md);
+    window.addEventListener('mousemove', mm);
+    window.addEventListener('mouseup', up);
+    el.addEventListener('click', click, true);
+    return () => { el.removeEventListener('mousedown', md); window.removeEventListener('mousemove', mm); window.removeEventListener('mouseup', up); el.removeEventListener('click', click, true); };
+  }, [drag]);
 
   return (
     <div ref={ref} className={className} style={style}>
