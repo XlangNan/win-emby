@@ -9,6 +9,11 @@ function inScrollable(el: EventTarget | null): boolean {
       const oy = getComputedStyle(n).overflowY;
       if (oy === 'auto' || oy === 'scroll') return true;
     }
+    // 横向可滚动的行（如信息抽屉里的演员）：滚轮归它横向滚动，不改音量
+    if (n.scrollWidth > n.clientWidth + 2) {
+      const ox = getComputedStyle(n).overflowX;
+      if (ox === 'auto' || ox === 'scroll') return true;
+    }
     n = n.parentElement;
   }
   return false;

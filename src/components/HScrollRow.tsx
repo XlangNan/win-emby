@@ -34,10 +34,20 @@ export default function HScrollRow({ className, style, children, step = 1, drag 
       if (el.scrollLeft <= 0 && dy < 0) return;
       if (el.scrollLeft >= max - 1 && dy > 0) return;
       e.preventDefault();
-      el.scrollLeft += dy * step;
+      // 平滑滚动：滚轮每格只是更新「目标位置」，用 rAF 缓动追过去（原先每格直接跳一大截，看起来是一帧一帧的）
+      const px = e.deltaMode === 1 ? dy * 40 : dy;
+      target = Math.max(0, Math.min(max, (raf ? target : el.scrollLeft) + px * step));
+      if (!raf) raf = requestAnimationFrame(tick);
+    };
+    let target = 0, raf = 0;
+    const tick = (): void => {
+      const d = target - el.scrollLeft;
+      if (Math.abs(d) < 0.5) { el.scrollLeft = target; raf = 0; return; }
+      el.scrollLeft += d * 0.18;
+      raf = requestAnimationFrame(tick);
     };
     el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
+    return () => { el.removeEventListener('wheel', onWheel); if (raf) cancelAnimationFrame(raf); };
   }, [step]);
 
   useEffect(() => {
