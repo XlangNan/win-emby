@@ -118,15 +118,17 @@ function sweep() {
 setInterval(sweep, 3000).unref();
 
 const summary = (r) => ({ type: r.kind, id: r.id, host: r.members.get(r.host)?.name || '', item: r.state.item, count: r.members.size, paused: r.state.paused });
+// 内部 key（用户ID:cid）→ 客户端自己的 deviceId
+const raw = (k) => clients.get(k)?.rcid ?? (typeof k === 'string' && k.includes(':') ? k.slice(k.indexOf(':') + 1) : k);
 function snap(c) {
   const r = c.room && rooms.get(c.room);
   return {
     ver, now: now(),
     rooms: [...rooms.values()].filter((x) => x.pub && (x.kind === 'music' || seeCached(c, x.state.item.id))).map(summary),
     room: r ? {
-      type: r.kind, id: r.id, pub: r.pub, ctl: r.ctl, wait: r.wait, host: r.host,
-      members: [...r.members.values()].map((m) => ({ cid: m.cid, name: m.name, buf: m.buf, away: isAway(m.cid) })),
-      state: r.state,
+      type: r.kind, id: r.id, pub: r.pub, ctl: r.ctl, wait: r.wait, host: raw(r.host),
+      members: [...r.members.values()].map((m) => ({ cid: raw(m.cid), name: m.name, buf: m.buf, away: isAway(m.cid) })),
+      state: { ...r.state, by: raw(r.state.by) },
     } : null,
     kicked: c.kicked || '',
   };
@@ -226,8 +228,10 @@ async function client(req, url, o) {
   if (!cid) return null;
   const v = await verify(String(token), String(userId));
   if (!v) return null;
-  let c = clients.get(cid);
-  if (!c) { c = { cid, name: v.name, userId, room: '', seen: now(), kicked: '' }; clients.set(cid, c); }
+  // 内部 key = 用户ID:设备cid —— 别人即使拿到你的 cid（快照里会发给房间成员），没有你的 Emby 令牌也碰不到你的 client
+  const key = String(v.id || userId) + ':' + cid;
+  let c = clients.get(key);
+  if (!c) { c = { cid: key, rcid: cid, name: v.name, userId, room: '', seen: now(), kicked: '' }; clients.set(key, c); }
   c.name = v.name; c.seen = now(); c.dropAt = 0; c.token = String(token); // 令牌只放内存，用于替这个用户查询权限
   return c;
 }

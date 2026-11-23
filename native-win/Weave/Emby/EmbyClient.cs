@@ -189,7 +189,9 @@ public sealed class EmbyClient
         if (!res.IsSuccessStatusCode) throw new Exception($"读取播放信息失败（{(int)res.StatusCode}）");
         using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
         var root = doc.RootElement;
-        var src = root.GetProperty("MediaSources")[0];
+        if (!root.TryGetProperty("MediaSources", out var ms) || ms.ValueKind != JsonValueKind.Array || ms.GetArrayLength() == 0)
+            throw new Exception("这个条目没有可播放的媒体源");
+        var src = ms[0];
         string? path = src.TryGetProperty("Path", out var p) ? p.GetString() : null;
         string proto = src.TryGetProperty("Protocol", out var pr) ? pr.GetString() ?? "" : "";
         bool remote = !string.IsNullOrEmpty(path) && (path!.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || path.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) && proto != "File";

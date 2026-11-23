@@ -73,6 +73,7 @@ public sealed class PlayerWindow : Window
         {
             MessageBox.Show("播放器启动失败：\n" + ex.Message + (ex is DllNotFoundException ? "\n\n缺少 libmpv-2.dll（要和 Weave.exe 放在同一个文件夹）" : ""), "织影");
             Close();
+            return;
         }
         _tick.Tick += (_, _) => OnTick();
         _tick.Start();
@@ -159,21 +160,37 @@ public sealed class PlayerWindow : Window
             case "volume" when v is double vol: _ov?.SetVolume(vol); break;
             case "mute": _ov?.SetMuted(v is true); break;
             case "speed" when v is double sp: _ov?.SetSpeed(sp); break;
+            // keep-open=yes 时 mpv 播到结尾只暂停、不发 end-file，所以靠 eof-reached 判断「播完」
+            case "eof-reached" when v is true && _started && !_ended && !_stopped:
+                _ = OnPlayedToEnd();
+                break;
         }
     }
 
     private async void OnEndFile(int reason, int err)
     {
-        if (_stopped) return;
-        if (reason == 4 && !_started) { _openTimer?.Stop(); OpenFailed(); return; }
-        if (reason != 0) return;
-        // 播完
-        _ended = true;
-        await Report("/Stopped");
-        _stopped = true;
-        var next = await _api.NextEpisodeAsync(_item);
-        if (next != null) { await StartItemAsync(next, 0); return; }
-        Close();
+        try
+        {
+            if (_stopped) return;
+            if (reason == 4 && !_started) { _openTimer?.Stop(); OpenFailed(); return; }
+            if (reason == 0 && !_ended) await OnPlayedToEnd(); // 兜底；主要由 eof-reached 触发，_ended 防重复
+        }
+        catch (Exception ex) { _ov?.ShowError("出错了：" + ex.Message); }
+    }
+
+    private async Task OnPlayedToEnd()
+    {
+        if (_ended) return;
+        try
+        {
+            _ended = true;
+            await Report("/Stopped");
+            _stopped = true;
+            var next = await _api.NextEpisodeAsync(_item);
+            if (next != null) { await StartItemAsync(next, 0); return; }
+            Close();
+        }
+        catch (Exception ex) { _ov?.ShowError("切换下一集失败：" + ex.Message); }
     }
 
     private void OnTick()
@@ -188,10 +205,11 @@ public sealed class PlayerWindow : Window
     private async void OnClosed(object? sender, EventArgs e)
     {
         _tick.Stop(); _report.Stop(); _openTimer?.Stop();
-        if (!_stopped && _info != null) await Report("/Stopped");
+        var needReport = !_stopped && _info != null;
         _ov?.Close();
-        _mpv?.Dispose();
+        _mpv?.Dispose(); // 先停掉播放再回报，Emby 连不上时不会关窗后还继续出声
         _mpv = null;
+        if (needReport) { try { await Report("/Stopped"); } catch { /* 回报失败不影响关窗 */ } }
     }
 
     // ───────── 控制层调用 ─────────
@@ -206,10 +224,14 @@ public sealed class PlayerWindow : Window
 
     public async void PlayNext()
     {
-        var n = await _api.NextEpisodeAsync(_item);
-        if (n == null) return;
-        await Report("/Stopped");
-        await StartItemAsync(n, 0);
+        try
+        {
+            var n = await _api.NextEpisodeAsync(_item);
+            if (n == null) return;
+            await Report("/Stopped");
+            await StartItemAsync(n, 0);
+        }
+        catch (Exception ex) { _ov?.ShowError("切换失败：" + ex.Message); }
     }
 
     public record Track(string Type, string Id, string Label, bool Selected);
