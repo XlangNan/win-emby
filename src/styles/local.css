@@ -211,7 +211,7 @@
 .fd-post{ position: absolute; inset: 0; background: #000; overflow: hidden; }
 .fd-video{ width: 100%; height: 100%; object-fit: contain; background: #000; }
 .fd-dim{ position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: .55; font-size: 13px; }
-.fd-pp{ position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%; background: #0008; display: flex; align-items: center; justify-content: center; font-size: 26px; pointer-events: none; }
+.fd-pp{ position: absolute; left: 50%; top: 50%; width: 96px; height: 96px; margin: -48px 0 0 -48px; padding-left: 6px; box-sizing: border-box; border-radius: 50%; background: #0008; display: flex; align-items: center; justify-content: center; font-size: 26px; pointer-events: none; }
 .fd-info{ position: absolute; left: 0; right: 72px; bottom: calc(var(--sab, 0px) + 28px); padding: 0 16px; display: flex; flex-direction: column; gap: 4px; pointer-events: none; text-shadow: 0 1px 4px #000c; }
 .fd-info b{ font-size: 15px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .fd-info span{ font-size: 12px; opacity: .75; }
@@ -261,3 +261,14 @@
 :root:root .fd-pick .fd-pick-rows{ max-height: none; }
 :root:root:root .fd-pick .lc-pri{ background: var(--accent) !important; color: #fff !important; border: 0 !important; border-radius: 12px !important; }
 :root:root:root .fd-pick .lc-pri:disabled{ opacity: .45; }
+
+/* 刷刷看：亮度 / 音量 手势区、提示、横屏按钮 */
+.fd-edge{ position: absolute; top: 0; bottom: 0; width: 20%; z-index: 1; touch-action: none; }
+.fd-edge-l{ left: 0; } .fd-edge-r{ right: 0; }
+.fd-hud2{ top: 36%; min-width: 150px; font-size: 15px; }
+.fd-hud2 span{ display: block; margin-bottom: 8px; }
+.fd-hud2 i{ display: block; height: 4px; border-radius: 2px; background: #fff3; overflow: hidden; }
+.fd-hud2 u{ display: block; height: 100%; background: var(--accent, #fff); text-decoration: none; }
+.fd-rot{ position: absolute; right: 12px; bottom: calc(var(--sab, 0px) + 90px); z-index: 3; }
+:root:root:root .fd-v .fd-rot{ width: 42px !important; min-width: 42px !important; height: 42px !important; padding: 0 !important; border-radius: 50% !important; border: 0 !important; background: #0006 !important; color: #fff !important; display: flex; align-items: center; justify-content: center; }
+.fd-mute, .fd-seek{ z-index: 2; }

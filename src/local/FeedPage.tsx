@@ -4,8 +4,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Navigate, useNavigate } from 'react-router-dom';
+import { androidBridge, isMobileApp } from '../lib/platform';
+import { winSetFullscreen } from '../lib/win';
 import { dsmConnected, dsmDirs, dsmImage, dsmList, dsmPlayUrl, fmtClock, isImage, isVideoFile, isWebVideo, loadFeedFolder, saveFeedFolder, setPlayQueue, type DsmEntry, type LocalVideo } from './dsm';
-import { isMobileApp } from '../lib/platform';
 
 type Post = ({ kind: 'video'; e: DsmEntry } | { kind: 'images'; es: DsmEntry[] }) & { group: string };
 const titleOf = (n: string): string => n.replace(/\.[^.]+$/, '');
@@ -53,7 +54,7 @@ function ImagesPost({ es, active, name }: { es: DsmEntry[]; active: boolean; nam
 }
 
 // ───────── 一条视频 ─────────
-function VideoPost({ e, active, near, name, onExternal }: { e: DsmEntry; active: boolean; near: boolean; name: string; onExternal: () => void }) {
+function VideoPost({ e, active, near, name, onExternal, onTouched }: { e: DsmEntry; active: boolean; near: boolean; name: string; onExternal: () => void; onTouched: () => void }) {
   const v = useRef<HTMLVideoElement>(null);
   const [src, setSrc] = useState('');
   const [paused, setPaused] = useState(false);
@@ -64,35 +65,56 @@ function VideoPost({ e, active, near, name, onExternal }: { e: DsmEntry; active:
   const [d, setD] = useState(0);
   const retried = useRef(false);
   const web = isWebVideo(e.name);
-  // 左右滑动快进 / 快退：整屏宽 = 整个视频（最长按 3 分钟算），松手才真正跳转，滑动时显示目标时间
-  const g = useRef<{ x: number; y: number; id: number; on: boolean; from: number } | null>(null);
+  // 手势：左右滑 = 快进 / 快退（整屏宽 = 整个视频，最长按 3 分钟算，松手才跳转）；
+  //       屏幕最左 / 最右各 20% 竖着滑 = 亮度 / 音量（中间竖着滑仍是切换视频）
+  const g = useRef<{ x: number; y: number; id: number; mode: '' | 'h' | 'bri' | 'vol'; from: number; zone: '' | 'bri' | 'vol'; base: number } | null>(null);
   const swallow = useRef(false);
   const [pv, setPv] = useState<number | null>(null);
+  const [hud, setHud] = useState<{ t: string; p: number } | null>(null);
+  const hudT = useRef(0);
+  const showHud = (t: string, p: number): void => { setHud({ t, p }); window.clearTimeout(hudT.current); hudT.current = window.setTimeout(() => setHud(null), 700); };
   const range = (): number => Math.max(10, Math.min(d || 60, 180));
   const target = (dx: number, w: number, from: number): number => Math.max(0, Math.min(d || 0, from + (dx / Math.max(1, w)) * range()));
   const pDown = (ev: React.PointerEvent<HTMLDivElement>): void => {
-    if (!web || bad || !d || (ev.target as HTMLElement).closest('button,.fd-seek')) return;
-    g.current = { x: ev.clientX, y: ev.clientY, id: ev.pointerId, on: false, from: v.current?.currentTime ?? 0 };
+    if (!web || bad || (ev.target as HTMLElement).closest('button,.fd-seek')) return;
+    const r = ev.currentTarget.getBoundingClientRect();
+    const fx = (ev.clientX - r.left) / Math.max(1, r.width);
+    g.current = { x: ev.clientX, y: ev.clientY, id: ev.pointerId, mode: '', from: v.current?.currentTime ?? 0, zone: fx < 0.2 ? 'bri' : fx > 0.8 ? 'vol' : '', base: 0 };
   };
   const pMove = (ev: React.PointerEvent<HTMLDivElement>): void => {
     const s = g.current;
     if (!s || s.id !== ev.pointerId) return;
     const dx = ev.clientX - s.x, dy = ev.clientY - s.y;
-    if (!s.on) {
-      if (Math.abs(dx) < 12 || Math.abs(dx) < Math.abs(dy) * 1.4) return; // 还不够横，或者偏竖（竖着是切换视频）
-      s.on = true;
+    if (!s.mode) {
+      if (s.zone && Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx) * 1.4) {
+        s.mode = s.zone;
+        const br = androidBridge();
+        s.base = s.zone === 'bri' ? br?.getBrightness() ?? 0.5 : br ? br.getSysVolume() : v.current?.volume ?? 1;
+        onTouched();
+      } else if (d && Math.abs(dx) >= 12 && Math.abs(dx) >= Math.abs(dy) * 1.4) s.mode = 'h'; // 够横：快进快退
+      else return; // 还没分出方向，或者是中间竖滑（切换视频）
       try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch { /* ignore */ }
     }
-    setPv(target(dx, ev.currentTarget.clientWidth, s.from));
+    if (s.mode === 'h') { setPv(target(dx, ev.currentTarget.clientWidth, s.from)); return; }
+    const h = Math.max(1, ev.currentTarget.clientHeight);
+    const val = Math.max(s.mode === 'bri' ? 0.02 : 0, Math.min(1, s.base - (dy / h) * 1.3));
+    const br = androidBridge();
+    if (s.mode === 'bri') { br?.setBrightness(val); showHud(`亮度 ${Math.round(val * 100)}%`, val); }
+    else {
+      if (br) br.setSysVolume(val); else if (v.current) v.current.volume = val;
+      showHud(`音量 ${Math.round(val * 100)}%`, val);
+    }
   };
   const pUp = (ev: React.PointerEvent<HTMLDivElement>): void => {
     const s = g.current;
     g.current = null;
-    if (!s || !s.on) return;
+    if (!s || !s.mode) return;
     swallow.current = true; setTimeout(() => { swallow.current = false; }, 350); // 滑完不要当成「点一下暂停」
-    const el = v.current;
-    if (el) el.currentTime = target(ev.clientX - s.x, ev.currentTarget.clientWidth, s.from);
-    setPv(null);
+    if (s.mode === 'h') {
+      const el = v.current;
+      if (el) el.currentTime = target(ev.clientX - s.x, ev.currentTarget.clientWidth, s.from);
+      setPv(null);
+    }
   };
   const pCancel = (): void => { g.current = null; setPv(null); };
 
@@ -137,9 +159,9 @@ function VideoPost({ e, active, near, name, onExternal }: { e: DsmEntry; active:
   };
 
   return (
-    <div className="fd-post fd-vpost" onPointerDown={pDown} onPointerMove={pMove} onPointerUp={pUp} onPointerCancel={pCancel}>
+    <div className="fd-post fd-vpost" onClick={(ev) => { if (!(ev.target as HTMLElement).closest('button,.fd-seek')) tap(); }} onPointerDown={pDown} onPointerMove={pMove} onPointerUp={pUp} onPointerCancel={pCancel}>
       {web && !bad && src && (
-        <video ref={v} src={src} playsInline loop preload={active ? 'auto' : 'metadata'} className="fd-video" onClick={tap}
+        <video ref={v} src={src} playsInline loop preload={active ? 'auto' : 'metadata'} className="fd-video"
           onTimeUpdate={(ev) => setT(ev.currentTarget.currentTime)} onLoadedMetadata={(ev) => setD(ev.currentTarget.duration || 0)} onError={onErr} />
       )}
       {web && !bad && !src && <span className="fd-dim">加载中…</span>}
@@ -150,7 +172,9 @@ function VideoPost({ e, active, near, name, onExternal }: { e: DsmEntry; active:
           <button onClick={onExternal}>用 MPV 播放</button>
         </div>
       )}
-      {paused && web && !bad && pv === null && <div className="fd-pp" aria-hidden="true">▶</div>}
+      {paused && web && !bad && pv === null && <div className="fd-pp" aria-hidden="true"><svg width="44" height="44" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" /></svg></div>}
+      {hud && <div className="fd-hud fd-hud2"><span>{hud.t}</span><i><u style={{ width: `${hud.p * 100}%` }} /></i></div>}
+      {web && !bad && <><div className="fd-edge fd-edge-l" /><div className="fd-edge fd-edge-r" /></>}
       {pv !== null && <div className="fd-hud"><b>{fmtClock(pv)}</b> / {fmtClock(d)}<small>{pv - t >= 0 ? '+' : '−'}{Math.round(Math.abs(pv - t))} 秒</small></div>}
       <div className="fd-info"><b>{titleOf(e.name)}</b><span>{name}</span></div>
       {web && !bad && (
@@ -170,6 +194,9 @@ function VideoPost({ e, active, near, name, onExternal }: { e: DsmEntry; active:
 const hidden = (n: string): boolean => /^[@#.]/.test(n) || n === 'Thumbs.db';
 let feedMuted = false; // 声音开关记住，不用每个视频都重新开
 
+const MAX_DEPTH = 15;   // 最多往下读几层
+const MAX_DIRS = 800;  // 最多读多少个文件夹
+
 interface Group { name: string; vids: DsmEntry[]; imgs: DsmEntry[] }
 
 async function loadGroups(root: string, onProgress: (n: number) => void): Promise<Group[]> {
@@ -179,13 +206,13 @@ async function loadGroups(root: string, onProgress: (n: number) => void): Promis
   let busy = 0, done = 0;
   await new Promise<void>((resolve, reject) => {
     const pump = (): void => {
-      while (busy < 4 && queue.length && lists.size + busy < 300) {
+      while (busy < 6 && queue.length && lists.size + busy < MAX_DIRS) {
         const it = queue.shift()!;
         busy++;
         dsmList(it.path).then((rows) => {
           lists.set(it.path, rows);
-          if (it.depth < 3) for (const d of rows.filter((r) => r.isdir && !hidden(r.name))) queue.push({ path: d.path, depth: it.depth + 1 });
-        }).catch((e) => { if (it.depth === 0) reject(e); /* 子文件夹读不了就跳过 */ }).finally(() => { busy--; done++; onProgress(done); if (!busy && (!queue.length || lists.size + busy >= 300)) resolve(); else pump(); });
+          if (it.depth < MAX_DEPTH) for (const d of rows.filter((r) => r.isdir && !hidden(r.name))) queue.push({ path: d.path, depth: it.depth + 1 });
+        }).catch((e) => { if (it.depth === 0) reject(e); /* 子文件夹读不了就跳过 */ }).finally(() => { busy--; done++; onProgress(done); if (!busy && (!queue.length || lists.size + busy >= MAX_DIRS)) resolve(); else pump(); });
       }
     };
     pump();
@@ -201,7 +228,12 @@ async function loadGroups(root: string, onProgress: (n: number) => void): Promis
     const rows = lists.get(path) || [];
     const vids = rows.filter((r) => !r.isdir && !hidden(r.name) && isVideoFile(r.name));
     const imgs = rows.filter((r) => !r.isdir && !hidden(r.name) && isImage(r.name));
-    if (vids.length || imgs.length) out.push({ name: path === root ? baseName(root) || '根目录' : baseName(path), vids, imgs });
+    if (vids.length || imgs.length) {
+      // 播放单元 = 直接放着视频 / 图片的那一层文件夹；名字带上上一级（2026 / 宫保鸡丁），不同年份下的同名文件夹才分得开
+      const rel = path === root ? [] : path.slice(root.length).split('/').filter(Boolean);
+      const name = rel.length === 0 ? baseName(root) || '根目录' : rel.slice(-2).join(' / ');
+      out.push({ name, vids, imgs });
+    }
   }
   return out;
 }
@@ -242,6 +274,20 @@ const postKey = (p: Post): string => (p.kind === 'video' ? p.e.path : p.es[0].pa
 function Viewer({ posts, start, root, onClose, onSettings, onExternal }: { posts: Post[]; start: number; root: string; onClose: () => void; onSettings: () => void; onExternal: (e: DsmEntry, group: string) => void }) {
   const box = useRef<HTMLDivElement>(null);
   const [act, setAct] = useState(start);
+  const actR = useRef(start);
+  actR.current = act;
+  const [land, setLand] = useState(false);
+  const touched = useRef(false);
+  const onTouched = useCallback(() => { touched.current = true; }, []);
+  const rotate = (): void => { touched.current = true; const n = !land; setLand(n); void winSetFullscreen(n); };
+  // 横竖屏切换后窗口高度变了：重新对齐到当前这一条，别停在两条中间
+  useEffect(() => {
+    const f = (): void => { const el = box.current; if (el) { el.style.scrollSnapType = 'none'; el.scrollTop = actR.current * el.clientHeight; requestAnimationFrame(() => { if (el) el.style.scrollSnapType = ''; }); } };
+    window.addEventListener('resize', f);
+    return () => window.removeEventListener('resize', f);
+  }, []);
+  // 退出时还原：横屏 → 竖屏，手势改过的亮度回到系统亮度（原生那边 setFullscreen(false) 一起做了）
+  useEffect(() => () => { if (touched.current) void winSetFullscreen(false); }, []);
   useEffect(() => { const el = box.current; if (el && start > 0) el.scrollTop = start * el.clientHeight; }, [start]);
   useEffect(() => {
     const el = box.current;
@@ -263,7 +309,7 @@ function Viewer({ posts, start, root, onClose, onSettings, onExternal }: { posts
           <div key={postKey(p)} className="fd-cell" data-i={i}>
             {Math.abs(i - act) <= 1 ? (
               p.kind === 'video'
-                ? <VideoPost e={p.e} active={i === act} near name={p.group} onExternal={() => onExternal(p.e, p.group)} />
+                ? <VideoPost e={p.e} active={i === act} near name={p.group} onExternal={() => onExternal(p.e, p.group)} onTouched={onTouched} />
                 : <ImagesPost es={p.es} active={i === act} name={p.group} />
             ) : null}
           </div>
@@ -271,6 +317,7 @@ function Viewer({ posts, start, root, onClose, onSettings, onExternal }: { posts
       </div>
       <button className="fd-x" aria-label="返回" onClick={onClose}>‹</button>
       <button className="fd-set" aria-label="换文件夹" onClick={onSettings}>📁</button>
+      <button className="fd-rot" aria-label={land ? '竖屏' : '横屏'} onClick={rotate}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="6" width="18" height="12" rx="2" transform={land ? 'rotate(90 12 12)' : undefined} /><path d="M12 15.5h.01" /></svg></button>
       <div className="fd-pg">{posts[act]?.group}　{act + 1}/{posts.length}</div>
     </div>,
     document.body,
