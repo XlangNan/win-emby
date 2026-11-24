@@ -272,3 +272,4 @@
 .fd-rot{ position: absolute; right: 12px; bottom: calc(var(--sab, 0px) + 90px); z-index: 3; }
 :root:root:root .fd-v .fd-rot{ width: 42px !important; min-width: 42px !important; height: 42px !important; padding: 0 !important; border-radius: 50% !important; border: 0 !important; background: #0006 !important; color: #fff !important; display: flex; align-items: center; justify-content: center; }
 .fd-mute, .fd-seek{ z-index: 2; }
+:root:root:root .fd-pick .fd-pick-r{ width: 100%; margin-top: 8px; height: 40px; font-size: 13px; opacity: .85; border-radius: 12px !important; }

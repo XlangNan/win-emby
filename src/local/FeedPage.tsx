@@ -238,8 +238,27 @@ async function loadGroups(root: string, onProgress: (n: number) => void): Promis
   return out;
 }
 
+// ───────── 读过的结果存在本机，下次直接用（不用再把整棵文件夹树读一遍）；要更新就点「重新读取」 ─────────
+const CACHE_KEY = 'wemby-feed-cache';
+interface CacheGroup { n: string; d: string[]; v: string[]; i: string[] } // 名字 + 各文件所在文件夹 + 文件名（路径 = 文件夹 + / + 文件名，省空间）
+function cacheLoad(root: string): Group[] | null {
+  try {
+    const o = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null') as { root: string; g: Array<{ n: string; p: string; v: string[]; i: string[] }> } | null;
+    if (!o || o.root !== root || !Array.isArray(o.g)) return null;
+    const mk = (dir: string, n: string): DsmEntry => ({ name: n, path: `${dir}/${n}`, isdir: false, size: 0, mtime: 0 });
+    return o.g.map((x) => ({ name: x.n, vids: x.v.map((n) => mk(x.p, n)), imgs: x.i.map((n) => mk(x.p, n)) }));
+  } catch { return null; }
+}
+function cacheSave(root: string, groups: Group[]): void {
+  try {
+    const dirOf = (e: DsmEntry): string => e.path.slice(0, e.path.lastIndexOf('/'));
+    const g = groups.map((x) => ({ n: x.name, p: dirOf((x.vids[0] || x.imgs[0])!), v: x.vids.map((e) => e.name), i: x.imgs.map((e) => e.name) }));
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ root, at: Date.now(), g }));
+  } catch { /* 存不下（太大）就算了，下次重新读 */ }
+}
+
 // ───────── 选刷刷看的文件夹 ─────────
-function FolderPick({ init, onPick, onClose }: { init: string; onPick: (p: string) => void; onClose: () => void }) {
+function FolderPick({ init, onPick, onClose, onRefresh }: { init: string; onPick: (p: string) => void; onClose: () => void; onRefresh?: () => void }) {
   const [path, setPath] = useState(init);
   const [rows, setRows] = useState<DsmEntry[] | null>(null);
   const [err, setErr] = useState('');
@@ -261,7 +280,10 @@ function FolderPick({ init, onPick, onClose }: { init: string; onPick: (p: strin
         {rows && rows.length === 0 && !err && <div className="lc-empty">这里没有子文件夹了</div>}
       </div>
       {err && <div className="lc-err">{err}</div>}
-      <div className="lc-acts fd-pick-f"><button className="lc-pri" disabled={!path} onClick={() => onPick(path)}>{path ? '就用这个文件夹' : '先点进一个文件夹'}</button></div>
+      <div className="lc-acts fd-pick-f">
+        <button className="lc-pri" disabled={!path} onClick={() => onPick(path)}>{path ? '就用这个文件夹' : '先点进一个文件夹'}</button>
+        {onRefresh && <button className="fd-pick-r" onClick={onRefresh}>重新读取当前文件夹的内容（群晖里新增了文件时点）</button>}
+      </div>
     </div>,
     document.body,
   );
@@ -332,12 +354,16 @@ function FeedInner() {
   const [n, setN] = useState(0);
   const [err, setErr] = useState('');
   const [tick, setTick] = useState(0);
+  const force = useRef(false); // 「重新读取」/「重试」：跳过缓存
 
   useEffect(() => {
     if (!root) return;
     let dead = false;
     setGroups(null); setErr('');
-    loadGroups(root, (k) => { if (!dead) setN(k); }).then((g) => { if (!dead) setGroups(g); }).catch((e) => { if (!dead) setErr(e instanceof Error ? e.message : String(e)); });
+    const hit = force.current ? null : cacheLoad(root);
+    force.current = false;
+    if (hit && hit.length) { setGroups(hit); return () => { dead = true; }; }
+    loadGroups(root, (k) => { if (!dead) setN(k); }).then((g) => { cacheSave(root, g); if (!dead) setGroups(g); }).catch((e) => { if (!dead) setErr(e instanceof Error ? e.message : String(e)); });
     return () => { dead = true; };
   }, [root, tick]);
 
@@ -368,7 +394,8 @@ function FeedInner() {
   const back = (): void => { if (window.history.length > 1) nav(-1); else nav('/local', { replace: true }); };
 
   const picker = picking ? (
-    <FolderPick init={root} onClose={() => { if (root) setPicking(false); else back(); }} onPick={(p) => { saveFeedFolder(p); setRoot(p); setPicking(false); }} />
+    <FolderPick init={root} onClose={() => { if (root) setPicking(false); else back(); }} onPick={(p) => { saveFeedFolder(p); if (p === root) { setPicking(false); } else { setGroups(null); setRoot(p); setPicking(false); } }}
+      onRefresh={root ? () => { force.current = true; setGroups(null); setTick(tick + 1); setPicking(false); } : undefined} />
   ) : null;
   if (!root) return picker;
   if (groups && posts.length > 0) return <><Viewer posts={posts} start={start} root={root} onClose={back} onSettings={() => setPicking(true)} onExternal={external} />{picker}</>;
@@ -378,7 +405,7 @@ function FeedInner() {
       <button className="fd-set" aria-label="换文件夹" onClick={() => setPicking(true)}>📁</button>
       {picker}
       {err ? (
-        <div className="fd-ext"><p>{err}</p><button onClick={() => setTick(tick + 1)}>重试</button></div>
+        <div className="fd-ext"><p>{err}</p><button onClick={() => { force.current = true; setTick(tick + 1); }}>重试</button></div>
       ) : groups ? (
         <div className="fd-ext"><p>这个文件夹里没有视频和图片。可以到随便看看里换一个文件夹。</p></div>
       ) : (
