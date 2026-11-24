@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import Cover from './Cover';
+import { isMobileApp } from '../lib/platform';
 import {
   clearCovers, clearDsm, coverStat, dsmBrowse, dsmConfigured, fmtClock, fmtSize, loadDsm, loadLibrary, readMyLists, readPos, saveDsm, writeMyLists, setPlayQueue, useDsmKey,
   type DsmConfig, type DsmEntry, type LocalLibrary, type LocalVideo, type MyList,
@@ -234,6 +235,7 @@ export default function LocalPage() {
         <h1>随便看看</h1>
         <input className="lc-q" value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索视频" />
         <button onClick={() => load(true)} disabled={busy}>{busy ? '读取中…' : '刷新'}</button>
+        {isMobileApp && <button className="lc-pri" onClick={() => nav('/local/feed')}>▶ 刷刷看</button>}
         <button onClick={() => setSetting('pick')}>换文件夹</button>
         <button onClick={() => setSetting('conn')}>设置</button>
       </div>

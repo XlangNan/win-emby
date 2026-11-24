@@ -33,6 +33,7 @@ import LivePage from './pages/LivePage';
 import LivePlayer from './pages/LivePlayer';
 import LocalPage from './local/LocalPage';
 import LocalPlayer from './local/LocalPlayer';
+import FeedPage from './local/FeedPage';
 import LoginPage from './pages/LoginPage';
 import PlayerPage from './pages/PlayerPage';
 import SearchPage from './pages/SearchPage';
@@ -218,6 +219,7 @@ function AppShell() {
         <Route path="/music" element={<MusicPage />} />
         <Route path="/music/:kind/:id" element={<MusicDetail />} />
         <Route path="/local" element={<LocalPage />} />
+        <Route path="/local/feed" element={<FeedPage />} />
         <Route path="/audiobooks" element={<AbsPage />} />
         <Route path="/audiobooks/:id" element={<AbsDetailPage />} />
         <Route path="/discover" element={<DiscoverPage />} />

@@ -356,3 +356,46 @@ export function writeMyLists(a: MyList[]): void {
   try { localStorage.setItem(PL_KEY, JSON.stringify(a)); } catch { /* ignore */ }
   window.dispatchEvent(new Event('wemby-mylists'));
 }
+
+// ───────── 文件夹浏览（安卓「刷刷看」）：区分视频 / 图片 ─────────
+export const isImage = (name: string): boolean => /\.(jpe?g|png|webp|gif|bmp|avif)$/i.test(name);
+/** 视频（不含音乐） */
+export const isVideoFile = (name: string): boolean => /\.(mp4|mkv|avi|mov|m4v|ts|webm|wmv|flv|mpg|mpeg|rmvb|rm|3gp|m2ts|iso)$/i.test(name);
+/** 手机系统自带播放器大概率能直接放的容器；其余的（mkv / avi …）走 MPV */
+export const isWebVideo = (name: string): boolean => /\.(mp4|m4v|webm|mov|3gp)$/i.test(name);
+
+const imgCache = new Map<string, Promise<string>>();
+async function fetchImage(path: string, retried: boolean): Promise<string> {
+  const c = loadDsm();
+  const get = async (q: URLSearchParams): Promise<Blob | null> => {
+    const res = await httpFetch(`${c.server}/webapi/entry.cgi?${q.toString()}`);
+    const type = res.headers.get('content-type') || '';
+    if (res.ok && type.startsWith('image/')) { const b = await res.blob(); return b.size > 0 ? b : null; }
+    return null;
+  };
+  const sidv = await dsmSid(retried);
+  // 先要群晖生成的大图（体积小、加载快）；没有再下载原图
+  let blob = await get(new URLSearchParams({ api: 'SYNO.FileStation.Thumb', version: '2', method: 'get', path, size: 'large', _sid: sidv })).catch(() => null);
+  if (!blob) blob = await get(new URLSearchParams({ api: 'SYNO.FileStation.Download', version: '2', method: 'download', path: JSON.stringify([path]), mode: 'open', _sid: sidv })).catch(() => null);
+  if (!blob) {
+    if (!retried) return fetchImage(path, true);
+    throw new Error('图片读取失败');
+  }
+  return URL.createObjectURL(blob);
+}
+/** 取一张可直接放进 <img> 的图片地址（结果有缓存，最多留 60 张，超出的释放掉） */
+export function dsmImage(path: string): Promise<string> {
+  let p = imgCache.get(path);
+  if (!p) {
+    p = fetchImage(path, false);
+    imgCache.set(path, p);
+    p.catch(() => imgCache.delete(path));
+    if (imgCache.size > 60) {
+      const k = imgCache.keys().next().value as string;
+      const old = imgCache.get(k);
+      imgCache.delete(k);
+      void old?.then((u) => URL.revokeObjectURL(u)).catch(() => undefined);
+    }
+  }
+  return p;
+}
