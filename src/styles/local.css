@@ -242,3 +242,22 @@
 :root:root:root .fd-v .fd-ext button{ border-radius: 20px !important; background: var(--accent) !important; color: #fff !important; }
 
 .fd-load{ display: flex; align-items: center; justify-content: center; }
+
+/* 刷刷看：左右滑快进快退 / 换文件夹 / 选文件夹 */
+.fd-vpost{ touch-action: pan-y; }
+.fd-hud{ position: absolute; left: 50%; top: 42%; transform: translateX(-50%); padding: 10px 18px; border-radius: 14px; background: #000a; font-size: 18px; text-align: center; pointer-events: none; white-space: nowrap; }
+.fd-hud b{ font-size: 24px; font-weight: 700; }
+.fd-hud small{ display: block; margin-top: 2px; font-size: 12px; opacity: .75; }
+.fd-set{ position: absolute; right: 10px; top: calc(max(var(--sat, 0px), env(safe-area-inset-top, 0px)) + 8px); z-index: 3; }
+:root:root:root .fd-v .fd-set{ width: 40px !important; min-width: 40px !important; height: 40px !important; padding: 0 !important; border-radius: 50% !important; border: 0 !important; background: #0006 !important; color: #fff !important; font-size: 17px; display: flex; align-items: center; justify-content: center; }
+.fd-cnt{ top: calc(max(var(--sat, 0px), env(safe-area-inset-top, 0px)) + 56px) !important; }
+.fd-pick{ position: fixed; inset: 0; z-index: 100001; background: var(--surface-0, #0e0e10); color: var(--text, #eee); display: flex; flex-direction: column; padding: calc(max(var(--sat, 0px), env(safe-area-inset-top, 0px)) + 10px) 14px calc(var(--sab, 0px) + 12px); }
+.fd-pick-h{ display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 17px; }
+:root:root:root .fd-pick-x{ width: 38px; min-width: 38px; height: 38px; padding: 0 !important; border-radius: 50% !important; font-size: 24px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
+.fd-pick-rows{ flex: 1; min-height: 0; overflow-y: auto; }
+.fd-pick-f{ margin-top: 10px; }
+.fd-pick-f button{ width: 100%; height: 46px; }
+:root:root .fd-pick .lc-row{ border-radius: 12px; text-align: left; padding: 12px 14px; height: auto; }
+:root:root .fd-pick .fd-pick-rows{ max-height: none; }
+:root:root:root .fd-pick .lc-pri{ background: var(--accent) !important; color: #fff !important; border: 0 !important; border-radius: 12px !important; }
+:root:root:root .fd-pick .lc-pri:disabled{ opacity: .45; }

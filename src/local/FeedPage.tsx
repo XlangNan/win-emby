@@ -1,10 +1,10 @@
-// 刷刷看（只有安卓端）：把「随便看看」选的根文件夹连成一条抖音式信息流。
+// 刷刷看（只有安卓端）：把刷刷看自己选的根文件夹（和随便看看分开）连成一条抖音式信息流。
 // 每个子文件夹（比如 宫保鸡丁）先依次播里面的视频，再是一条「图文」（里面的图片左右滑），
 // 刷完往下滑就接着下一个子文件夹（鱼香肉丝）。上下滑切换，系统返回键退出。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { dsmConfigured, dsmImage, dsmList, dsmPlayUrl, isImage, isVideoFile, isWebVideo, loadDsm, setPlayQueue, type DsmEntry, type LocalVideo } from './dsm';
+import { dsmConnected, dsmDirs, dsmImage, dsmList, dsmPlayUrl, fmtClock, isImage, isVideoFile, isWebVideo, loadFeedFolder, saveFeedFolder, setPlayQueue, type DsmEntry, type LocalVideo } from './dsm';
 import { isMobileApp } from '../lib/platform';
 
 type Post = ({ kind: 'video'; e: DsmEntry } | { kind: 'images'; es: DsmEntry[] }) & { group: string };
@@ -64,6 +64,37 @@ function VideoPost({ e, active, near, name, onExternal }: { e: DsmEntry; active:
   const [d, setD] = useState(0);
   const retried = useRef(false);
   const web = isWebVideo(e.name);
+  // 左右滑动快进 / 快退：整屏宽 = 整个视频（最长按 3 分钟算），松手才真正跳转，滑动时显示目标时间
+  const g = useRef<{ x: number; y: number; id: number; on: boolean; from: number } | null>(null);
+  const swallow = useRef(false);
+  const [pv, setPv] = useState<number | null>(null);
+  const range = (): number => Math.max(10, Math.min(d || 60, 180));
+  const target = (dx: number, w: number, from: number): number => Math.max(0, Math.min(d || 0, from + (dx / Math.max(1, w)) * range()));
+  const pDown = (ev: React.PointerEvent<HTMLDivElement>): void => {
+    if (!web || bad || !d || (ev.target as HTMLElement).closest('button,.fd-seek')) return;
+    g.current = { x: ev.clientX, y: ev.clientY, id: ev.pointerId, on: false, from: v.current?.currentTime ?? 0 };
+  };
+  const pMove = (ev: React.PointerEvent<HTMLDivElement>): void => {
+    const s = g.current;
+    if (!s || s.id !== ev.pointerId) return;
+    const dx = ev.clientX - s.x, dy = ev.clientY - s.y;
+    if (!s.on) {
+      if (Math.abs(dx) < 12 || Math.abs(dx) < Math.abs(dy) * 1.4) return; // 还不够横，或者偏竖（竖着是切换视频）
+      s.on = true;
+      try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch { /* ignore */ }
+    }
+    setPv(target(dx, ev.currentTarget.clientWidth, s.from));
+  };
+  const pUp = (ev: React.PointerEvent<HTMLDivElement>): void => {
+    const s = g.current;
+    g.current = null;
+    if (!s || !s.on) return;
+    swallow.current = true; setTimeout(() => { swallow.current = false; }, 350); // 滑完不要当成「点一下暂停」
+    const el = v.current;
+    if (el) el.currentTime = target(ev.clientX - s.x, ev.currentTarget.clientWidth, s.from);
+    setPv(null);
+  };
+  const pCancel = (): void => { g.current = null; setPv(null); };
 
   useEffect(() => {
     if (!near || !web || src) return;
@@ -96,7 +127,7 @@ function VideoPost({ e, active, near, name, onExternal }: { e: DsmEntry; active:
   };
   const tap = (): void => {
     const el = v.current;
-    if (!el) return;
+    if (!el || swallow.current) return;
     if (el.paused) { void el.play(); setPaused(false); } else { el.pause(); setPaused(true); }
   };
   const seek = (ev: React.PointerEvent<HTMLDivElement>): void => {
@@ -106,7 +137,7 @@ function VideoPost({ e, active, near, name, onExternal }: { e: DsmEntry; active:
   };
 
   return (
-    <div className="fd-post">
+    <div className="fd-post fd-vpost" onPointerDown={pDown} onPointerMove={pMove} onPointerUp={pUp} onPointerCancel={pCancel}>
       {web && !bad && src && (
         <video ref={v} src={src} playsInline loop preload={active ? 'auto' : 'metadata'} className="fd-video" onClick={tap}
           onTimeUpdate={(ev) => setT(ev.currentTarget.currentTime)} onLoadedMetadata={(ev) => setD(ev.currentTarget.duration || 0)} onError={onErr} />
@@ -119,13 +150,14 @@ function VideoPost({ e, active, near, name, onExternal }: { e: DsmEntry; active:
           <button onClick={onExternal}>用 MPV 播放</button>
         </div>
       )}
-      {paused && web && !bad && <div className="fd-pp" aria-hidden="true">▶</div>}
+      {paused && web && !bad && pv === null && <div className="fd-pp" aria-hidden="true">▶</div>}
+      {pv !== null && <div className="fd-hud"><b>{fmtClock(pv)}</b> / {fmtClock(d)}<small>{pv - t >= 0 ? '+' : '−'}{Math.round(Math.abs(pv - t))} 秒</small></div>}
       <div className="fd-info"><b>{titleOf(e.name)}</b><span>{name}</span></div>
       {web && !bad && (
         <>
           <button className="fd-mute" aria-label={muted ? '开声音' : '静音'} onClick={() => { const el = v.current; const m = !muted; setMuted(m); if (el) el.muted = m; }}>{muted ? '🔇' : '🔊'}</button>
           <div className="fd-seek" onPointerDown={(ev) => { ev.currentTarget.setPointerCapture(ev.pointerId); seek(ev); }} onPointerMove={(ev) => { if (ev.buttons) seek(ev); }}>
-            <i style={{ width: `${d ? (t / d) * 100 : 0}%` }} />
+            <i style={{ width: `${d ? ((pv ?? t) / d) * 100 : 0}%` }} />
           </div>
         </>
       )}
@@ -174,11 +206,40 @@ async function loadGroups(root: string, onProgress: (n: number) => void): Promis
   return out;
 }
 
+// ───────── 选刷刷看的文件夹 ─────────
+function FolderPick({ init, onPick, onClose }: { init: string; onPick: (p: string) => void; onClose: () => void }) {
+  const [path, setPath] = useState(init);
+  const [rows, setRows] = useState<DsmEntry[] | null>(null);
+  const [err, setErr] = useState('');
+  useEffect(() => {
+    let dead = false;
+    setRows(null); setErr('');
+    dsmDirs(path).then((r) => { if (!dead) setRows(r); }).catch((e) => { if (!dead) { setErr(e instanceof Error ? e.message : String(e)); setRows([]); } });
+    return () => { dead = true; };
+  }, [path]);
+  const up = (): void => setPath(path.lastIndexOf('/') <= 0 ? '' : path.slice(0, path.lastIndexOf('/')));
+  return createPortal(
+    <div className="fd-pick">
+      <div className="fd-pick-h"><button className="fd-pick-x" onClick={onClose} aria-label="返回">‹</button><b>选刷刷看的文件夹</b></div>
+      <div className="lc-path">{path || '先点进一个文件夹（这里和「随便看看」的文件夹是分开的）'}</div>
+      <div className="lc-rows fd-pick-rows">
+        {path && <button className="lc-row" onClick={up}>‹ 上一级</button>}
+        {rows === null && <div className="lc-empty">读取中…</div>}
+        {rows?.map((r) => <button key={r.path} className="lc-row" onClick={() => setPath(r.path)}>📁 {r.name}</button>)}
+        {rows && rows.length === 0 && !err && <div className="lc-empty">这里没有子文件夹了</div>}
+      </div>
+      {err && <div className="lc-err">{err}</div>}
+      <div className="lc-acts fd-pick-f"><button className="lc-pri" disabled={!path} onClick={() => onPick(path)}>{path ? '就用这个文件夹' : '先点进一个文件夹'}</button></div>
+    </div>,
+    document.body,
+  );
+}
+
 const POS_KEY = 'wemby-feed-pos';
 const postKey = (p: Post): string => (p.kind === 'video' ? p.e.path : p.es[0].path);
 
 // ───────── 全屏浏览 ─────────
-function Viewer({ posts, start, onClose, onExternal }: { posts: Post[]; start: number; onClose: () => void; onExternal: (e: DsmEntry, group: string) => void }) {
+function Viewer({ posts, start, root, onClose, onSettings, onExternal }: { posts: Post[]; start: number; root: string; onClose: () => void; onSettings: () => void; onExternal: (e: DsmEntry, group: string) => void }) {
   const box = useRef<HTMLDivElement>(null);
   const [act, setAct] = useState(start);
   useEffect(() => { const el = box.current; if (el && start > 0) el.scrollTop = start * el.clientHeight; }, [start]);
@@ -193,8 +254,8 @@ function Viewer({ posts, start, onClose, onExternal }: { posts: Post[]; start: n
   }, [posts]);
   useEffect(() => {
     const p = posts[act];
-    if (p) try { localStorage.setItem(POS_KEY, JSON.stringify({ root: loadDsm().folder, key: postKey(p) })); } catch { /* ignore */ }
-  }, [act, posts]);
+    if (p) try { localStorage.setItem(POS_KEY, JSON.stringify({ root, key: postKey(p) })); } catch { /* ignore */ }
+  }, [act, posts, root]);
   return createPortal(
     <div className="fd-v">
       <div className="fd-scroll" ref={box}>
@@ -209,6 +270,7 @@ function Viewer({ posts, start, onClose, onExternal }: { posts: Post[]; start: n
         ))}
       </div>
       <button className="fd-x" aria-label="返回" onClick={onClose}>‹</button>
+      <button className="fd-set" aria-label="换文件夹" onClick={onSettings}>📁</button>
       <div className="fd-pg">{posts[act]?.group}　{act + 1}/{posts.length}</div>
     </div>,
     document.body,
@@ -217,13 +279,15 @@ function Viewer({ posts, start, onClose, onExternal }: { posts: Post[]; start: n
 
 function FeedInner() {
   const nav = useNavigate();
-  const root = loadDsm().folder;
+  const [root, setRoot] = useState(loadFeedFolder());
+  const [picking, setPicking] = useState(!loadFeedFolder());
   const [groups, setGroups] = useState<Group[] | null>(null);
   const [n, setN] = useState(0);
   const [err, setErr] = useState('');
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
+    if (!root) return;
     let dead = false;
     setGroups(null); setErr('');
     loadGroups(root, (k) => { if (!dead) setN(k); }).then((g) => { if (!dead) setGroups(g); }).catch((e) => { if (!dead) setErr(e instanceof Error ? e.message : String(e)); });
@@ -256,10 +320,16 @@ function FeedInner() {
   };
   const back = (): void => { if (window.history.length > 1) nav(-1); else nav('/local', { replace: true }); };
 
-  if (groups && posts.length > 0) return <Viewer posts={posts} start={start} onClose={back} onExternal={external} />;
+  const picker = picking ? (
+    <FolderPick init={root} onClose={() => { if (root) setPicking(false); else back(); }} onPick={(p) => { saveFeedFolder(p); setRoot(p); setPicking(false); }} />
+  ) : null;
+  if (!root) return picker;
+  if (groups && posts.length > 0) return <><Viewer posts={posts} start={start} root={root} onClose={back} onSettings={() => setPicking(true)} onExternal={external} />{picker}</>;
   return createPortal(
     <div className="fd-v fd-load">
       <button className="fd-x" aria-label="返回" onClick={back}>‹</button>
+      <button className="fd-set" aria-label="换文件夹" onClick={() => setPicking(true)}>📁</button>
+      {picker}
       {err ? (
         <div className="fd-ext"><p>{err}</p><button onClick={() => setTick(tick + 1)}>重试</button></div>
       ) : groups ? (
@@ -273,6 +343,6 @@ function FeedInner() {
 }
 
 export default function FeedPage() {
-  if (!isMobileApp || !dsmConfigured()) return <Navigate to="/local" replace />;
+  if (!isMobileApp || !dsmConnected()) return <Navigate to="/local" replace />;
   return <FeedInner />;
 }

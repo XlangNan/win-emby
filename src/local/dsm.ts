@@ -399,3 +399,14 @@ export function dsmImage(path: string): Promise<string> {
   }
   return p;
 }
+
+// ───────── 刷刷看自己的文件夹（和随便看看分开；群晖账号共用） ─────────
+const FEED_KEY = 'wemby-feed-folder';
+export const dsmConnected = (): boolean => { const c = loadDsm(); return !!(c.server && c.user && c.pass); };
+export function loadFeedFolder(): string { try { return localStorage.getItem(FEED_KEY) || ''; } catch { return ''; } }
+export function saveFeedFolder(p: string): void { try { localStorage.setItem(FEED_KEY, p); } catch { /* ignore */ } }
+/** 列出某个文件夹下的子文件夹（path 为空 = 所有共享文件夹）；选刷刷看文件夹用 */
+export async function dsmDirs(path: string): Promise<DsmEntry[]> {
+  const rows = path ? await dsmList(path) : await dsmShares();
+  return rows.filter((e) => e.isdir && !/^[@#.]/.test(e.name));
+}
