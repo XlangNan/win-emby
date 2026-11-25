@@ -2,6 +2,7 @@
 import MiniPlayer from '../music/MiniPlayer';
 import AbsBar from '../abs/AbsBar';
 import NowPlaying from '../music/NowPlaying';
+import GlassAmbient from './GlassAmbient';
 import { useMusic } from '../music/player';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
@@ -147,6 +148,7 @@ export default function MobileShell({ views, routes }: { views: EmbyItem[]; rout
 
   return (
     <div className={`m-app${p.startsWith('/detail') ? ' m-app-detail' : ''}`} style={dockVars}>
+      <GlassAmbient />
       <div className="m-main">
         {home && (
           <header className="m-head">

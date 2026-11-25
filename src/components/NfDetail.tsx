@@ -8,6 +8,7 @@ import BackButton from './BackButton';
 import MediaCard from './MediaCard';
 import PlayOptions, { type PlayChoice } from './PlayOptions';
 import { backdropUrl, logoUrl, personUrl, thumbUrl } from '../emby/client';
+import { useAmbient } from '../lib/ambient';
 import { fmtDuration, fmtRuntime, progressPct } from '../emby/format';
 import type { EmbyItem } from '../emby/types';
 import { useBackClose } from '../music/useBackClose';
@@ -51,6 +52,7 @@ export default function NfDetail(p: NfDetailProps) {
   const tp = !!p.target?.UserData?.Played;
   const nav = useNavigate();
   const bg = backdropUrl(it, 1920);
+  useAmbient(backdropUrl(it, 640) || undefined);
   const logo = logoUrl(it);
   const actors = (it.People || []).filter((x) => x.Type === 'Actor' || x.Type === 'GuestStar');
   const directors = (it.People || []).filter((x) => x.Type === 'Director').map((x) => x.Name);

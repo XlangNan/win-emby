@@ -1,12 +1,15 @@
 // 手机首页主推卡：圆角横版剧照 + 底部居中的标题 / 类型 / 两个并排按钮；手指拖动跟手滑动切换。
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { backdropUrl, emby, logoUrl, posterUrl, thumbUrl } from '../emby/client';
+import { useAmbient } from '../lib/ambient';
 import type { EmbyItem } from '../emby/types';
 
 export default function MobileHero({ items, onOpen, onPlay }: { items: EmbyItem[]; onOpen: (it: EmbyItem) => void; onPlay: (it: EmbyItem) => void }) {
   const list = useMemo(() => items.slice(0, 12), [items]);
   const key = list.map((i) => i.Id).join('|');
   const [idx, setIdx] = useState(0);
+  const curIt = list[idx];
+  useAmbient(curIt ? backdropUrl(curIt, 640) || thumbUrl(curIt, 640) || posterUrl(curIt, 500) || undefined : undefined);
   const [drag, setDrag] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [favs, setFavs] = useState<Record<string, boolean>>({});

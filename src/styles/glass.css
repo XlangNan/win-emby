@@ -1,0 +1,79 @@
+/* glass.css — 手机端「液态玻璃」界面（<html data-ui="glass">，仅安卓；浅色外观下不生效，自动用经典）。
+   做法：① 当前页面的海报放大模糊，铺成整屏「氛围背景」（mobile/GlassAmbient.tsx）；
+        ② 悬浮导航、分类标签、首页大卡标题条、详情信息、播放控制条等换成半透明玻璃：模糊 + 提亮 + 顶部一道高光边；
+        ③ 主行动（播放）仍用不透明白色，在玻璃里最醒目。
+   只动颜色 / 圆角 / 模糊，不改尺寸与布局。性能：实时模糊只用在导航、首页标题条、详情面板、播放控制条这几处；列表里的小块只用半透明。 */
+:root.android[data-ui='glass']:not([data-mode='light']) {
+  --gl-fill: linear-gradient(135deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .07));
+  --gl-fill-s: rgba(255, 255, 255, .13);
+  --gl-line: rgba(255, 255, 255, .26);
+  --gl-hi: inset 0 1.5px 0 rgba(255, 255, 255, .5), inset 0 -1px 0 rgba(255, 255, 255, .1);
+  --gl-sh: 0 12px 30px rgba(0, 0, 0, .3);
+  --gl-blur: blur(22px) saturate(180%);
+}
+/* ── 氛围背景层 ── */
+.gl-amb { display: none; }
+:root.android[data-ui='glass']:not([data-mode='light']) .gl-amb { display: block; position: absolute; inset: 0; overflow: hidden; z-index: 0; pointer-events: none;
+  background: radial-gradient(120% 60% at 80% -10%, #4b3fbf 0%, transparent 60%), radial-gradient(100% 50% at 0% 100%, #0f6f86 0%, transparent 60%), #0b0b18; }
+:root.android[data-ui='glass']:not([data-mode='light']) .gl-amb-img { position: absolute; inset: -60px; background-size: cover; background-position: center; filter: blur(38px) saturate(1.7); transform: scale(1.15); opacity: .9; animation: gl-fade .5s ease both; }
+:root.android[data-ui='glass']:not([data-mode='light']) .gl-amb-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(5, 5, 14, .5) 0%, rgba(5, 5, 14, .08) 32%, rgba(5, 5, 14, .72) 100%); }
+@keyframes gl-fade { from { opacity: 0; } to { opacity: .9; } }
+:root.android[data-ui='glass']:not([data-mode='light']),
+:root.android[data-ui='glass']:not([data-mode='light']) body,
+:root.android[data-ui='glass']:not([data-mode='light']) #root { background: #0b0b18; }
+:root.android[data-ui='glass']:not([data-mode='light']) .m-app { background: transparent; }
+:root.android[data-ui='glass']:not([data-mode='light']) .m-main { z-index: 1; }
+
+/* ── 顶部：品牌 + 图标 + 分类 ── */
+:root.android[data-ui='glass']:not([data-mode='light']) .m-head { background: linear-gradient(180deg, rgba(5, 5, 14, .55), rgba(5, 5, 14, 0)); }
+:root.android[data-ui='glass']:not([data-mode='light']) .m-brand { background: linear-gradient(135deg, #fff, #b9c6ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+:root.android[data-ui='glass']:not([data-mode='light']) .m-iconbtn { width: 38px; height: 38px; margin-left: 4px; border-radius: 50% !important; background: var(--gl-fill-s) !important; border: 1px solid var(--gl-line) !important; box-shadow: var(--gl-hi) !important; }
+:root.android[data-ui='glass']:not([data-mode='light']) .m-chip { background: var(--gl-fill-s); border-color: var(--gl-line); box-shadow: var(--gl-hi); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+:root.android[data-ui='glass']:not([data-mode='light']) .m-chip.active { background: rgba(255, 255, 255, .92); color: #15162a; border-color: #fff; box-shadow: 0 6px 16px rgba(0, 0, 0, .3); }
+
+/* ── 首页大卡：圆角更大，标题条是玻璃 ── */
+:root.android[data-ui='glass']:not([data-mode='light']) .mh-card { border-radius: 30px; border: 1px solid var(--gl-line); box-shadow: 0 22px 44px -14px rgba(0, 0, 0, .65); background: rgba(255, 255, 255, .06); }
+:root.android[data-ui='glass']:not([data-mode='light']) .mh-shade { background: linear-gradient(0deg, rgba(0, 0, 0, .55) 0%, rgba(0, 0, 0, 0) 45%); }
+:root.android[data-ui='glass']:not([data-mode='light']) .mh-info { margin: 0 10px 10px; padding: 12px 14px 14px; border-radius: 24px; background: var(--gl-fill); border: 1px solid var(--gl-line); box-shadow: var(--gl-hi), var(--gl-sh); -webkit-backdrop-filter: var(--gl-blur); backdrop-filter: var(--gl-blur); }
+:root.android[data-ui='glass']:not([data-mode='light']) .mh-btns button { height: 44px; border-radius: 999px; }
+:root.android[data-ui='glass']:not([data-mode='light']) .mh-play { box-shadow: 0 8px 20px rgba(0, 0, 0, .35) !important; }
+:root.android[data-ui='glass']:not([data-mode='light']) .mh-list { background: rgba(255, 255, 255, .2) !important; border: 1px solid var(--gl-line) !important; box-shadow: var(--gl-hi) !important; }
+:root.android[data-ui='glass']:not([data-mode='light']) .mh-dots span { background: rgba(255, 255, 255, .3); }
+:root.android[data-ui='glass']:not([data-mode='light']) .mh-dots span.on { background: #fff; }
+
+/* ── 横向行：标题加粗、海报大圆角 + 高光边 ── */
+:root.android[data-ui='glass']:not([data-mode='light']) .nf-row-title { font-weight: 700; text-shadow: 0 1px 8px rgba(0, 0, 0, .5); }
+:root.android[data-ui='glass']:not([data-mode='light']) .card-media .card,
+:root.android[data-ui='glass']:not([data-mode='light']) .card-media img,
+:root.android[data-ui='glass']:not([data-mode='light']) .card-media .no-cover { border-radius: 16px !important; }
+:root.android[data-ui='glass']:not([data-mode='light']) .card-media .card { box-shadow: 0 12px 22px -8px rgba(0, 0, 0, .7), 0 0 0 1px rgba(255, 255, 255, .22) !important; }
+
+/* ── 底部悬浮导航 / 小播放条 ── */
+:root.android[data-ui='glass']:not([data-mode='light']) .m-tabs { background: var(--gl-fill); border: 1px solid var(--gl-line); box-shadow: var(--gl-hi), 0 14px 34px rgba(0, 0, 0, .4); -webkit-backdrop-filter: var(--gl-blur); backdrop-filter: var(--gl-blur); }
+:root.android[data-ui='glass']:not([data-mode='light']) .m-tab { color: rgba(255, 255, 255, .72) !important; }
+:root.android[data-ui='glass']:not([data-mode='light']) .m-tab.active { background: rgba(255, 255, 255, .24) !important; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5) !important; color: #fff !important; }
+:root.android[data-ui='glass']:not([data-mode='light']) .m-tab.active svg { stroke: #fff; }
+:root.android[data-ui='glass']:not([data-mode='light']) .mu-mini.inline { background: var(--gl-fill); border: 1px solid var(--gl-line); box-shadow: var(--gl-hi), var(--gl-sh); -webkit-backdrop-filter: var(--gl-blur); backdrop-filter: var(--gl-blur); }
+
+/* ── 影视详情：头图下面的信息是一块玻璃 ── */
+:root.android[data-ui='glass']:not([data-mode='light']) .nfd { background: transparent; }
+:root.android[data-ui='glass']:not([data-mode='light'])[data-shell] .nfd-shade { background: linear-gradient(0deg, rgba(5, 5, 14, .78) 0%, rgba(5, 5, 14, 0) 55%), linear-gradient(180deg, rgba(0, 0, 0, .45), rgba(0, 0, 0, 0) 28%); }
+:root.android[data-ui='glass']:not([data-mode='light'])[data-shell] .nfd-body { margin: -40px 12px 0; padding: 16px 16px 14px; border-radius: 28px; background: var(--gl-fill); border: 1px solid var(--gl-line); box-shadow: var(--gl-hi), var(--gl-sh); -webkit-backdrop-filter: var(--gl-blur); backdrop-filter: var(--gl-blur); }
+:root.android[data-ui='glass']:not([data-mode='light'])[data-shell] .nfd-back .back-btn { background: var(--gl-fill-s) !important; border: 1px solid var(--gl-line); box-shadow: var(--gl-hi); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+:root.android[data-ui='glass']:not([data-mode='light'])[data-shell] .nfd-play { border-radius: 999px; box-shadow: 0 8px 20px rgba(0, 0, 0, .35); }
+:root.android[data-ui='glass']:not([data-mode='light'])[data-shell] .nfd-circle { border-radius: 50%; background: var(--gl-fill-s); border: 1px solid var(--gl-line); box-shadow: var(--gl-hi); }
+:root.android[data-ui='glass']:not([data-mode='light'])[data-shell] .nfd-sec-head h2 { text-shadow: 0 1px 8px rgba(0, 0, 0, .5); }
+:root.android[data-ui='glass']:not([data-mode='light'])[data-shell] .nfd-cast .we-cast img, :root.android[data-ui='glass']:not([data-mode='light'])[data-shell] .nfd-cast .we-cast-ph { border: 1px solid var(--gl-line); }
+
+/* ── 「我的」：列表是玻璃卡片 ── */
+:root.android[data-ui='glass']:not([data-mode='light']) .m-me-list { background: var(--gl-fill); border: 1px solid var(--gl-line); border-radius: 22px; box-shadow: var(--gl-hi), var(--gl-sh); margin-bottom: 14px; }
+:root.android[data-ui='glass']:not([data-mode='light']) .m-me-row { border-bottom-color: rgba(255, 255, 255, .1); }
+:root.android[data-ui='glass']:not([data-mode='light']) .m-me-row:active { background: rgba(255, 255, 255, .12); }
+:root.android[data-ui='glass']:not([data-mode='light']) .m-me-avatar { border-radius: 50%; box-shadow: var(--gl-hi); }
+.m-me-sw { font-size: 13px; opacity: .85; }
+
+/* ── 播放控制条：悬浮玻璃胶囊（手机播放页）── */
+:root.android[data-ui='glass']:not([data-mode='light']) .we-player .we-bottom { left: 12px; right: 12px; bottom: max(10px, env(safe-area-inset-bottom)); padding: 12px 16px 10px !important; border-radius: 28px; background: linear-gradient(135deg, rgba(255, 255, 255, .2), rgba(255, 255, 255, .06)); border: 1px solid var(--gl-line); box-shadow: var(--gl-hi), 0 14px 34px rgba(0, 0, 0, .4); -webkit-backdrop-filter: var(--gl-blur); backdrop-filter: var(--gl-blur); }
+:root.android[data-ui='glass']:not([data-mode='light']) .we-player .we-top .we-btn { border-radius: 999px; background: rgba(255, 255, 255, .14); }
+:root.android[data-ui='glass']:not([data-mode='light']) .we-player .we-top { background: linear-gradient(180deg, rgba(0, 0, 0, .55), rgba(0, 0, 0, 0)); }
+:root.android[data-ui='glass']:not([data-mode='light']) .mh-btns button { white-space: nowrap; font-size: 14px; padding: 0 8px; }

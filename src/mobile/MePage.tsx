@@ -2,6 +2,8 @@
 import { useNavigate } from 'react-router-dom';
 import ServerChip from '../components/ServerChip';
 import { getSession } from '../emby/session';
+import { isAndroid } from '../lib/platform';
+import { setUi, useUi } from '../lib/ui';
 
 const ROWS: { to: string; label: string; sub: string }[] = [
   { to: '/history', label: '观看历史', sub: '看过的影片和进度' },
@@ -13,6 +15,7 @@ const ROWS: { to: string; label: string; sub: string }[] = [
 export default function MePage() {
   const nav = useNavigate();
   const s = getSession();
+  const ui = useUi();
   return (
     <div className="content m-me">
       <div className="m-me-head">
@@ -24,6 +27,17 @@ export default function MePage() {
         <span style={{ flex: 1 }} />
         <ServerChip />
       </div>
+      {isAndroid && (
+        <div className="m-me-list m-me-ui">
+          <div className="m-me-row" role="button" tabIndex={0} onClick={() => setUi(ui === 'glass' ? 'classic' : 'glass')}>
+            <div>
+              <div className="m-me-l">界面风格</div>
+              <div className="muted m-me-s">{ui === 'glass' ? '液态玻璃（浅色外观下自动用经典）' : '经典'}</div>
+            </div>
+            <span className="m-me-sw">{ui === 'glass' ? '液态玻璃' : '经典'}</span>
+          </div>
+        </div>
+      )}
       <div className="m-me-list">
         {ROWS.map((r) => (
           <div key={r.to} className="m-me-row" role="button" tabIndex={0} onClick={() => nav(r.to)}>

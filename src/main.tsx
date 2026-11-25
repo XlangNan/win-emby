@@ -11,6 +11,7 @@ import { initFont } from './lib/font';
 import { initMode } from './lib/mode';
 import { startSync } from './sync/sync';
 import './lib/platform';
+import { applyUi } from './lib/ui';
 import './styles/global.css';
 import './styles/netflix.css';
 import './styles/app.css';
@@ -24,12 +25,14 @@ import './styles/dash.css';
 import './styles/tablet.css';
 import './styles/light.css';
 import './styles/noir.css'; // 黑金皮肤：放最后，修饰规则才能盖过结构层
+import './styles/glass.css'; // 手机端「液态玻璃」界面（data-ui=glass），在所有样式之后
 
 // 挂载前先应用皮肤，避免首屏闪烁
 initTheme();
 if (isMobileApp) applyTheme('netflix'); // 手机端固定用流媒体风格
 initFont();
 initMode();
+applyUi();
 installDragRegion();
 if (isMobileApp) installKeyboardAware();
 installWinFit();
