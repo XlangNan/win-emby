@@ -923,6 +923,9 @@ button.nfd-all{ background: none !important; border: 0 !important; box-shadow: n
 .we-chips{ display: flex; gap: 6px; margin-top: 5px; overflow: hidden; flex-wrap: nowrap; }
 .we-chip{ flex: none; height: 20px; padding: 0 8px; border-radius: 3px; background: rgba(255, 255, 255, .14); font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; white-space: nowrap; text-shadow: none; }
 .we-chip.hi{ background: var(--accent); color: var(--on-accent, #fff); }
+/* 顶栏「账号 · 服务器」按钮也用了 .we-chip 这个类名，会被上面的小标签样式（20px 高、灰底、3px 圆角）套住，
+   在药丸后面露出左右两块灰方块。它自己的外观由 .srcpick-name 负责，这里把标签样式撤掉。 */
+.srcpick.we-chip{ height: auto; padding: 0; border-radius: 0; background: transparent; font-size: inherit; font-weight: inherit; display: block; }
 .we-player .we-top .we-btn.we-ibtn{ display: inline-flex; align-items: center; gap: 6px; }
 .we-player .we-top .we-btn.we-ibtn.on{ background: var(--accent) !important; color: var(--on-accent, #fff) !important; }
 .we-ibtn .we-ico{ flex: none; display: none; }
