@@ -185,7 +185,7 @@ export default function NowPlaying() {
               ))}
             </div>
           ) : !lyr ? <div className="mu-np-nolyr">歌词加载中…</div>
-            : !lyr.lines.length ? <div className="mu-np-nolyr">纯音乐，请欣赏 · 或这首歌没有歌词<br /><button type="button" className="mu-np-fix" onClick={() => cur && openMatch(cur)}>歌词不对？点此匹配</button></div>
+            : !lyr.lines.length ? <div className="mu-np-nolyr">{lyr.bad ? <>这首歌的歌词文件编码不对（多半是 GBK），服务器已读成乱码。<br />可以点下面匹配在线歌词，或把 .lrc 另存为 UTF-8</> : <>纯音乐，请欣赏 · 或这首歌没有歌词</>}<br /><button type="button" className="mu-np-fix" onClick={() => cur && openMatch(cur)}>歌词不对？点此匹配</button></div>
             : (
               <div className="mu-lyr">
                 {lyr.lines.map((l, i) => (

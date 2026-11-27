@@ -6,7 +6,14 @@ import { fetchLyric, onlineConfigured, searchOnline } from './online';
 import { loadOpts } from './prefs';
 import { getOfflineLyrics } from './offline';
 
-export type Lyr = { synced: boolean; lines: { t: number; text: string }[] };
+export type Lyr = { synced: boolean; lines: { t: number; text: string }[]; /** 服务器给的歌词已经是乱码（多半是 GBK 编码的 .lrc 被当成 UTF-8 读了） */ bad?: boolean };
+
+/** 乱码判断：U+FFFD（�）是服务器读不懂编码时塞进去的替代符，客户端无法还原。三成以上的行带它就当歌词不可用 */
+function isGarbled(r: Lyr): boolean {
+  if (!r.lines.length) return false;
+  const n = r.lines.filter((l) => l.text.includes('\uFFFD')).length;
+  return n >= 2 && n / r.lines.length >= 0.3;
+}
 const cache = new Map<string, Lyr>();
 const pending = new Map<string, Promise<Lyr>>();
 
@@ -41,7 +48,10 @@ function load(s: Song): Promise<Lyr> {
   let p = pending.get(s.id);
   if (!p) {
     p = nd.lyrics(s).catch((e: unknown) => { const o = getOfflineLyrics(s.id); if (o) return o; throw e; }).then(async (r) => {
-      if (!r.lines.length) r = (await autoOnline(s)) || r;   // 服务器没有歌词：自动去在线来源找
+      let bad = false;
+      if (isGarbled(r)) { bad = true; r = { synced: r.synced, lines: [] }; }   // 乱码歌词不显示，当作没有
+      if (!r.lines.length) r = (await autoOnline(s)) || r;   // 服务器没有（或乱码）：自动去在线来源找
+      if (bad && !r.lines.length) r = { ...r, bad: true };
       cache.set(s.id, r);
       return r;
     }).finally(() => pending.delete(s.id));
