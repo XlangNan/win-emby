@@ -8,16 +8,18 @@ export interface ThemeLayout {
   detailStyle?: 'basic' | 'cinema' | 'glass' | 'poster';
   discoverStyle?: 'basic' | 'shelf' | 'shelfWide' | 'wall';
   filterStyle?: 'plain' | 'card';
+  /** rail = 左侧可收起的图标栏外壳（织绿）；CSS 结构仍按 shell=topbar 走，只有 App 外壳多一根侧栏 */
+  chrome?: 'rail';
   navHeight?: number;
   sideWidth?: number;
   cardWidth?: number;
 }
 
-export type Theme = 'netflix' | 'noir';
+export type Theme = 'netflix' | 'noir' | 'jade';
 
 export const DEFAULT_THEME: Theme = 'noir';
 
-export const THEME_LABELS: Record<Theme, string> = { netflix: '🎬 网飝', noir: '✨ 黑金' };
+export const THEME_LABELS: Record<Theme, string> = { netflix: '🎬 网飝', noir: '✨ 黑金', jade: '🌿 织绿' };
 
 interface SkinEntry {
   id: Theme;
@@ -29,6 +31,8 @@ const SKINS: SkinEntry[] = [
   { id: 'netflix', base: 'dark', layout: { shell: 'topbar', detailStyle: 'cinema', discoverStyle: 'shelf', navHeight: 58, cardWidth: 176 } },
   // 黑金：布局与网飝完全一致，只换令牌（见 styles/noir.css）
   { id: 'noir', base: 'dark', layout: { shell: 'topbar', detailStyle: 'cinema', discoverStyle: 'shelf', navHeight: 58, cardWidth: 176 } },
+  // 织绿：深青黑 + 翠绿，左侧可收起的侧栏（仅电脑 / 平板；手机固定网飝）。仅深色
+  { id: 'jade', base: 'dark', layout: { shell: 'topbar', chrome: 'rail', detailStyle: 'cinema', discoverStyle: 'shelf', navHeight: 64, cardWidth: 176 } },
 ];
 
 export const ALL_THEMES: Theme[] = SKINS.map((s) => s.id);

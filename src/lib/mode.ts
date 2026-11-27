@@ -18,7 +18,9 @@ function systemLight(): boolean {
 }
 
 export function applyMode(p: ModePref): void {
-  const light = p === 'light' || (p === 'system' && systemLight());
+  // 织绿皮肤只有深色：不管偏好是什么都按深色渲染（偏好本身保留，换回别的皮肤时仍生效）
+  const jade = document.documentElement.getAttribute('data-theme') === 'jade';
+  const light = !jade && (p === 'light' || (p === 'system' && systemLight()));
   const root = document.documentElement;
   root.setAttribute('data-mode', light ? 'light' : 'dark');
   root.style.colorScheme = light ? 'light' : 'dark';
@@ -31,8 +33,11 @@ export function applyMode(p: ModePref): void {
   try { localStorage.setItem(KEY, p); } catch { /* ignore */ }
 }
 
+const THEME_EVT = 'wemby:theme-changed';
+
 export function initMode(): void {
   applyMode(loadMode());
+  window.addEventListener(THEME_EVT, () => applyMode(loadMode())); // 换皮肤后重新判定明暗（织绿固定深色）
   // 切后台再回来，部分手机会把状态栏图标还原：回到前台时再设一次
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') applyMode(loadMode()); });
   try {

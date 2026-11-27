@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { NavLink, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import AppAmbient from './components/AppAmbient';
+import JadeRail from './components/JadeRail';
 import SearchPanel from './components/SearchPanel';
 import ServerChip from './components/ServerChip';
 import TitleBar from './components/TitleBar';
@@ -136,7 +137,8 @@ export default function App() {
 function AppShell() {
   const nav = useNavigate();
   const loc = useLocation();
-  const shell = useSkinLayout().shell ?? 'topbar';
+  const layoutCfg = useSkinLayout();
+  const shell = layoutCfg.shell ?? 'topbar';
   const [views, setViews] = useState<EmbyItem[]>([]);
   const landscape = useLandscape();
   // 电脑版（含竖屏 iPad）：「首页」是仪表盘，原来的首页改叫「影视」（/movies）；手机 / 平板横屏外壳保持原样
@@ -248,6 +250,44 @@ function AppShell() {
   // ── 安卓手机：底部标签栏外壳 ──
   if (isIPad && landscape) return <TabletShell routes={routes} />;
   if (isMobileApp) return <MobileShell views={views} routes={routes} />;
+
+  // ── 织绿：左侧可收起的图标栏 + 顶部搜索条（页面结构沿用 topbar 那一套） ──
+  if (layoutCfg.chrome === 'rail') {
+    const browse = [
+      { to: '/', label: '首页', end: true, ico: 'home' },
+      { to: '/movies', label: '影视', ico: 'film' },
+      { to: '/music', label: '音乐', ico: 'music' },
+      { to: '/audiobooks', label: '有声书', ico: 'book' },
+      { to: '/live', label: '直播', ico: 'live' },
+      { to: '/discover', label: '片库', ico: 'disc' },
+      { to: '/local', label: '随便看看', ico: 'dice' },
+    ];
+    const libs = views.map((v) => ({ to: `/lib/${v.Id}`, label: v.Name, ico: v.CollectionType === 'movies' ? 'film' : v.CollectionType === 'tvshows' ? 'live' : 'folder' }));
+    const mine = [
+      { to: '/favorites', label: '收藏', ico: 'star' },
+      { to: '/history', label: '历史', ico: 'clock' },
+      { to: '/config', label: '设置', ico: 'gear' },
+    ];
+    return (
+      <div className="app nf netflix jd-app">
+        <AppAmbient />
+        <JadeRail browse={browse} libs={libs} mine={mine} />
+        <main className="main jd-col">
+          <nav className="nf-nav jd-top">
+            <span className="nf-spacer" />
+            <SearchPanel bar />
+            <span className="nf-spacer" />
+            <ServerChip />
+            <TitleBar />
+          </nav>
+          {routes}
+        </main>
+        <MiniPlayer />
+        <AbsBar />
+        <NowPlaying />
+      </div>
+    );
+  }
 
   // ── 大果：全宽工具栏 + 玻璃侧边栏 ──
   if (shell === 'sidebar') {

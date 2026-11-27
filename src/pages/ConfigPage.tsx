@@ -7,10 +7,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { emby } from '../emby/client';
 import { getSession, listAccounts, removeAccount, sameAccount, saveSession } from '../emby/session';
 import type { EmbyItem, Session } from '../emby/types';
-import { isAndroid } from '../lib/platform';
+import { isAndroid, isMobileApp } from '../lib/platform';
 import { fetchHistory, firstSync, loadSync, platform, platformLabel, pullApply, pushNow, setAuto, syncLogin, syncLogout, useSync, type Meta } from '../sync/sync';
 import { applyFont, FONT_PRESETS, loadFont } from '../lib/font';
 import { applyMode, loadMode, MODE_LABELS, type ModePref } from '../lib/mode';
+import { applyTheme, useTheme } from '../lib/theme';
+import { ALL_THEMES, THEME_LABELS } from '../lib/themeTokens';
 import { introDbOn, loadIntroProxy, saveIntroProxy, setIntroDbOn } from '../lib/introdb';
 import { loadDanmaku, saveDanmaku, testDanmaku } from '../lib/danmaku';
 import { loadPlayPrefs, savePlayPrefs } from '../lib/prefs';
@@ -375,14 +377,25 @@ function PartySettings() {
 
 function ModeSettings() {
   const [m, setM] = useState<ModePref>(loadMode);
+  const theme = useTheme();
   const pick = (v: ModePref): void => { setM(v); applyMode(v); };
+  const jade = theme === 'jade';
   return (
     <div className="card we-set" style={{ marginBottom: 14 }}>
       <h3>外观</h3>
-      <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+      {!isMobileApp && (
+        <>
+          <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>皮肤</div>
+          <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+            {ALL_THEMES.map((t) => <button key={t} className={`tag ${theme === t ? 'active' : ''}`} aria-pressed={theme === t} onClick={() => applyTheme(t)}>{THEME_LABELS[t]}</button>)}
+          </div>
+          <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>明暗</div>
+        </>
+      )}
+      <div className="row" style={{ gap: 8, flexWrap: 'wrap', opacity: jade ? .5 : 1 }}>
         {MODE_LABELS.map(([v, n]) => <button key={v} className={`tag ${m === v ? 'active' : ''}`} aria-pressed={m === v} onClick={() => pick(v)}>{n}</button>)}
       </div>
-      <div className="muted" style={{ fontSize: 12, marginTop: 8 }}>浅色只改界面底色和文字；视频播放器、影片详情页和音乐的全屏播放页保持深色。</div>
+      <div className="muted" style={{ fontSize: 12, marginTop: 8 }}>{jade ? '织绿皮肤只有深色，明暗选项换回其他皮肤后生效。' : '浅色只改界面底色和文字；视频播放器、影片详情页和音乐的全屏播放页保持深色。'}</div>
     </div>
   );
 }

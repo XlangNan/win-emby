@@ -34,72 +34,55 @@ function Cv({ src, title, cls }: { src?: string; title: string; cls?: string }) 
   );
 }
 
+const PLAY = <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M5.2 3.2v9.6l7.4-4.8-7.4-4.8Z" fill="currentColor" /></svg>;
+
+/** 足迹里的一条：时间 · 轨道圆点 · 封面 · 标题 · 备注 */
 function Ev({ e, go }: { e: Entry; go: (to: string) => void }) {
   const kind = e.kind || 'v';
   return (
-    <div className={`ed-ev ${kind}`} role="button" tabIndex={0} onClick={() => go(e.to)} onKeyDown={(ev) => ev.key === 'Enter' && go(e.to)}>
-      <div className="ed-t">{e.when}</div>
-      <div className="ed-rail"><i /></div>
-      <div className="ed-main">
-        {e.imgs && e.imgs.length > 1
-          ? <div className="ed-stack">{e.imgs.map((u, i) => <Cv key={i} src={u} title={e.title} />)}</div>
-          : <Cv src={e.img} title={e.title} cls={kind === 'v' ? 'w' : ''} />}
-        <div className="x"><div className="ed-kind">{KIND[kind]}</div><div className="ed-tt">{e.title}</div><div className="ed-ss">{e.sub}</div></div>
-      </div>
-      <div className="ed-note">{e.note}</div>
+    <div className={`dx-ev ${kind}`} role="button" tabIndex={0} onClick={() => go(e.to)} onKeyDown={(ev) => ev.key === 'Enter' && go(e.to)}>
+      <time>{e.when}</time>
+      <i className="dx-pin" aria-hidden="true" />
+      <Cv src={e.img} title={e.title} cls={kind === 'v' ? 'w' : ''} />
+      <div className="x"><div className="t">{e.title}</div><div className="s"><b>{KIND[kind]}</b>{e.sub}</div></div>
+      <em>{e.note}</em>
     </div>
   );
 }
 
-function Mini({ e, go, p }: { e: Entry; go: (to: string) => void; p?: boolean }) {
-  return (
-    <div className="ed-mini" role="button" tabIndex={0} onClick={() => go(e.to)} onKeyDown={(ev) => ev.key === 'Enter' && go(e.to)}>
-      <Cv src={e.img} title={e.title} cls={p ? 'p' : ''} />
-      <div className="x"><div className="ed-tt">{e.title}</div><div className="ed-ss">{e.sub}</div></div>
-    </div>
-  );
-}
-
-const IC = {
-  v: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4" /></svg>,
-  t: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="12" rx="2" /><path d="M8 3l4 4 4-4" /></svg>,
-  m: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V6l11-2v12" /><circle cx="6.5" cy="18" r="2.5" /><circle cx="17.5" cy="16" r="2.5" /></svg>,
-  a: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 6c-2-1.6-5-2-8-1.5v13c3-.5 6-.1 8 1.5 2-1.6 5-2 8-1.5v-13C17 4 14 4.4 12 6zM12 6v13" /></svg>,
-};
-
-function Tile({ e, go }: { e: Entry; go: (to: string) => void }) {
+/** 「接着来」：横版封面 + 底部进度 + 悬停播放钮 */
+function RCard({ e, go }: { e: Entry; go: (to: string) => void }) {
   const kind = e.to.startsWith('/audiobooks') ? 'a' : 'v';
   return (
-    <div className={`dh-tile ${kind}`} role="button" tabIndex={0} onClick={() => go(e.to)} onKeyDown={(ev) => ev.key === 'Enter' && go(e.to)}>
-      <Cv src={e.img} title={e.title} />
-      <div className="t">{e.title}</div>
-      <div className="k">{KIND[kind]}</div>
-      <div className="bar"><i style={{ width: `${Math.max(0, Math.min(100, e.pct))}%` }} /></div>
-      <div className="n">{e.note}</div>
+    <div className={`dx-rc ${kind}`} role="button" tabIndex={0} onClick={() => go(e.to)} onKeyDown={(ev) => ev.key === 'Enter' && go(e.to)}>
+      <div className="dx-rc-pic">
+        <Cv src={e.img} title={e.title} cls="w" />
+        <span className="dx-rc-kind">{KIND[kind]}</span>
+        <span className="dx-rc-play">{PLAY}</span>
+        <div className="dx-rc-bar"><i style={{ width: `${Math.max(0, Math.min(100, e.pct))}%` }} /></div>
+      </div>
+      <div className="dx-rc-t">{e.title}</div>
+      <div className="dx-rc-n">{e.note}</div>
     </div>
   );
 }
 
-function Pic({ e, go, kind }: { e: Entry; go: (to: string) => void; kind: 'v' | 'm' | 'a' }) {
+function Cover({ e, go, kind }: { e: Entry; go: (to: string) => void; kind: 'v' | 'm' | 'a' }) {
   return (
-    <div className={`dh-pic ${kind}`} role="button" tabIndex={0} onClick={() => go(e.to)} onKeyDown={(ev) => ev.key === 'Enter' && go(e.to)}>
-      <Cv src={e.img} title={e.title} />
+    <div className={`dx-cover ${kind}`} role="button" tabIndex={0} onClick={() => go(e.to)} onKeyDown={(ev) => ev.key === 'Enter' && go(e.to)}>
+      <Cv src={e.img} title={e.title} cls={kind === 'v' ? 'p' : ''} />
       <div className="t">{e.title}</div>
       <div className="s">{e.sub}</div>
     </div>
   );
 }
 
-function FRow({ e, go }: { e: Entry; go: (to: string) => void }) {
-  const kind = e.kind || 'v';
-  return (
-    <div className={`dh-fr ${kind}`} role="button" tabIndex={0} onClick={() => go(e.to)} onKeyDown={(ev) => ev.key === 'Enter' && go(e.to)}>
-      <Cv src={e.img} title={e.title} />
-      <div className="x"><div className="t">{e.title}</div><div className="s">{KIND[kind]} · {e.sub}{e.note ? ` · ${e.note}` : ''}</div></div>
-      <em>{e.when}</em>
-    </div>
-  );
-}
+const IC = {
+  v: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4" /></svg>,
+  t: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="12" rx="2" /><path d="M8 3l4 4 4-4" /></svg>,
+  m: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V6l11-2v12" /><circle cx="6.5" cy="18" r="2.5" /><circle cx="17.5" cy="16" r="2.5" /></svg>,
+  a: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 6c-2-1.6-5-2-8-1.5v13c3-.5 6-.1 8 1.5 2-1.6 5-2 8-1.5v-13C17 4 14 4.4 12 6zM12 6v13" /></svg>,
+};
 
 export default function DashboardPage() {
   const nav = useNavigate();
@@ -131,89 +114,102 @@ export default function DashboardPage() {
 
   const week = useMemo(() => lastDays().map((d) => ({ ...d, v: v?.week[d.key] || 0, m: local.days[d.key] || 0, a: b?.days[d.key] || 0 })), [v, b, local]);
   const weekTotal = week.reduce((s, d) => s + d.v + d.m + d.a, 0);
+  const weekBy = { v: week.reduce((s, d) => s + d.v, 0), m: week.reduce((s, d) => s + d.m, 0), a: week.reduce((s, d) => s + d.a, 0) };
 
   const states = [['Emby', !!getSession(), video.err], ['Navidrome', hasNd, music.err], ['Audiobookshelf', hasAbs, books.err]] as const;
-  const bad = states.filter(([, on, err]) => !on || err).map(([n, on]) => `${n}${on ? ' 读取失败' : ' 未连接'}`);
-  const status = bad.length ? bad.join('，') : 'Emby、Navidrome、Audiobookshelf 均已连接';
 
   const peak = Math.max(1, ...week.map((d) => d.v + d.m + d.a));
   const bh = (x: number): number => (x > 0 ? Math.max(3, Math.round((x / peak) * 100)) : 0);
-  const resumeAll = [v?.resume[0], ...(b?.resume.slice(0, 2) || []), ...(v?.resume.slice(1, 3) || [])].filter((x): x is Entry => !!x).slice(0, 8);
+  const resumeAll = [v?.resume[0], ...(b?.resume.slice(0, 2) || []), ...(v?.resume.slice(1, 4) || [])].filter((x): x is Entry => !!x).slice(0, 8);
   const stat = (cls: 'v' | 't' | 'm' | 'a', to: string, k: string, n: string, unit: string, sub: React.ReactNode) => (
-    <div className={`dh-stat ${cls}`} role="button" tabIndex={0} onClick={() => go(to)} onKeyDown={(ev) => ev.key === 'Enter' && go(to)}>
-      <i className="ic">{IC[cls]}</i>
-      <div className="tx"><div className="k">{k}</div><div className="n">{n}<small>{unit}</small></div><div className="s">{sub}</div></div>
+    <div className={`dx-stat ${cls}`} role="button" tabIndex={0} onClick={() => go(to)} onKeyDown={(ev) => ev.key === 'Enter' && go(to)}>
+      <div className="dx-sk"><i className="ic">{IC[cls]}</i><span>{k}</span></div>
+      <div className="dx-sn">{n}<small>{unit}</small></div>
+      <div className="dx-ss">{sub}</div>
+    </div>
+  );
+  const shelf = (kind: 'v' | 'm' | 'a', label: string, items: Entry[] | undefined, to: string, emptyText: string) => (
+    <div className={`dx-shelf ${kind}`}>
+      <div className="dx-sh sm"><h3><i aria-hidden="true" />{label}</h3><span role="button" tabIndex={0} onClick={() => go(to)} onKeyDown={(ev) => ev.key === 'Enter' && go(to)}>查看全部 ›</span></div>
+      {items?.length ? <div className="dx-covers">{items.slice(0, 10).map((e) => <Cover key={e.id} e={e} go={go} kind={kind} />)}</div> : <div className="dx-empty">{emptyText}</div>}
     </div>
   );
 
   return (
-    <div className="content ed-page dh-page">
-      <header className="dh-mast">
-        <div className="dh-date"><b>{now.getMonth() + 1}月{now.getDate()}日</b><span>星期{WEEK[now.getDay()]}</span></div>
-        <div className="dh-hi">{hello}，{getSession()?.userName || ''}<small>{status}</small></div>
+    <div className="content ed-page dx-page">
+      <header className="dx-mast">
+        <div className="dx-when"><span>星期{WEEK[now.getDay()]}</span><h1>{now.getMonth() + 1}月{now.getDate()}日</h1></div>
+        <div className="dx-who">
+          <div className="dx-hi">{hello}，{getSession()?.userName || ''}</div>
+          <div className="dx-svc">
+            {states.map(([n, on, err]) => (
+              <span key={n} className={!on ? 'off' : err ? 'bad' : 'ok'} title={!on ? '未连接' : err ? '读取失败' : '已连接'}><i />{n}</span>
+            ))}
+          </div>
+        </div>
       </header>
 
-      <section className="dh-stats">
+      <section className="dx-stats">
         {stat('v', '/movies', '电影', v ? fmt(v.movies) : '—', '部', v ? (v.newMovies ? <>昨天新增 <b>{v.newMovies}</b> 部</> : '昨天没有新增') : video.err ? '读取失败' : '读取中…')}
         {stat('t', '/movies', '剧集', v ? fmt(v.series) : '—', '部', v ? <>共 {fmt(v.episodes)} 集{v.newEpisodes ? <>，昨天新增 <b>{v.newEpisodes}</b> 集</> : null}</> : video.err ? '读取失败' : '读取中…')}
         {stat('m', '/music', '歌曲', m && m.songs ? fmt(m.songs) : '—', '首', m ? `${fmt(m.albums)} 张专辑，${fmt(m.artists)} 位艺术家` : !hasNd ? '未连接' : music.err ? '读取失败' : '读取中…')}
         {stat('a', '/audiobooks', '有声书', b ? fmt(b.books) : '—', '本', b ? `约 ${fmt(b.hours)} 小时${b.listening ? `，正在听 ${b.listening} 本` : ''}` : !hasAbs ? '未连接' : books.err ? '读取失败' : '读取中…')}
       </section>
 
-      <div className="dh-row">
-        <section className="dh-card dh-log">
-          <div className="dh-h"><h2>你的足迹</h2><span>{weekTotal > 0 ? `本周共 ${fmtCn(weekTotal)}` : ''}</span></div>
+      {resumeAll.length > 0 && (
+        <section className="dx-sec dx-next">
+          <div className="dx-sh"><h2>接着来</h2><span>{resumeAll.length} 项没看完 / 没听完</span></div>
+          <div className="dx-rail">{resumeAll.map((e) => <RCard key={e.id} e={e} go={go} />)}</div>
+        </section>
+      )}
+
+      <div className="dx-grid">
+        <section className="dx-card dx-log">
+          <div className="dx-sh"><h2>你的足迹</h2><span>{weekTotal > 0 ? `本周共 ${fmtCn(weekTotal)}` : ''}</span></div>
           {groups.map((g) => (
-            <div key={g.key} className="dh-day">
-              <div className="dh-dl"><b>{g.label}</b><span>周{WEEK[g.date.getDay()]}{g.items.length ? `，共 ${fmtCn(sum(g.items))}` : ''}</span></div>
+            <div key={g.key} className="dx-day">
+              <div className="dx-dl"><b>{g.label}</b><span>周{WEEK[g.date.getDay()]}{g.items.length ? ` · 共 ${fmtCn(sum(g.items))}` : ''}</span></div>
               {g.items.length ? (
-                <div className="dh-list">{g.items.slice(0, 8).map((e) => <FRow key={e.id} e={e} go={go} />)}</div>
+                <div className="dx-evs">{g.items.slice(0, 6).map((e) => <Ev key={e.id} e={e} go={go} />)}</div>
               ) : (
-                <div className="dh-none"><i /><div><b>暂无记录</b><span>{g.key === todayK ? '今天还没有看过、听过东西' : '昨天没有记录'}</span></div></div>
+                <div className="dx-empty">{g.key === todayK ? '今天还没有看过、听过东西' : '昨天没有记录'}</div>
               )}
             </div>
           ))}
         </section>
 
-        <section className="dh-card dh-next">
-          <div className="dh-h"><h2>接着来</h2></div>
-          {resumeAll.length ? (
-            <div className="dh-tiles">{resumeAll.map((e) => <Tile key={e.id} e={e} go={go} />)}</div>
-          ) : <div className="dh-none"><i /><div><b>暂无</b><span>没有看到一半、听到一半的内容</span></div></div>}
+        <section className="dx-card dx-week">
+          <div className="dx-sh"><h2>本周</h2><span>{weekTotal > 0 ? `共 ${fmtCn(weekTotal)}` : '这一周还没有看过、听过东西'}</span></div>
+          <div className="dx-wk">
+            {week.map((d) => {
+              const tot = d.v + d.m + d.a;
+              return (
+                <div key={d.key} className={d.today ? 'today' : ''} title={`影视 ${fmtCn(d.v)}，音乐 ${fmtCn(d.m)}，有声书 ${fmtCn(d.a)}`}>
+                  <u>{tot > 0 ? `${(tot / 3600).toFixed(1)}h` : ''}</u>
+                  <div className="col">
+                    {d.a > 0 ? <b className="a" style={{ height: `${bh(d.a)}%` }} /> : null}
+                    {d.v > 0 ? <b className="v" style={{ height: `${bh(d.v)}%` }} /> : null}
+                    {d.m > 0 ? <b className="m" style={{ height: `${bh(d.m)}%` }} /> : null}
+                  </div>
+                  <em>{d.label}</em>
+                </div>
+              );
+            })}
+          </div>
+          <div className="dx-lg">
+            <span className="v"><i />影视<b>{weekBy.v ? fmtCn(weekBy.v) : '—'}</b></span>
+            <span className="m"><i />音乐<b>{weekBy.m ? fmtCn(weekBy.m) : '—'}</b></span>
+            <span className="a"><i />有声书<b>{weekBy.a ? fmtCn(weekBy.a) : '—'}</b></span>
+          </div>
         </section>
       </div>
 
-      <div className="dh-low">
-      <section className="dh-card dh-weekc">
-        <div className="dh-h"><h2>本周</h2><span>{weekTotal > 0 ? `共 ${fmtCn(weekTotal)}` : '这一周还没有看过、听过东西'}</span></div>
-        <div className="dh-wk">
-          {week.map((d) => {
-            const tot = d.v + d.m + d.a;
-            return (
-              <div key={d.key} className={d.today ? 'today' : ''} title={`影视 ${fmtCn(d.v)}，音乐 ${fmtCn(d.m)}，有声书 ${fmtCn(d.a)}`}>
-                <u>{tot > 0 ? `${(tot / 3600).toFixed(1)}h` : ''}</u>
-                <div className="col">
-                  {d.a > 0 ? <b className="a" style={{ height: `${bh(d.a)}%` }} /> : null}
-                  {d.v > 0 ? <b className="v" style={{ height: `${bh(d.v)}%` }} /> : null}
-                  {d.m > 0 ? <b className="m" style={{ height: `${bh(d.m)}%` }} /> : null}
-                </div>
-                <em>{d.label}</em>
-              </div>
-            );
-          })}
-        </div>
-        <div className="dh-lg"><span className="v">影视</span><span className="m">音乐</span><span className="a">有声书</span></div>
+      <section className="dx-sec dx-new">
+        <div className="dx-sh"><h2>最近入库</h2></div>
+        {shelf('v', '影视', v?.recent, '/movies', '暂无')}
+        {shelf('m', '音乐', m?.recent, '/music', hasNd ? '暂无' : '未连接')}
+        {shelf('a', '有声书', b?.recent, '/audiobooks', hasAbs ? '暂无' : '未连接')}
       </section>
-
-      <section className="dh-card dh-new">
-        <div className="dh-h"><h2>最近入库</h2></div>
-        <div className="dh-cols">
-          <div className="dh-col v"><div className="dh-ch"><b>影视</b><span role="button" tabIndex={0} onClick={() => go('/movies')}>查看全部 ›</span></div>{v?.recent.length ? <div className="dh-pics">{v.recent.slice(0, 4).map((e) => <Pic key={e.id} e={e} go={go} kind="v" />)}</div> : <div className="ed-ss">暂无</div>}</div>
-          <div className="dh-col m"><div className="dh-ch"><b>音乐</b><span role="button" tabIndex={0} onClick={() => go('/music')}>查看全部 ›</span></div>{m?.recent.length ? <div className="dh-pics">{m.recent.slice(0, 4).map((e) => <Pic key={e.id} e={e} go={go} kind="m" />)}</div> : <div className="ed-ss">{hasNd ? '暂无' : '未连接'}</div>}</div>
-          <div className="dh-col a"><div className="dh-ch"><b>有声书</b><span role="button" tabIndex={0} onClick={() => go('/audiobooks')}>查看全部 ›</span></div>{b?.recent.length ? <div className="dh-pics">{b.recent.slice(0, 4).map((e) => <Pic key={e.id} e={e} go={go} kind="a" />)}</div> : <div className="ed-ss">{hasAbs ? '暂无' : '未连接'}</div>}</div>
-        </div>
-      </section>
-      </div>
     </div>
   );
 }

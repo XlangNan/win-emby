@@ -1,0 +1,132 @@
+/* jade.css — Weave 皮肤：织绿（深青黑 + 翠绿，左侧可收起的图标栏）
+   只在 data-theme='jade' 下生效；仅深色（mode.ts 会在该皮肤下强制按深色渲染）。
+   页面本身沿用 topbar 那一套结构（data-shell='topbar'），这里只换令牌、加侧栏、改局部质感。 */
+:root[data-theme='jade'] {
+  --surface-0: #070e12;
+  --surface-glass: rgba(10, 20, 24, .82);
+  --surface-1: #0d181d;
+  --surface-2: #132128;
+  --surface-3: #1a2b33;
+  --accent: #3ddc84;
+  --accent-strong: #5cf0a0;
+  --accent-container: #1fbf6b;
+  --accent-soft: rgba(61, 220, 132, .16);
+  --accent-2: #7bf2b2;
+  --on-accent: #04140c;
+  --text: #e9f4ef;
+  --text-dim: #9db3a9;
+  --text-faint: #6f857b;
+  --border: rgba(255, 255, 255, .09);
+  --border-soft: rgba(255, 255, 255, .08);
+  --hairline: rgba(255, 255, 255, .09);
+  --danger: #ef6a6a;
+  --warn: #e0b052;
+  --success: #3ddc84;
+  --info: #59c2d6;
+  --radius: 14px;
+  --radius-sm: 9px;
+  --radius-lg: 20px;
+  --shadow: 0 2px 8px rgba(0, 0, 0, .45), 0 18px 40px rgba(0, 0, 0, .5);
+  --shadow-lg: 0 6px 16px rgba(0, 0, 0, .5), 0 32px 80px rgba(0, 0, 0, .65);
+  --ed-act: var(--accent);
+  --ed-on: var(--on-accent);
+  --ed-v: #f08a5d;
+  --ed-m: #59c2d6;
+  --ed-a: #3ddc84;
+  --ed-t: #a99cf0;
+}
+
+/* ============ 外壳：左侧栏 + 右侧列 ============ */
+:root[data-theme='jade'] .app.jd-app {
+  flex-direction: row;
+  background:
+    radial-gradient(1100px 640px at 72% -12%, rgba(30, 96, 112, .42), transparent 62%),
+    radial-gradient(900px 600px at 0% 108%, rgba(18, 90, 62, .38), transparent 58%),
+    var(--surface-0);
+}
+:root[data-theme='jade'] .jd-col { flex: 1; min-width: 0; }
+
+:root[data-theme='jade'] .jd-side {
+  position: relative; z-index: 45; flex: none; width: 212px; display: flex; flex-direction: column;
+  padding: 18px 12px 14px; gap: 6px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .045), rgba(255, 255, 255, .015));
+  border-right: 1px solid var(--border-soft);
+  backdrop-filter: blur(18px);
+  transition: width .24s var(--ease-standard, ease);
+  -webkit-app-region: drag;
+}
+:root[data-theme='jade'] .jd-side.mini { width: 72px; padding-left: 10px; padding-right: 10px; }
+:root[data-theme='jade'] .jd-side a, :root[data-theme='jade'] .jd-side button, :root[data-theme='jade'] .jd-brand { -webkit-app-region: no-drag; }
+
+:root[data-theme='jade'] .jd-brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 16px; cursor: pointer; min-height: 52px; }
+:root[data-theme='jade'] .jd-brand-ico { width: 30px; height: 30px; border-radius: 9px; flex: none; }
+:root[data-theme='jade'] .jd-brand-name { font-size: 19px; font-weight: 800; letter-spacing: .02em; color: var(--text); }
+:root[data-theme='jade'] .jd-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; display: flex; flex-direction: column; gap: 14px; }
+:root[data-theme='jade'] .jd-scroll::-webkit-scrollbar { display: none; }
+:root[data-theme='jade'] .jd-group { display: flex; flex-direction: column; gap: 3px; }
+:root[data-theme='jade'] .jd-label { font-size: 11px; letter-spacing: .14em; color: var(--text-faint); padding: 2px 14px 4px; white-space: nowrap; }
+
+:root[data-theme='jade'] .jd-nav {
+  display: flex; align-items: center; gap: 13px; height: 42px; padding: 0 13px; border-radius: 12px;
+  color: #cfe0d8; font-size: 14.5px; text-decoration: none; border: 1px solid transparent; white-space: nowrap;
+  transition: background .18s, color .18s, border-color .18s, box-shadow .18s;
+}
+:root[data-theme='jade'] .jd-ico { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+@media (hover: hover) and (pointer: fine) { :root[data-theme='jade'] .jd-nav:hover { background: rgba(255, 255, 255, .07); color: #fff; } }
+:root[data-theme='jade'] .jd-nav.active {
+  color: #fff; font-weight: 600;
+  background: linear-gradient(90deg, rgba(61, 220, 132, .26), rgba(61, 220, 132, .07));
+  border-color: rgba(61, 220, 132, .55);
+  box-shadow: 0 0 22px -6px rgba(61, 220, 132, .6), inset 0 0 0 1px rgba(255, 255, 255, .04);
+}
+:root[data-theme='jade'] .jd-nav.active .jd-ico { color: var(--accent-strong); }
+:root[data-theme='jade'] .jd-fold {
+  display: flex; align-items: center; gap: 13px; height: 38px; padding: 0 13px; border-radius: 12px; margin-top: 6px;
+  background: transparent; border: 1px solid transparent; color: var(--text-faint); font-size: 13px; cursor: pointer; width: 100%; white-space: nowrap;
+}
+:root[data-theme='jade'] .jd-fold svg { flex: none; transition: transform .24s; margin: 0 3px; }
+@media (hover: hover) and (pointer: fine) { :root[data-theme='jade'] .jd-fold:hover { background: rgba(255, 255, 255, .06); color: var(--text); } }
+
+/* 收起：只剩图标，居中；文字隐藏 */
+:root[data-theme='jade'] .jd-side.mini .jd-txt,
+:root[data-theme='jade'] .jd-side.mini .jd-label { display: none; }
+:root[data-theme='jade'] .jd-side.mini .jd-brand { justify-content: center; padding-left: 0; padding-right: 0; }
+:root[data-theme='jade'] .jd-side.mini .jd-nav,
+:root[data-theme='jade'] .jd-side.mini .jd-fold { justify-content: center; padding: 0; gap: 0; }
+:root[data-theme='jade'] .jd-side.mini .jd-group + .jd-group { padding-top: 10px; border-top: 1px solid var(--border-soft); }
+
+/* ============ 顶栏：只放居中的搜索条 + 服务器 + 窗口按钮 ============ */
+:root[data-theme='jade'] .jd-top { padding: 12px 22px 10px; gap: 14px; background: transparent; }
+:root[data-theme='jade'] .jd-top .sp-bar-wrap { flex: 0 1 460px; width: 460px; max-width: 46vw; }
+:root[data-theme='jade'] .jd-top .sp-btn.sp-bar {
+  width: 100%; height: 38px; border-radius: 19px; justify-content: flex-start; gap: 10px; padding: 0 16px;
+  background: rgba(255, 255, 255, .07); border: 1px solid var(--border-soft); color: var(--text-dim); backdrop-filter: blur(14px);
+}
+@media (hover: hover) and (pointer: fine) { :root[data-theme='jade'] .jd-top .sp-btn.sp-bar:hover { border-color: rgba(61, 220, 132, .5); background: rgba(255, 255, 255, .1); } }
+:root[data-theme='jade'] .sp-bar-hint { color: var(--text-faint); font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ============ 主按钮 / 卡片 / 行标题：翠绿 + 圆润 ============ */
+:root[data-theme='jade'] .spot-go,
+:root[data-theme='jade'] .nfd-play {
+  background: linear-gradient(180deg, #55eb95, #1fbf6b); color: #03130b; border: 0; font-weight: 700;
+  box-shadow: 0 8px 26px -8px rgba(61, 220, 132, .8);
+}
+@media (hover: hover) and (pointer: fine) { :root[data-theme='jade'] .spot-go:hover, :root[data-theme='jade'] .nfd-play:hover { filter: brightness(1.08); } }
+:root[data-theme='jade'] .spot-next { background: rgba(255, 255, 255, .09); border: 1px solid var(--border-soft); backdrop-filter: blur(12px); }
+:root[data-theme='jade'] .spot-kicker { color: var(--accent); }
+:root[data-theme='jade'] .spot-kicker-dot { background: var(--accent); }
+:root[data-theme='jade'] .spot-dot.active { background: var(--accent); }
+:root[data-theme='jade'] .spot-year { color: var(--accent); }
+:root[data-theme='jade'] .spot-rank { color: var(--accent-2); }
+:root[data-theme='jade'] .nf-row-title::before { background: linear-gradient(180deg, var(--accent-strong), var(--accent)); }
+:root[data-theme='jade'] .we-progress-bar { background: var(--accent); }
+:root[data-theme='jade'] .card-media .remarks { color: var(--text-dim); }
+:root[data-theme='jade'] .card-media .card img { border-radius: 14px; box-shadow: 0 0 0 1px var(--border-soft); }
+:root[data-theme='jade'] .card-media:hover .card img { box-shadow: 0 0 0 1px rgba(61, 220, 132, .6), var(--shadow); }
+:root[data-theme='jade'] .tag.active { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 700; }
+:root[data-theme='jade'] .we-gear { display: none; }  /* 设置已在侧栏里 */
+
+/* 首页仪表盘（refresh.css）的圆点 / 底色在深青底上的取值 */
+:root[data-theme='jade'] .dx-pin { box-shadow: 0 0 0 4px var(--surface-1); }
+:root[data-theme='jade'] .dx-rc-play { color: var(--on-accent); background: var(--accent); }
+:root[data-theme='jade'] .dx-wk .today em { background: var(--accent); color: var(--on-accent); }

@@ -41,6 +41,7 @@ export function applyTheme(t: Theme): void {
   root.setAttribute('data-detail', layout.detailStyle ?? 'basic');
   root.setAttribute('data-discover', layout.discoverStyle ?? 'basic');
   root.setAttribute('data-filter', layout.filterStyle ?? 'plain');
+  root.setAttribute('data-chrome', layout.chrome ?? 'bar');
   applyLayoutVars(layout);
   try {
     localStorage.setItem(KEY, theme);
