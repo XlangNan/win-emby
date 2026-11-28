@@ -117,6 +117,7 @@ class MainActivity : TauriActivity() {
         exo = ex
         webView.addJavascriptInterface(ex, "AndroidExo")
         webView.addJavascriptInterface(NetBridge(webView), "AndroidNet")
+        webView.addJavascriptInterface(DlnaBridge(this, webView), "AndroidDlna")
         web = webView
         webView.addJavascriptInterface(MusicKeep(), "AndroidMusic")
         webView.addJavascriptInterface(MusicNotifBridge(), "AndroidMusicNotif")

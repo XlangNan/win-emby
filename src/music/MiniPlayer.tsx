@@ -6,6 +6,7 @@ import { activeLine, useLrcOffset, useLyrics } from './lyrics';
 import { saveOpts, useOpts } from './prefs';
 import { nd } from './navidrome';
 import { useBackClose } from './useBackClose';
+import CastButton from './CastPicker';
 import { notifyStarred, setRepeat, setStarred, next, pause, playIndex, prev, removeAt, seek, setOpen, setShuffle, setVolume, stopMusic, togglePlay, useMusic, useMusicPos } from './player';
 
 const MODE_NAME = { order: '顺序播放', loop: '列表循环', shuffle: '随机播放', one: '单曲循环' } as const;
@@ -88,6 +89,7 @@ export default function MiniPlayer({ inline }: { inline?: boolean }) {
           <div className="mu-mini-txt"><Marquee tag="b" text={c.title} loop /><BarSub /></div>
         </div>
         <button type="button" className="mu-ib mu-ib-main" aria-label={m.playing ? '暂停' : '播放'} onClick={togglePlay}><Ic n={m.playing ? 'pause' : 'play'} size={22} /></button>
+        <CastButton />
         <button type="button" className="mu-ib" aria-label="播放队列" onClick={() => setQ(true)}><Ic n="list" /></button>
         <button type="button" className="mu-ib mu-ib-stop" aria-label="停止播放并关闭播放条" onClick={() => stopMusic()}><Ic n="close" size={18} /></button>
         <div className="mu-mini-sl"><Slider value={m.pos} max={m.dur} onSeek={seek} /></div>
@@ -120,6 +122,7 @@ export default function MiniPlayer({ inline }: { inline?: boolean }) {
         <button type="button" className={`mu-ib${opts.barLyric ? ' on' : ''}`} aria-label={opts.barLyric ? '关闭播放条歌词' : '开启播放条歌词'} title={opts.barLyric ? '播放条歌词：开（点击关闭）' : '播放条歌词：关'} onClick={() => saveOpts({ barLyric: !opts.barLyric })}><span className="mu-ci">词</span></button>
         <VolumeBox><button type="button" className="mu-ib" aria-label={m.volume > 0 ? '静音' : '取消静音'} onClick={() => { if (m.volume > 0) { lastVol.current = m.volume; setVolume(0); } else setVolume(lastVol.current); }}><Ic n={m.volume > 0 ? 'vol' : 'mute'} size={19} /></button>
         <input type="range" className="mu-vol" min={0} max={100} value={Math.round(m.volume * 100)} aria-label="音量" onChange={(e) => setVolume(Number(e.target.value) / 100)} style={{ ['--p' as string]: `${m.volume * 100}%` }} /></VolumeBox>
+        <CastButton />
         <button type="button" className={`mu-ib${q ? ' on' : ''}`} aria-label="播放队列" onClick={() => setQ((v) => !v)}><Ic n="list" size={20} /></button>
         <button type="button" className="mu-ib mu-ib-stop" aria-label="停止播放并关闭播放条" title="停止并关闭" onClick={() => stopMusic()}><Ic n="close" size={18} /></button>
       </div>

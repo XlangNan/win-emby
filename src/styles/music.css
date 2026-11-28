@@ -758,3 +758,24 @@
 .mu-dl-btns{ display: inline-flex; gap: 8px; }
 .mu-dl-btns button{ display: inline-flex; align-items: center; gap: 5px; height: 34px; padding: 0 14px; border-radius: 17px; }
 .mu-dhead-btns{ flex-wrap: wrap; }
+
+/* ───────── 投屏（DLNA） ───────── */
+.mu-cast-mask{ position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,.5); }
+.mu-cast{ position: fixed; z-index: 301; left: 50%; top: 50%; transform: translate(-50%,-50%); width: min(420px, calc(100vw - 32px)); max-height: min(560px, 80vh); display: flex; flex-direction: column; background: #1c1c20; color: #f2f2f3; border-radius: 16px; padding: 8px 8px 12px; box-shadow: 0 20px 60px rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.08); box-sizing: border-box; }
+html.android .mu-cast{ left: 0; right: 0; top: auto; bottom: 0; transform: none; width: auto; max-height: 75vh; border-radius: 18px 18px 0 0; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+.mu-cast-h{ display: flex; align-items: center; gap: 2px; padding: 4px 8px 4px 12px; }
+.mu-cast-h b{ flex: 1; font-size: 16px; }
+.mu-cast-h .mu-ib{ width: 40px; height: 40px; }
+.mu-cast-warn{ margin: 4px 8px; padding: 8px 10px; font-size: 12.5px; line-height: 1.5; color: #ffd37a; background: rgba(255,190,60,.12); border-radius: 8px; }
+.mu-cast-l{ overflow-y: auto; padding: 4px 4px; display: flex; flex-direction: column; gap: 2px; min-height: 0; }
+.mu-cast-i{ all: unset; cursor: pointer; box-sizing: border-box; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; min-height: 48px; }
+.mu-cast-i:hover{ background: rgba(255,255,255,.07); }
+.mu-cast-i:focus-visible{ outline: 2px solid #f0414b; outline-offset: -2px; }
+.mu-cast-i.on{ color: #f0414b; background: rgba(240,65,75,.1); }
+.mu-cast-ic{ display: flex; flex: none; }
+.mu-cast-i b{ font-weight: 600; font-size: 14.5px; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mu-cast-i small{ flex: 1; min-width: 0; font-size: 12px; opacity: .55; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mu-cast-i em{ font-style: normal; font-size: 12px; margin-left: auto; opacity: .85; flex: none; }
+.mu-cast-empty{ padding: 14px 12px; font-size: 13px; line-height: 1.6; opacity: .65; }
+.mu-cast-opt{ display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px 0; font-size: 12.5px; line-height: 1.5; opacity: .8; cursor: pointer; }
+.mu-cast-opt input{ margin-top: 3px; accent-color: #f0414b; flex: none; }

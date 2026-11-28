@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Cover, fmtTime, Ic, Slider, VolumeBox } from './MusicUi';
 import { leaveOverlaysThen, useBackClose } from './useBackClose';
+import CastButton from './CastPicker';
 import { coverUrl, nd } from './navidrome';
 import { activeLine, useLrcOffset, useLyrics } from './lyrics';
 import { setLrcOffset } from './overrides';
@@ -212,8 +213,9 @@ export default function NowPlaying() {
         </div>
         <div className="mu-np-foot">
           <button type="button" className={`mu-ib${star ? ' on' : ''}`} aria-label="收藏" onClick={toggleStar}><Ic n="heart" size={20} fill={star} /></button>
-          <span className="mu-np-st">{m.error || (m.sleepAt ? `${Math.max(1, Math.ceil((m.sleepAt - Date.now()) / 60000))} 分钟后停止` : m.queue.length ? `队列 ${m.index + 1} / ${m.queue.length}` : '')}</span>
+          <span className="mu-np-st">{m.error || (m.castName ? `投屏中 · ${m.castName}` : m.sleepAt ? `${Math.max(1, Math.ceil((m.sleepAt - Date.now()) / 60000))} 分钟后停止` : m.queue.length ? `队列 ${m.index + 1} / ${m.queue.length}` : '')}</span>
           <VolumeBox className="mu-np-vol"><Ic n={m.volume > 0 ? 'vol' : 'mute'} size={18} /><input type="range" min={0} max={100} value={Math.round(m.volume * 100)} aria-label="音量" onChange={(e) => setVolume(Number(e.target.value) / 100)} style={{ ['--p' as string]: `${m.volume * 100}%` }} /></VolumeBox>
+          <CastButton />
           <span className="mu-sleep-w">
             <button type="button" className={`mu-ib${m.sleepAt ? ' on' : ''}`} aria-label="定时关闭" onClick={() => setSleepOpen((v) => !v)}><Ic n="moon" size={20} /></button>
             {sleepOpen && (

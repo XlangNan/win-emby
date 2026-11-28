@@ -15,7 +15,7 @@ const mf = path.join(root, 'src/main/AndroidManifest.xml');
 let x = fs.readFileSync(mf, 'utf8');
 if (/android:usesCleartextTraffic="[^"]*"/.test(x)) x = x.replace(/android:usesCleartextTraffic="[^"]*"/, 'android:usesCleartextTraffic="true"');
 else x = x.replace('<application', '<application android:usesCleartextTraffic="true"');
-for (const perm of ['FOREGROUND_SERVICE', 'FOREGROUND_SERVICE_MEDIA_PLAYBACK', 'POST_NOTIFICATIONS']) {
+for (const perm of ['FOREGROUND_SERVICE', 'FOREGROUND_SERVICE_MEDIA_PLAYBACK', 'POST_NOTIFICATIONS', 'ACCESS_WIFI_STATE', 'CHANGE_WIFI_MULTICAST_STATE']) {
   if (!x.includes(`android.permission.${perm}`)) x = x.replace('<application', `<uses-permission android:name="android.permission.${perm}" />\n    <application`);
 }
 if (!x.includes('android.permission.WAKE_LOCK')) x = x.replace('<application', '<uses-permission android:name="android.permission.WAKE_LOCK" />\n    <application');
@@ -53,7 +53,7 @@ let dir = null;
 })(javaRoot);
 if (!dir) throw new Error('找不到生成的 MainActivity.kt');
 const pkgLine = (fs.readFileSync(path.join(dir, 'MainActivity.kt'), 'utf8').match(/^package\s+(\S+)/m) || [])[1];
-for (const f of ['MpvBridge.kt', 'ExoBridge.kt', 'MainActivity.kt', 'NetBridge.kt', 'MusicService.kt']) {
+for (const f of ['MpvBridge.kt', 'ExoBridge.kt', 'MainActivity.kt', 'NetBridge.kt', 'MusicService.kt', 'DlnaBridge.kt']) {
   let s = fs.readFileSync(path.resolve('android', f), 'utf8').replace(/^package\s+\S+/m, `package ${pkgLine}`).replace('__MPVLIB__', mpvClass);
   fs.writeFileSync(path.join(dir, f), s);
 }

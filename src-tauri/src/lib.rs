@@ -5,6 +5,7 @@
 //   4. 桌面端记住窗口大小 / 位置（window-state 插件）
 //   6. open_vlc：用本机 VLC 播放（MPV 读不了的直链兜底）
 //   5. 桌面端挂载 libmpv 插件（HDR / 杜比视界）；安卓端 mpv 由 Kotlin 桥（MpvBridge）提供
+mod ssdp;
 mod thumbbar;
 
 /// 用本机安装的 VLC 播放（电脑版）：先找默认安装位置，再退到 PATH 里的 vlc
@@ -80,7 +81,7 @@ pub fn run() {
     });
 
     builder
-        .invoke_handler(tauri::generate_handler![thumbbar::thumb_init, thumbbar::thumb_playing, open_vlc])
+        .invoke_handler(tauri::generate_handler![thumbbar::thumb_init, thumbbar::thumb_playing, open_vlc, ssdp::ssdp_search])
         .run(tauri::generate_context!())
         .expect("启动 Weave 失败");
 }
